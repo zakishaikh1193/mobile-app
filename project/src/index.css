@@ -1,0 +1,17 @@
+/* 
+  STEP 1: Import the Google Fonts you need for your themes.
+  - "Nunito" is for your modern, peachy theme.
+  - "Fredoka One" is for the chunky, playful game dashboard theme.
+*/
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap');
+
+
+/* 
+  STEP 2: Add the Tailwind directives. 
+  These must come AFTER any imports.
+*/
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

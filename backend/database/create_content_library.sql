@@ -1,0 +1,14 @@
+USE prek_db;
+
+CREATE TABLE content_library (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  type VARCHAR(50) NOT NULL,
+  description TEXT,
+  status VARCHAR(20) NOT NULL,
+  downloads INT DEFAULT 0,
+  file_url TEXT,
+  thumbnail_url TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+); 
