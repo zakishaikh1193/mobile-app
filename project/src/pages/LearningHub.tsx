@@ -6,6 +6,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAudio } from '../contexts/AudioContext';
 import AnimatedButton from '../components/AnimatedButton';
 import AudioButton from '../components/AudioButton';
+import DigitalPainting from '../components/DigitalPainting';
+import DigitalArtStudio from '../components/DigitalArtStudio';
 
 const LearningHub: React.FC = () => {
   const { hubType, childId } = useParams<{ hubType: string; childId: string }>();
@@ -60,13 +62,10 @@ const LearningHub: React.FC = () => {
       color: 'from-pink-500 to-rose-500',
       activities: [
         {
-          type: 'coloring',
-          title: 'Color the Picture',
-          instruction: 'Choose colors and paint this beautiful picture!',
-          data: {
-            image: '🏠',
-            colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD']
-          }
+          type: 'digital-painting',
+          title: 'Creativity Hub: Digital Painting',
+          instruction: 'Create your own masterpiece with our advanced digital painting tools! Try brushes, stickers, and more.',
+          data: {}
         },
         {
           type: 'sticker-scene',
@@ -228,8 +227,8 @@ const LearningHub: React.FC = () => {
         return <CountingActivity activity={activity} onComplete={handleActivityComplete} />;
       case 'emotion-match':
         return <EmotionMatchActivity activity={activity} onComplete={handleActivityComplete} />;
-      case 'coloring':
-        return <ColoringActivity activity={activity} onComplete={handleActivityComplete} />;
+      case 'digital-painting':
+        return <DigitalPaintingActivity />;
       case 'family-tree':
         return <FamilyTreeActivity activity={activity} onComplete={handleActivityComplete} />;
       default:
@@ -436,13 +435,13 @@ const BubblePopActivity: React.FC<{ activity: any; onComplete: (score: number) =
     if (letter === activity.data.targetLetter) {
       playSound('success');
       speak('Great pop!');
-      setBubbles(prev => prev.map(bubble => 
+      setBubbles((prev: any[]) => prev.map((bubble: any) => 
         bubble.id === id ? { ...bubble, popped: true } : bubble
       ));
       
       // Check if all target bubbles are popped
-      const targetBubbles = bubbles.filter(b => b.letter === activity.data.targetLetter);
-      const poppedTargets = bubbles.filter(b => b.letter === activity.data.targetLetter && b.popped).length + 1;
+      const targetBubbles = bubbles.filter((b: any) => b.letter === activity.data.targetLetter);
+      const poppedTargets = bubbles.filter((b: any) => b.letter === activity.data.targetLetter && b.popped).length + 1;
       
       if (poppedTargets >= targetBubbles.length) {
         setTimeout(() => onComplete(100), 1000);
@@ -466,7 +465,7 @@ const BubblePopActivity: React.FC<{ activity: any; onComplete: (score: number) =
       <p className="text-2xl font-bold text-purple-600 mb-8">Target Letter: {activity.data.targetLetter}</p>
       
       <div className="relative h-96 bg-gradient-to-b from-blue-200 to-blue-400 rounded-3xl overflow-hidden">
-        {bubbles.map((bubble) => (
+        {bubbles.map((bubble: any) => (
           !bubble.popped && (
             <motion.button
               key={bubble.id}
@@ -819,6 +818,10 @@ const DefaultActivity: React.FC<{ activity: any; onComplete: (score: number) => 
       </div>
     </div>
   );
+};
+
+const DigitalPaintingActivity: React.FC = () => {
+  return <DigitalArtStudio />;
 };
 
 export default LearningHub;

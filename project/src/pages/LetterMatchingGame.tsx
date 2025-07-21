@@ -148,6 +148,7 @@ const LetterMatchingGame: React.FC = () => {
 
   // --- Letters and Pictures for current level ---
   const currentSet = ALL_LEVELS[level] || [];
+  console.log('Current Level Data:', currentSet); // DEBUG: Print current level data
   const LETTERS = currentSet.map(l => ({ char: l.char, id: l.id }));
   const PICTURES = currentSet.map(l => ({ name: l.name, emoji: l.emoji, id: l.id }));
   const totalPairs = currentSet.length;
@@ -159,8 +160,8 @@ const LetterMatchingGame: React.FC = () => {
     if (gameAreaRef.current && setIsValid) {
       const width = gameAreaRef.current.offsetWidth;
       const height = gameAreaRef.current.offsetHeight;
-      const letterPositions = getRandomPositions(totalPairs, width * 0.4, height, 90, 30);
-      const picturePositions = getRandomPositions(totalPairs, width * 0.4, height, 110, 30);
+      const letterPositions = getRandomPositions(totalPairs, width * 0.4, height, 70, 20);
+      const picturePositions = getRandomPositions(totalPairs, width * 0.4, height, 90, 20);
       setPositions({
         letters: letterPositions.map((pos) => ({ ...pos, x: pos.x + 0 })),
         pictures: picturePositions.map((pos) => ({ ...pos, x: pos.x + width * 0.6 })),
@@ -171,13 +172,28 @@ const LetterMatchingGame: React.FC = () => {
   // --- Handle Matching ---
   const handleLetterClick = (id: string) => {
     if (matches.length === totalPairs) return;
-    playSound('click');
     setSelectedLetter(id);
     setHintLetter(null); // Remove hint after any manual interaction
+    if (soundOn) {
+      // Find the letter object for the current set
+      const letterObj = LETTERS.find(l => l.id === id);
+      if (letterObj) {
+        const audio = new window.Audio(`/sounds/letters/${letterObj.char}.mp3`);
+        audio.play();
+      }
+    }
   };
   const handlePictureClick = (id: string) => {
     if (matches.length === totalPairs) return;
     setAttempts(a => a + 1);
+    if (soundOn) {
+      // Find the picture object for the current set
+      const picObj = PICTURES.find(p => p.id === id);
+      if (picObj) {
+        const audio = new window.Audio(`/sounds/words/${picObj.name}.mp3`);
+        audio.play();
+      }
+    }
     if (selectedLetter && id === selectedLetter) {
       playSound('success');
       speak('Great job!');
@@ -367,7 +383,7 @@ const LetterMatchingGame: React.FC = () => {
         </motion.div>
       </div>
       {/* Game Area */}
-      <div ref={gameAreaRef} className="relative mx-auto bg-white/60 rounded-3xl shadow-xl backdrop-blur-lg w-[95vw] max-w-5xl h-[60vh] min-h-[400px] mb-8 z-10 overflow-visible">
+      <div ref={gameAreaRef} className="relative mx-auto bg-white/60 rounded-3xl shadow-xl backdrop-blur-lg w-[95vw] max-w-5xl h-[80vh] min-h-[600px] mb-8 z-10 overflow-visible">
         {/* SVG Lines */}
         <svg className="absolute top-0 left-0 w-full h-full z-0 pointer-events-none">
           {matches.map((match, i) => {
@@ -416,7 +432,7 @@ const LetterMatchingGame: React.FC = () => {
             <motion.div
               key={letter.id}
               className={clsx(
-                "absolute flex items-center justify-center w-[90px] h-[90px] rounded-2xl font-extrabold text-4xl cursor-pointer select-none shadow-lg transition-all",
+                "absolute flex items-center justify-center w-[70px] h-[70px] rounded-2xl font-extrabold text-4xl cursor-pointer select-none shadow-lg transition-all border-2 border-red-500", // add red border for debug
                 matched ? "bg-gradient-to-br from-green-200 to-green-400 ring-4 ring-green-400 scale-105" :
                 isHintTarget ? "bg-gradient-to-br from-yellow-200 to-yellow-400 ring-4 ring-yellow-400 animate-bounce" :
                 selectedLetter === letter.id ? "bg-gradient-to-br from-yellow-200 to-yellow-400 ring-4 ring-yellow-400 animate-bounce" :
@@ -444,7 +460,7 @@ const LetterMatchingGame: React.FC = () => {
             <motion.div
               key={pic.id}
               className={clsx(
-                "absolute flex flex-col items-center justify-center w-[110px] h-[110px] rounded-3xl font-bold text-lg cursor-pointer select-none shadow-lg transition-all border-2 border-white",
+                "absolute flex flex-col items-center justify-center w-[90px] h-[90px] rounded-3xl font-bold text-lg cursor-pointer select-none shadow-lg transition-all border-2 border-blue-500", // add blue border for debug
                 matched ? "bg-gradient-to-br from-pink-200 to-pink-400 ring-4 ring-pink-400 scale-105" :
                 isHintTarget ? "bg-gradient-to-br from-yellow-200 to-yellow-400 ring-4 ring-yellow-400 animate-bounce" :
                 "bg-gradient-to-br from-blue-100 to-pink-100 hover:scale-110 hover:shadow-2xl",
@@ -489,6 +505,7 @@ const LetterMatchingGame: React.FC = () => {
               <div className="flex gap-4">
                 <AnimatedButton variant="fun" onClick={handlePlayAgainSet}>Play Again</AnimatedButton>
                 <AnimatedButton variant="success" onClick={handleNextSet}>Next</AnimatedButton>
+                <AnimatedButton variant="secondary" onClick={() => navigate(`/child-dashboard/${childId}`)}>Back</AnimatedButton>
               </div>
             </motion.div>
           </motion.div>
@@ -511,7 +528,10 @@ const LetterMatchingGame: React.FC = () => {
                   <div key={i} className="inline-block bg-gradient-to-r from-yellow-200 to-pink-200 text-yellow-800 font-bold px-4 py-2 rounded-2xl shadow mx-2 animate-pulse">{ach}</div>
                 ))}
               </div>
-              <AnimatedButton variant="fun" onClick={handlePlayAgainGame}>Play Again</AnimatedButton>
+              <div className="flex gap-4">
+                <AnimatedButton variant="fun" onClick={handlePlayAgainGame}>Play Again</AnimatedButton>
+                <AnimatedButton variant="secondary" onClick={() => navigate(`/child-dashboard/${childId}`)}>Back</AnimatedButton>
+              </div>
             </motion.div>
           </motion.div>
         )}
