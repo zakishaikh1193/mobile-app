@@ -12,6 +12,7 @@ import AdminPortal from './pages/AdminPortal';
 import LearningHub from './pages/LearningHub';
 import ARZone from './pages/ARZone';
 import LetterMatchingGame from './pages/LetterMatchingGame';
+import EducationalGame from './pages/EducationalGame';
 import ProtectedRoute from './components/ProtectedRoute';
 import './index.css';
 
@@ -62,6 +63,14 @@ function App() {
                   element={
                     <ProtectedRoute role="parent">
                       <LetterMatchingGame />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/educational-game/:childId" 
+                  element={
+                    <ProtectedRoute role="parent">
+                      <EducationalGame />
                     </ProtectedRoute>
                   } 
                 />
