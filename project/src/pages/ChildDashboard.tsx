@@ -9,6 +9,7 @@ import AnimatedButton from '../components/AnimatedButton';
 import AudioButton from '../components/AudioButton';
 import ProgressWheel from '../components/ProgressWheel';
 import { useContentLibrary } from '../contexts/ContentLibraryContext';
+import EducationalGame from './EducationalGame';
 
 const ChildDashboard: React.FC = () => {
   const { childId } = useParams<{ childId: string }>();
@@ -74,6 +75,14 @@ const ChildDashboard: React.FC = () => {
       color: 'from-purple-500 to-indigo-500',
       description: 'Family and relationships',
       emoji: '👨‍👩‍👧‍👦'
+    },
+    {
+      id: 'educational-game',
+      title: 'Educational Games & Tasks',
+      icon: null, // You can add a custom icon if desired
+      color: 'from-yellow-400 to-orange-400',
+      description: 'Fun games and learning tasks',
+      emoji: '🎲'
     }
   ];
 
@@ -205,6 +214,8 @@ const ChildDashboard: React.FC = () => {
                 onClick={() => {
                   if (hub.id === 'literacy') {
                     navigate(`/letter-matching/${child.id}`);
+                  } else if (hub.id === 'educational-game') {
+                    navigate(`/educational-game/${child.id}`);
                   } else {
                     navigate(`/learning/${hub.id}/${child.id}`);
                   }

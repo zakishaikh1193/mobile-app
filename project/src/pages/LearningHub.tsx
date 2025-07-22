@@ -8,7 +8,6 @@ import AnimatedButton from '../components/AnimatedButton';
 import AudioButton from '../components/AudioButton';
 import DigitalPainting from '../components/DigitalPainting';
 import DigitalArtStudio from '../components/DigitalArtStudio';
-import BodyPartMatchActivity from './BodyPartMatchActivity';
 
 const LearningHub: React.FC = () => {
   const { hubType, childId } = useParams<{ hubType: string; childId: string }>();
@@ -149,12 +148,6 @@ const LearningHub: React.FC = () => {
           ]
         },
         {
-          type: 'body-part-match',
-          title: 'Body Part Matching Game',
-          instruction: 'Match each label to the correct body part! Tap a label, then tap the matching emoji.',
-          data: {}
-        },
-        {
           type: 'movement-song',
           title: 'Movement Song',
           instruction: 'Follow along with the song!',
@@ -238,8 +231,6 @@ const LearningHub: React.FC = () => {
         return <DigitalPaintingActivity />;
       case 'family-tree':
         return <FamilyTreeActivity activity={activity} onComplete={handleActivityComplete} />;
-      case 'body-part-match':
-        return <BodyPartMatchActivity />;
       default:
         return <DefaultActivity activity={activity} onComplete={handleActivityComplete} />;
     }
