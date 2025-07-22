@@ -35,7 +35,7 @@ const DigitalPainting: React.FC<DigitalPaintingProps> = ({ onComplete, lineArt }
         <img src={art.referenceImage} alt="Reference" className="w-48 h-48 object-cover rounded-2xl shadow mb-4" />
         <span className="font-bold text-lg text-purple-700">Reference</span>
       </div>
-      <div className="flex flex-col items-center flex-1 w-full">
+      <div className="flex-1 flex flex-col items-center">
         {/* Toolbar */}
         <Toolbar
           currentTool={currentTool}
@@ -55,14 +55,34 @@ const DigitalPainting: React.FC<DigitalPaintingProps> = ({ onComplete, lineArt }
             />
           ))}
         </div>
-        {/* Canvas */}
-        <Canvas
-          artwork={art}
-          currentTool={currentTool}
-          currentColor={currentColor}
-          brushSize={brushSize}
-          onSave={handleSave}
-        />
+        {/* Canvas or PNG coloring */}
+        {art.svgContent.trim().startsWith('<svg') ? (
+          <Canvas
+            artwork={art}
+            currentTool={currentTool}
+            currentColor={currentColor}
+            brushSize={brushSize}
+            onSave={handleSave}
+          />
+        ) : (
+          <div className="relative bg-white rounded-3xl shadow-2xl p-4 max-w-full max-h-full flex items-center justify-center" style={{ width: 600, height: 600 }}>
+            <img
+              src={art.svgContent}
+              alt="Line Art"
+              className="absolute top-0 left-0 w-full h-full object-contain pointer-events-none select-none"
+              style={{ zIndex: 1 }}
+            />
+            <div className="absolute top-0 left-0 w-full h-full" style={{ zIndex: 2 }}>
+              <Canvas
+                artwork={{ ...art, svgContent: '' }}
+                currentTool={currentTool}
+                currentColor={currentColor}
+                brushSize={brushSize}
+                onSave={handleSave}
+              />
+            </div>
+          </div>
+        )}
         {showSaved && (
           <div className="mt-4 text-green-600 font-bold text-lg animate-pulse">Artwork saved!</div>
         )}

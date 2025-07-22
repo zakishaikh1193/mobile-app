@@ -382,27 +382,30 @@ const Canvas: React.FC<CanvasProps> = ({
       </div>
 
       {/* Canvas Container */}
-      <div className="flex-1 flex items-center justify-center relative">
-        <div className="relative bg-white rounded-2xl shadow-2xl p-4 max-w-full max-h-full">
-          <canvas
-            ref={canvasRef}
-            className="absolute top-4 left-4 rounded-lg cursor-crosshair touch-none"
-            style={{ maxWidth: '100%', maxHeight: 'calc(100vh - 300px)' }}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={stopDrawing}
-            onMouseLeave={stopDrawing}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={stopDrawing}
-            aria-label="Drawing Canvas"
-          />
-          <canvas
-            ref={overlayCanvasRef}
-            className="relative rounded-lg pointer-events-none opacity-30"
-            style={{ maxWidth: '100%', maxHeight: 'calc(100vh - 300px)' }}
-            aria-hidden="true"
-          />
+      <div className="flex-1 flex items-center justify-center relative w-full h-full" style={{ minHeight: 600, minWidth: 600 }}>
+        <canvas
+          ref={canvasRef}
+          className="absolute top-0 left-0 w-full h-full rounded-lg cursor-crosshair touch-none bg-transparent"
+          style={{ zIndex: 2, background: 'transparent', width: 600, height: 600 }}
+          width={600}
+          height={600}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={stopDrawing}
+          onMouseLeave={stopDrawing}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={stopDrawing}
+          aria-label="Drawing Canvas"
+        />
+        <canvas
+          ref={overlayCanvasRef}
+          className="absolute top-0 left-0 w-full h-full rounded-lg pointer-events-none opacity-30"
+          style={{ zIndex: 1, background: 'transparent', width: 600, height: 600 }}
+          width={600}
+          height={600}
+          aria-hidden="true"
+        />
         </div>
 
         {/* Sticker Panel */}
@@ -421,7 +424,6 @@ const Canvas: React.FC<CanvasProps> = ({
             onClose={() => setShowStickers(false)}
           />
         )}
-      </div>
     </div>
   );
 };
