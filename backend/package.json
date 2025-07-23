@@ -4,8 +4,8 @@
   "main": "app.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js"
+    "start": "NODE_ENV=production PORT=80 node app.js",
+    "dev": "NODE_ENV=development PORT=3000 nodemon app.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

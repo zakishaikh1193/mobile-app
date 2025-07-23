@@ -14,6 +14,7 @@ app.use('/uploads', express.static('uploads'));
 app.use('/api/content', contentRoutes);
 
 const PORT = process.env.PORT || 3000;
+const ENV = process.env.NODE_ENV || 'development';
 
 app.get('/api', (req, res) => {
     res.send('<h1>Welcome to Express.js!</h1>');
@@ -30,6 +31,11 @@ const checkDatabaseConnection = async () => {
 };
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running in ${ENV} mode on port ${PORT}`);
+  if (ENV === 'production') {
+    console.log('Access the app at: http://pre-k-legato.local');
+  } else {
+    console.log('Access the app at: http://localhost:' + PORT);
+  }
   checkDatabaseConnection();
 }); 
