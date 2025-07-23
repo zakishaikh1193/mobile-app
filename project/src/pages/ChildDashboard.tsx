@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { BookOpen, Palette, Calculator, Heart, User, Users, Camera, ArrowLeft } from 'lucide-react';
@@ -11,6 +11,8 @@ import ProgressWheel from '../components/ProgressWheel';
 import { useContentLibrary } from '../contexts/ContentLibraryContext';
 import EducationalGame from './EducationalGame';
 
+const KnowMeActivity = React.lazy(() => import('./KnowMeActivity'));
+
 const ChildDashboard: React.FC = () => {
   const { childId } = useParams<{ childId: string }>();
   const { user } = useAuth();
@@ -18,6 +20,7 @@ const ChildDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { contentLibrary } = useContentLibrary();
   const [htmlModalUrl, setHtmlModalUrl] = useState<string | null>(null);
+  const [showKnowMe, setShowKnowMe] = useState(false);
 
   const child = user?.children?.find(c => c.id === childId);
 
@@ -83,6 +86,15 @@ const ChildDashboard: React.FC = () => {
       color: 'from-yellow-400 to-orange-400',
       description: 'Fun games and learning tasks',
       emoji: '🎲'
+    },
+    {
+      id: 'know-me',
+      title: 'Know Me: My Body and My Favorites',
+      icon: null, // You can add a custom icon if desired
+      color: 'from-blue-400 to-pink-400',
+      description: 'Interactive Learning Adventure',
+      emoji: '🧒',
+      cardDescription: 'Discover your amazing body and share your favorite things! Learn about body parts, their functions, and express your likes and dislikes through fun interactive games.'
     }
   ];
 
@@ -216,6 +228,8 @@ const ChildDashboard: React.FC = () => {
                     navigate(`/letter-matching/${child.id}`);
                   } else if (hub.id === 'educational-game') {
                     navigate(`/educational-game/${child.id}`);
+                  } else if (hub.id === 'know-me') {
+                    setShowKnowMe(true);
                   } else {
                     navigate(`/learning/${hub.id}/${child.id}`);
                   }
@@ -277,6 +291,13 @@ const ChildDashboard: React.FC = () => {
           </AnimatedButton>
         </motion.div>
       </div>
+
+      {/* Know Me Activity Modal/Page */}
+      {showKnowMe && (
+        <Suspense fallback={<div className="fixed inset-0 flex items-center justify-center bg-white/80 z-50">Loading...</div>}>
+          <KnowMeActivity onClose={() => setShowKnowMe(false)} />
+        </Suspense>
+      )}
     </div>
   );
 };

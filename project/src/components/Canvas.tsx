@@ -307,6 +307,22 @@ const Canvas: React.FC<CanvasProps> = ({
     draw(pos);
   };
 
+  const saveToGallery = (dataUrl: string) => {
+    const key = 'my_arts_gallery';
+    const existing = JSON.parse(localStorage.getItem(key) || '[]');
+    const newArt = { dataUrl, date: Date.now() };
+    localStorage.setItem(key, JSON.stringify([newArt, ...existing]));
+  };
+
+  const downloadImage = (dataUrl: string, filename: string) => {
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleSave = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -314,6 +330,8 @@ const Canvas: React.FC<CanvasProps> = ({
     const dataURL = canvas.toDataURL('image/png');
     onSave(dataURL);
     playSound('celebrate');
+    saveToGallery(dataURL);
+    downloadImage(dataURL, 'my-art.png');
   };
 
   const handleClear = () => {

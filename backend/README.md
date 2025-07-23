@@ -41,3 +41,25 @@ CREATE TABLE content_library (
 - `DELETE /api/content/:id`     — Delete content
 
 Uploaded files are served from `/uploads/`. 
+
+## Running the Server
+
+### Development (localhost:3000)
+```
+npm run dev
+```
+- Access at: http://localhost:3000
+
+### Local Production (port 80, pre-k-legato.local)
+```
+sudo npm start
+```
+- Access at: http://pre-k-legato.local
+
+### Hosts File Setup
+To use http://pre-k-legato.local, add this line to your hosts file:
+```
+127.0.0.1 pre-k-legato.local
+```
+- On Windows: Edit C:\Windows\System32\drivers\etc\hosts as Administrator
+- On Mac/Linux: Edit /etc/hosts with sudo 
