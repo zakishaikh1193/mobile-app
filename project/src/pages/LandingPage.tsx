@@ -1,121 +1,212 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, Variants } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import SpeakingSun from './SpeakingSun';
+import AnimatedCharacter from './AnimatedCharacter';
+import NavSign from './NavSign';
+import FloatingClouds from './FloatingClouds';
 
-// --- Configuration for Decorative Images ---
-const decorativeImages = [
-  // CRAYONS & PENCILS
-  { src: '/image1.png',      className: 'top-24 left-4 md:left-8 w-16 md:w-24 transform -rotate-12' },
-  { src: '/image2.png',       className: 'bottom-16 left-4 md:left-12 w-16 md:w-20 transform rotate-12' },
-  { src: '/image3.png',    className: 'bottom-8 left-28 md:left-48 w-20 md:w-28' },
-  { src: '/image2.png',     className: 'top-32 right-4 md:right-20 w-12 md:w-16 transform rotate-12' },
-  
-  // KID FACES & OTHER OBJECTS
-  { src: '/kid1.png',        className: 'top-1/3 right-1/2 w-24 md:w-32' },
-  { src: '/kid2.png',  className: 'top-20 right-1/4 w-24 md:w-32' },
-  { src: '/kid3.png',    className: 'bottom-1/3 left-1/3 w-24 md:w-32' },
-  { src: '/elephant.png',       className: 'md:top-1/5  md:right-1/3 md:left-1/2 w-20 md:w-24' },
-  
-  // STARS
-  { src: '/star1.png',        className: 'top-20 left-1/4 w-6' },
-  { src: '/star2.png',        className: 'top-36 left-8 w-4' },
-  { src: '/star3.png',      className: 'top-1/3 right-1/4 w-5' },
-  { src: '/star1.png',      className: 'bottom-1/4 right-[55%] w-6' },
-  { src: '/star2.png',        className: 'top-20 right-1/2 w-4' },
-];
+// BubblyHeading Component remains the same
 
-const navLinks = ["HOME", "ABOUT US", "F.A.Q", "CONTACT US"];
+const BubblyHeading: React.FC<{ text: string; className?: string; colorConfig: Record<string, string> }> = ({ text, className, colorConfig }) => {
+  const letterVariants: Variants = {
+    hover: {
+      y: -5,
+      transition: {
+        type: 'spring' as const,
+        stiffness: 300,
+        damping: 17
+      }
+    },
+    initial: {
+      y: 0,
+    },
+  };
+
+  return (
+    <h1 className={`bubbly-heading flex justify-center ${className}`}>
+      {text.split('').map((char, index) => (
+        <motion.span
+          key={index}
+          style={{ color: colorConfig[char.toLowerCase()] || '#000' }}
+          variants={letterVariants}
+          initial="initial"
+          whileHover="hover"
+          className="cursor-pointer"
+        >
+          {char === ' ' ? '\u00A0' : char}
+        </motion.span>
+      ))}
+    </h1>
+  );
+};
+
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
+  const [sunAnimationState, setSunAnimationState] = useState('hidden');
+  const [showSpeechBubble, setShowSpeechBubble] = useState(false);
+  const [showHeading, setShowHeading] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    const timer1 = setTimeout(() => setSunAnimationState('center'), 500);
+    const timer2 = setTimeout(() => {
+      setShowSpeechBubble(true);
+      const welcomeAudio = new Audio('/welcome-audio.mp3');
+      if (!isMuted) {
+        welcomeAudio.play().catch(error => console.log("Welcome audio autoplay prevented:", error));
+      }
+    }, 2000);
+    const timer3 = setTimeout(() => setShowSpeechBubble(false), 6000);
+    const timer4 = setTimeout(() => {
+      setSunAnimationState('topRight');
+      setTimeout(() => setShowHeading(true), 500);
+    }, 6500);
+
+    // Attempt to play background music
+    if (audioRef.current) {
+      audioRef.current.play().catch(error => {
+        console.log("Background music autoplay prevented:", error);
+        // Autoplay was prevented, user interaction is needed
+      });
+    }
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+      clearTimeout(timer4);
+    };
+  }, [isMuted]);
+
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+    if (audioRef.current) {
+      audioRef.current.muted = !isMuted;
+    }
+  };
+  
+  // Color configurations for the headings
+  const kodeitColorConfig = {
+    k: '#1ebbd7', o: '#3ee577', d: '#1ebbd7', e: '#ff9800', i: '#ffc107', t: '#ff9800'
+  };
+
+  const preschoolColorConfig = {
+    p: '#4CAF50', r: '#FFC107', e: '#f44336', s: '#2196F3', c: '#9C27B0',
+    h: '#FF9800', o: '#4CAF50', l: '#f44336', ' ': 'transparent', // Handles space
+    a: '#2196F3', n: '#9C27B0', i: '#FF9800', g: '#4CAF50'
+  };
+
 
   return (
-    // UPDATED: Using the new brand background color
-    <div className="h-screen bg-brand-background text-brand-text font-sans relative overflow-hidden p-4 sm:p-6 md:p-8 flex flex-col">
-      
-      {/* Decorative images remain the same */}
-      {decorativeImages.map((img, index) => (
-         <motion.img
-            key={index}
-            src={img.src}
-            alt=""
-            className={`absolute z-0 ${img.className}`}
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1, y: ["-8px", "8px"], rotate: [img.className.includes('-rotate') ? -10 : 0, img.className.includes('rotate') ? 10 : 0] }}
-            transition={{ duration: 3 + Math.random() * 2, repeat: Infinity, repeatType: "reverse", ease: "easeInOut", delay: Math.random() }}
-          />
-      ))}
+    <div
+      className="h-screen w-screen bg-center bg-no-repeat font-sans relative overflow-hidden flex flex-col items-center p-4"
+      style={{
+        backgroundImage: "url('/background.png')",
+        backgroundSize: 'cover',
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'center top 10%',
+        backgroundAttachment: 'fixed'
+      }}
+    >
+      <audio ref={audioRef} src="/music.mp3" loop autoPlay muted={isMuted} />
 
-      <div className="relative z-10">
-        <header className="flex justify-between items-center py-4">
-          <nav className="hidden md:flex items-center space-x-6">
-             {navLinks.map((link) => (
-                // UPDATED: Text color now uses the new brand text color
-                <a key={link} href="#" className="text-sm font-bold tracking-wider text-brand-text hover:text-brand-accent transition-colors">
-                   {link}
-                </a>
-             ))}
-          </nav>
-          <div className="relative flex-1 md:flex-initial">
-             <input 
-                type="text" 
-                placeholder="" 
-                // UPDATED: Search bar styling to match the new theme
-                className="bg-white/60 rounded-full py-2 pl-4 pr-10 w-full md:w-48 focus:outline-none focus:ring-2 focus:ring-brand-accent transition-all"
-             />
-             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-brand-text/70"/>
+      {/* Mute/Unmute Button */}
+      <button
+        onClick={toggleMute}
+        className="absolute top-4 right-4 z-50 bg-white p-2 rounded-full shadow-md"
+      >
+        {isMuted ? (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707a1 1 0 011.414 0L14 9.586l-2.293 2.293a1 1 0 01-1.414-1.414l2.293-2.293L10 6.586 5.586 11H4v2h1.586l4.707 4.707a1 1 0 01-1.414 1.414L5.586 15z" />
+          </svg>
+        ) : (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M17.657 6.343a9 9 0 010 12.728M4.293 4.293a1 1 0 011.414 0L19.414 18a1 1 0 01-1.414 1.414L4.293 5.707a1 1 0 010-1.414z" />
+          </svg>
+        )}
+      </button>
+
+      <img
+        src="/KODEIT_Logo_2.png"
+        alt="Kodeit Preschool Learning official logo"
+        className="absolute top-4 left-4 w-20 md:w-24 h-auto z-50"
+      />
+
+      <FloatingClouds count={8} />
+
+      <SpeakingSun
+        animate={sunAnimationState}
+        showSpeechBubble={showSpeechBubble}
+      />
+
+      <main className="relative w-full h-full flex flex-col items-center justify-center pt-0 md:pt-0">
+        <motion.div
+          className="relative max-w-7xl mx-auto"
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, delay: 0.5, ease: "backOut" }}
+        >
+          <div className="relative" style={{ transform: 'translateY(clamp(-250px, -30vh, -150px))' }}>
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+              {showHeading && (
+                <>
+                  <BubblyHeading text="Kodeit" className="text-5xl md:text-6xl lg:text-7xl" colorConfig={kodeitColorConfig} />
+                  <BubblyHeading text="Preschool Learning" className="text-6xl md:text-7xl lg:text-8xl mt-2" colorConfig={preschoolColorConfig} />
+                </>
+              )}
+            </div>
           </div>
-        </header>
+        </motion.div>
 
-        <main className="grid grid-cols-1 lg:grid-cols-2 items-center gap-12 flex-grow pt-16 md:pt-24 lg:pt-32 mb-0">
-          <motion.div 
-            className="space-y-6 text-center lg:text-left relative z-10"
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-           >
-            <div className="flex justify-center lg:justify-start lg:pl-8">
-              <img src="/KODEIT_Logo_2.png" alt="Kodeit Learnings Logo" className="h-[12rem] w-[18rem] mb-3 sm:ml-[3rem] mx-auto" />
-            </div>
-            
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold uppercase leading-tight text-brand-text">
-              Kodeit Learnings 
-            </h1>
-            <h2 className="text-base sm:text-lg font-semibold tracking-wider text-brand-text/80">
-              WELCOME TO THE LEARNING CENTER
-            </h2>
-            <p className="max-w-md text-base sm:text-lg text-brand-text/70 mx-auto lg:mx-0">
-                An interactive educational platform designed for Pre-K to early primary students. Discover, learn, and grow.
-            </p>
-            <div className="pt-4">
-              <motion.button 
-                onClick={() => navigate('/auth')} 
-                // UPDATED: Button colors now match the new theme
-                className="bg-brand-accent text-white font-bold py-3 px-8 sm:px-10 rounded-full shadow-lg hover:brightness-110 transition-all"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                MORE INFO
-              </motion.button>
-            </div>
-          </motion.div>
-
-          <motion.div 
-  className="relative z-10 flex justify-center lg:justify-start"
-  initial={{ opacity: 0, scale: 0.8, x: 0, y: 0 }}
-  animate={{ opacity: 1, scale: 1, x: 40, y: +40 }}  // right + up
-  transition={{ duration: 0.8, delay: 0.4 }}
->
-  <img 
-    src="/login.png"
-    alt="Children engaged in a learning activity" 
-    className="w-full max-w-md md:max-w-xl lg:max-w-2xl h-auto object-cover aspect-[4/3]"
-  />
-</motion.div>
-
-        </main>
-      </div>
+        <div className="absolute top-0 left-0 w-full h-full z-10">
+          <img
+            src="/butterfly1.gif"
+            alt="Cartoon girl reading a book"
+            className="absolute z-10"
+            style={{ bottom: '10px', left: '30px', width: '150px' }}
+          />
+          <NavSign
+            src="/learn-sign.png"
+            alt="Wooden sign for Learn"
+            onClick={() => navigate('/learn')}
+            className="absolute bottom-[20%] sm:bottom-[25%] left-[8%] sm:left-[12%] w-[35%] sm:w-[30%] md:w-[25%] max-w-[200px] md:max-w-sm z-20"
+          />
+          <AnimatedCharacter
+            src="/boy-with-books.png"
+            alt="Cartoon boy on a stack of books"
+            className="absolute bottom-[15%] sm:bottom-[20%] left-1/2 -translate-x-1/2 w-[35%] sm:w-[30%] md:w-[25%] max-w-[180px] md:max-w-xs z-10"
+          />
+           <motion.img
+            src="/start.png"
+            alt="Wooden sign for Game"
+            onClick={() => navigate('/auth')}
+            className="absolute bottom-[38%] sm:bottom-[41%] right-[50%] translate-x-[50%] sm:right-[44.5%] sm:-translate-x-[40%] w-[15%] sm:w-[12%] md:w-[10%] max-w-[100px] md:max-w-md z-20 cursor-pointer"
+            animate={{
+              scale: [1, 1.1, 1], // Zoom in to 1.1x then back to 1x
+            }}
+            transition={{
+              duration: 1.5,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          />
+          <img
+            src="/butterfly2.gif"
+            alt="Kids looking at a book with magnifying glasses"
+            className="absolute z-10"
+            style={{ bottom: '20px', right: '15px', width: '120px' }}
+          />
+          <NavSign
+            src="/quiz-sign.png"
+            alt="Wooden sign for Quiz"
+            onClick={() => navigate('/quiz')}
+            className="absolute bottom-[22%] sm:bottom-[28%] right-[8%] sm:right-[12%] w-[35%] sm:w-[30%] md:w-[25%] max-w-[200px] md:max-w-sm z-20"
+          />
+        </div>
+      </main>
     </div>
   );
 };
