@@ -40,6 +40,14 @@ const ChildDashboard: React.FC = () => {
       emoji: '📚'
     },
     {
+      id: 'forest-letter-hunt',
+      title: 'Forest Letter Hunt',
+      icon: null, // You can add a custom icon if desired
+      color: 'from-green-700 to-lime-400',
+      description: 'Find letters hiding in the magical forest!',
+      emoji: '🌳'
+    },
+    {
       id: 'creativity',
       title: 'Creativity Hub',
       icon: Palette,
@@ -226,6 +234,8 @@ const ChildDashboard: React.FC = () => {
                 onClick={() => {
                   if (hub.id === 'literacy') {
                     navigate(`/letter-matching/${child.id}`);
+                  } else if (hub.id === 'forest-letter-hunt') {
+                    navigate(`/forest-letter-hunt/${child.id}`);
                   } else if (hub.id === 'educational-game') {
                     navigate(`/educational-game/${child.id}`);
                   } else if (hub.id === 'know-me') {
