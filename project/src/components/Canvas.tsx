@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { Save, Download, Sparkles, Volume2 } from 'lucide-react';
 import { LineArt, Tool } from '../types/lineArt';
 import StickerPanel from './StickerPanel';
@@ -8,16 +8,18 @@ interface CanvasProps {
   currentTool: Tool;
   currentColor: string;
   brushSize: number;
+  brushStyle: string;
   onSave: (canvasData: string) => void;
 }
 
-const Canvas: React.FC<CanvasProps> = ({
-  artwork,
-  currentTool,
-  currentColor,
-  brushSize,
-  onSave
-}) => {
+const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColor, brushSize, brushStyle, onSave }, ref) => {
+  // Refs to always have latest tool/color/size
+  const toolRef = useRef(currentTool);
+  const colorRef = useRef(currentColor);
+  const sizeRef = useRef(brushSize);
+  React.useEffect(() => { toolRef.current = currentTool; }, [currentTool]);
+  React.useEffect(() => { colorRef.current = currentColor; }, [currentColor]);
+  React.useEffect(() => { sizeRef.current = brushSize; }, [brushSize]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -26,6 +28,13 @@ const Canvas: React.FC<CanvasProps> = ({
   const [canRedo, setCanRedo] = useState(false);
   const undoStackRef = useRef<ImageData[]>([]);
   const redoStackRef = useRef<ImageData[]>([]);
+
+  // Sticker state
+  const [stickers, setStickers] = useState<Array<{ id: number, emoji: string, x: number, y: number, size: number }>>([]);
+  const stickerIdRef = useRef(0);
+  const [draggingSticker, setDraggingSticker] = useState<number | null>(null);
+  const [dragOffset, setDragOffset] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
+  const [resizingSticker, setResizingSticker] = useState<number | null>(null);
 
   // Sound effects
   const playSound = useCallback((type: 'paint' | 'fill' | 'save' | 'celebrate') => {
@@ -75,18 +84,19 @@ const Canvas: React.FC<CanvasProps> = ({
     overlayCanvas.width = 600;
     overlayCanvas.height = 600;
 
-    // Draw the line art on overlay canvas
+    // Draw the line art on overlay canvas AND main canvas for fill boundaries
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = artwork.svgContent;
     const svg = tempDiv.querySelector('svg');
     if (svg) {
       svg.setAttribute('width', '600');
       svg.setAttribute('height', '600');
-      
       const data = new XMLSerializer().serializeToString(svg);
       const img = new Image();
       img.onload = () => {
+        overlayCtx.clearRect(0, 0, 600, 600);
         overlayCtx.drawImage(img, 0, 0);
+        ctx.drawImage(img, 0, 0); // Draw on main canvas for fill boundaries
         saveState();
       };
       img.src = 'data:image/svg+xml;base64,' + btoa(data);
@@ -95,7 +105,7 @@ const Canvas: React.FC<CanvasProps> = ({
     // Set up canvas context
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-  }, [artwork]);
+  }, [artwork.id]);
 
   const saveState = useCallback(() => {
     const canvas = canvasRef.current;
@@ -181,7 +191,7 @@ const Canvas: React.FC<CanvasProps> = ({
     };
   }, []);
 
-  const floodFill = useCallback((startX: number, startY: number, fillColor: string) => {
+  const floodFill = useCallback((startX: number, startY: number, fillColor: string, tolerance: number = 32) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -197,14 +207,32 @@ const Canvas: React.FC<CanvasProps> = ({
     const startB = data[startPos + 2];
     const startA = data[startPos + 3];
 
+    // Prevent filling on transparent/line areas
+    if (startA === 0) return;
+
     const fillColorRgb = hexToRgb(fillColor);
     if (!fillColorRgb) return;
 
-    if (
-      startR === fillColorRgb.r &&
-      startG === fillColorRgb.g &&
-      startB === fillColorRgb.b
-    ) return;
+    // Helper to check if a pixel matches the start color within tolerance
+    function colorMatch(idx: number) {
+      return (
+        Math.abs(data[idx] - startR) <= tolerance &&
+        Math.abs(data[idx + 1] - startG) <= tolerance &&
+        Math.abs(data[idx + 2] - startB) <= tolerance &&
+        Math.abs(data[idx + 3] - startA) <= tolerance
+      );
+    }
+
+    // Helper to check if a pixel is already filled
+    function isAlreadyFilled(idx: number) {
+      if (!fillColorRgb) return false;
+      return (
+        data[idx] === fillColorRgb.r &&
+        data[idx + 1] === fillColorRgb.g &&
+        data[idx + 2] === fillColorRgb.b &&
+        data[idx + 3] === 255
+      );
+    }
 
     const pixelStack = [[Math.floor(startX), Math.floor(startY)]];
 
@@ -213,13 +241,7 @@ const Canvas: React.FC<CanvasProps> = ({
       if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) continue;
 
       const pos = (y * canvas.width + x) * 4;
-      
-      if (
-        data[pos] === startR &&
-        data[pos + 1] === startG &&
-        data[pos + 2] === startB &&
-        data[pos + 3] === startA
-      ) {
+      if (colorMatch(pos) && !isAlreadyFilled(pos) && fillColorRgb) {
         data[pos] = fillColorRgb.r;
         data[pos + 1] = fillColorRgb.g;
         data[pos + 2] = fillColorRgb.b;
@@ -246,26 +268,37 @@ const Canvas: React.FC<CanvasProps> = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    if (currentTool === 'bucket') {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Always reset to default before setting tool-specific mode
+    ctx.globalCompositeOperation = 'source-over';
+
+    if (toolRef.current === 'fill') {
       saveState();
-      floodFill(pos.x, pos.y, currentColor);
+      floodFill(pos.x, pos.y, colorRef.current);
       return;
     }
 
     setIsDrawing(true);
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
 
-    ctx.strokeStyle = currentTool === 'eraser' ? '#FFFFFF' : currentColor;
-    ctx.globalCompositeOperation = currentTool === 'eraser' ? 'destination-out' : 'source-over';
-    ctx.lineWidth = currentTool === 'eraser' ? brushSize * 2 : brushSize;
-    
+    if (toolRef.current === 'brush') {
+      ctx.strokeStyle = colorRef.current;
+      ctx.lineWidth = sizeRef.current;
+    } else if (toolRef.current === 'eraser') {
+      // We'll implement color eraser logic in draw
+      ctx.strokeStyle = 'rgba(0,0,0,0)'; // transparent, but logic will be in draw
+      ctx.lineWidth = sizeRef.current * 2;
+    }
+    // Stickers and other tools do not draw
+
     ctx.beginPath();
     ctx.moveTo(pos.x, pos.y);
-  }, [currentTool, currentColor, brushSize, floodFill, saveState]);
+  }, [floodFill, saveState]);
 
   const draw = useCallback((pos: { x: number, y: number }) => {
-    if (!isDrawing || currentTool === 'bucket' || currentTool === 'sticker') return;
+    if (!isDrawing) return;
+    if (toolRef.current === 'fill' || toolRef.current === 'sticker') return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -273,10 +306,46 @@ const Canvas: React.FC<CanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
-    playSound('paint');
-  }, [isDrawing, currentTool, playSound]);
+    if (toolRef.current === 'eraser') {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.strokeStyle = 'rgba(0,0,0,1)';
+      ctx.lineWidth = sizeRef.current * 2;
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+      playSound('paint');
+    } else if (toolRef.current === 'brush') {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = colorRef.current;
+      ctx.lineWidth = sizeRef.current;
+      // Brush style logic
+      if (brushStyle === 'round') {
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = 1.0;
+      } else if (brushStyle === 'square') {
+        ctx.lineCap = 'butt';
+        ctx.lineJoin = 'miter';
+        ctx.globalAlpha = 1.0;
+      } else if (brushStyle === 'marker') {
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = 0.4;
+      } else if (brushStyle === 'calligraphy') {
+        ctx.lineCap = 'butt';
+        ctx.lineJoin = 'bevel';
+        ctx.globalAlpha = 1.0;
+        ctx.setLineDash([sizeRef.current * 2, sizeRef.current]);
+      } else {
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = 1.0;
+      }
+      if (brushStyle !== 'calligraphy') ctx.setLineDash([]);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+      playSound('paint');
+    }
+  }, [isDrawing, playSound]);
 
   const stopDrawing = useCallback(() => {
     if (isDrawing) {
@@ -345,66 +414,97 @@ const Canvas: React.FC<CanvasProps> = ({
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   };
 
+  // Add sticker handler
+  const handleAddSticker = (sticker: { emoji: string }) => {
+    const newId = stickerIdRef.current++;
+    setStickers(prev => [
+      ...prev,
+      { id: newId, emoji: sticker.emoji, x: 300, y: 300, size: 48 }
+    ]);
+    setShowStickers(false);
+  };
+
+  // Drag sticker handlers
+  const handleStickerMouseDown = (id: number, e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    let clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    let clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    const sticker = stickers.find(s => s.id === id);
+    if (!sticker) return;
+    setDraggingSticker(id);
+    setDragOffset({ x: clientX - sticker.x, y: clientY - sticker.y });
+  };
+
+  const handleStickerMouseMove = (e: MouseEvent | TouchEvent) => {
+    if (draggingSticker === null) return;
+    let clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
+    let clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
+    setStickers(prev => prev.map(s =>
+      s.id === draggingSticker ? { ...s, x: clientX - dragOffset.x, y: clientY - dragOffset.y } : s
+    ));
+  };
+
+  const handleStickerMouseUp = () => {
+    setDraggingSticker(null);
+  };
+
+  // Resize sticker handlers
+  const handleResizeMouseDown = (id: number, e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    setResizingSticker(id);
+  };
+  const handleResizeMouseMove = (e: MouseEvent | TouchEvent) => {
+    if (resizingSticker === null) return;
+    let clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
+    let clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
+    setStickers(prev => prev.map(s =>
+      s.id === resizingSticker ? { ...s, size: Math.max(24, Math.min(120, s.size + (clientX - s.x) / 10)) } : s
+    ));
+  };
+  const handleResizeMouseUp = () => {
+    setResizingSticker(null);
+  };
+
+  useEffect(() => {
+    if (draggingSticker !== null) {
+      window.addEventListener('mousemove', handleStickerMouseMove);
+      window.addEventListener('touchmove', handleStickerMouseMove);
+      window.addEventListener('mouseup', handleStickerMouseUp);
+      window.addEventListener('touchend', handleStickerMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleStickerMouseMove);
+        window.removeEventListener('touchmove', handleStickerMouseMove);
+        window.removeEventListener('mouseup', handleStickerMouseUp);
+        window.removeEventListener('touchend', handleStickerMouseUp);
+      };
+    }
+    if (resizingSticker !== null) {
+      window.addEventListener('mousemove', handleResizeMouseMove);
+      window.addEventListener('touchmove', handleResizeMouseMove);
+      window.addEventListener('mouseup', handleResizeMouseUp);
+      window.addEventListener('touchend', handleResizeMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleResizeMouseMove);
+        window.removeEventListener('touchmove', handleResizeMouseMove);
+        window.removeEventListener('mouseup', handleResizeMouseUp);
+        window.removeEventListener('touchend', handleResizeMouseUp);
+      };
+    }
+  }, [draggingSticker, resizingSticker]);
+
+  useImperativeHandle(ref, () => ({
+    undo,
+    handleSave
+  }));
+
   return (
     <div className="flex flex-col h-full">
-      {/* Canvas Controls */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={undo}
-            disabled={!canUndo}
-            className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white p-3 rounded-full shadow-lg transform hover:scale-110 transition-all duration-200 disabled:transform-none"
-            aria-label="Undo"
-          >
-            ↶
-          </button>
-          
-          <button
-            onClick={redo}
-            disabled={!canRedo}
-            className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white p-3 rounded-full shadow-lg transform hover:scale-110 transition-all duration-200 disabled:transform-none"
-            aria-label="Redo"
-          >
-            ↷
-          </button>
-
-          <button
-            onClick={handleClear}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-full shadow-lg transform hover:scale-110 transition-all duration-200"
-            aria-label="Clear Canvas"
-          >
-            🗑️ Clear
-          </button>
-        </div>
-
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={() => setShowStickers(!showStickers)}
-            className={`$${
-              currentTool === 'sticker' ? 'bg-purple-600' : 'bg-purple-500 hover:bg-purple-600'
-            } text-white p-3 rounded-full shadow-lg transform hover:scale-110 transition-all duration-200`}
-            aria-label="Toggle Stickers"
-          >
-            <Sparkles className="h-6 w-6" />
-          </button>
-
-          <button
-            onClick={handleSave}
-            className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-full shadow-lg transform hover:scale-110 transition-all duration-200 flex items-center space-x-2"
-            aria-label="Save Artwork"
-          >
-            <Save className="h-5 w-5" />
-            <span>Save Art!</span>
-          </button>
-        </div>
-      </div>
-
       {/* Canvas Container */}
       <div className="flex-1 flex items-center justify-center relative w-full h-full" style={{ minHeight: 600, minWidth: 600 }}>
         <canvas
           ref={canvasRef}
           className="absolute top-0 left-0 w-full h-full rounded-lg cursor-crosshair touch-none bg-transparent"
-          style={{ zIndex: 2, background: 'transparent', width: 600, height: 600 }}
+          style={{ zIndex: 2, background: 'transparent', width: 600, height: 600, touchAction: 'none' }}
           width={600}
           height={600}
           onMouseDown={handleMouseDown}
@@ -424,26 +524,34 @@ const Canvas: React.FC<CanvasProps> = ({
           height={600}
           aria-hidden="true"
         />
-        </div>
-
         {/* Sticker Panel */}
         {showStickers && (
           <StickerPanel
-            onStickerSelect={(sticker) => {
-              // Add sticker to canvas
-              const canvas = canvasRef.current;
-              if (!canvas) return;
-              const ctx = canvas.getContext('2d');
-              if (!ctx) return;
-              saveState();
-              ctx.font = '48px Arial';
-              ctx.fillText(sticker.emoji, Math.random() * 400, Math.random() * 400 + 50);
-            }}
+            onStickerSelect={handleAddSticker}
             onClose={() => setShowStickers(false)}
           />
         )}
+        {/* Render stickers as draggable/resizable overlays */}
+        {stickers.map(sticker => (
+          <div
+            key={sticker.id}
+            className="absolute"
+            style={{ left: sticker.x, top: sticker.y, zIndex: 10, touchAction: 'none', userSelect: 'none' }}
+            onMouseDown={e => handleStickerMouseDown(sticker.id, e)}
+            onTouchStart={e => handleStickerMouseDown(sticker.id, e)}
+          >
+            <span style={{ fontSize: sticker.size, cursor: 'move', display: 'inline-block' }}>{sticker.emoji}</span>
+            <span
+              className="inline-block ml-1 bg-gray-200 rounded-full p-1 cursor-ew-resize"
+              style={{ fontSize: 16 }}
+              onMouseDown={e => handleResizeMouseDown(sticker.id, e)}
+              onTouchStart={e => handleResizeMouseDown(sticker.id, e)}
+            >↔️</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
-};
+});
 
 export default Canvas; 

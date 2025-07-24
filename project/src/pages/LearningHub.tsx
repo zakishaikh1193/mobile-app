@@ -45,6 +45,12 @@ const LearningHub: React.FC = () => {
           data: { targetLetter: 'A', bubbles: ['A', 'B', 'A', 'C', 'A', 'D'] }
         },
         {
+          type: 'forest-letter-hunt',
+          title: 'Forest Letter Hunt',
+          instruction: 'Find the hidden letters peeking out from the bushes! Click the correct letter when you see it.',
+          data: {}
+        },
+        {
           type: 'story-time',
           title: 'Story Time',
           instruction: 'Listen to this wonderful story!',
@@ -223,6 +229,8 @@ const LearningHub: React.FC = () => {
         return <LetterMatchActivity activity={activity} onComplete={handleActivityComplete} />;
       case 'bubble-pop':
         return <BubblePopActivity activity={activity} onComplete={handleActivityComplete} />;
+      case 'forest-letter-hunt':
+        return <ForestLetterHuntActivity activity={activity} onComplete={handleActivityComplete} />;
       case 'counting':
         return <CountingActivity activity={activity} onComplete={handleActivityComplete} />;
       case 'emotion-match':
@@ -822,6 +830,22 @@ const DefaultActivity: React.FC<{ activity: any; onComplete: (score: number) => 
 
 const DigitalPaintingActivity: React.FC = () => {
   return <DigitalArtStudio />;
+};
+
+const ForestLetterHuntActivity: React.FC<{ activity: any; onComplete: (score: number) => void }> = ({ activity, onComplete }) => {
+  return (
+    <div className="text-center">
+      <h2 className="text-3xl font-bold text-green-700 mb-4">{activity.title}</h2>
+      <p className="text-lg text-gray-700 mb-8">{activity.instruction}</p>
+      <div className="bg-gradient-to-b from-sky-200 to-green-200 rounded-3xl p-12 shadow-lg max-w-lg mx-auto">
+        <div className="text-7xl mb-6">🌳🌲🌳</div>
+        <p className="text-gray-600 mb-8">Forest Letter Hunt game coming soon!</p>
+        <AnimatedButton onClick={() => onComplete(50)}>
+          Continue
+        </AnimatedButton>
+      </div>
+    </div>
+  );
 };
 
 export default LearningHub;

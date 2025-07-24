@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Mic, Star, CheckCircle } from 'lucide-react';
+// @ts-ignore
+import confetti from 'canvas-confetti';
 
 interface ShowAndTellProps {
   onComplete: () => void;
@@ -10,16 +12,18 @@ const ShowAndTell: React.FC<ShowAndTellProps> = ({ onComplete }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [hasShared, setHasShared] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [canPlayback, setCanPlayback] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const favoriteThings = [
-    { name: 'My Family', emoji: '👨‍👩‍👧‍👦', description: 'The people who love me most!' },
-    { name: 'My Pet', emoji: '🐕', description: 'My furry best friend!' },
-    { name: 'Playing Games', emoji: '🎮', description: 'So much fun to play!' },
-    { name: 'Ice Cream', emoji: '🍦', description: 'Sweet and delicious!' },
-    { name: 'Bedtime Stories', emoji: '📚', description: 'Adventures before sleep!' },
-    { name: 'Drawing', emoji: '🎨', description: 'Creating colorful pictures!' },
-    { name: 'Music', emoji: '🎵', description: 'Songs that make me happy!' },
-    { name: 'Playing Outside', emoji: '🌞', description: 'Fresh air and fun!' },
+    { name: 'My Family', image: '/favorites/family.png', emoji: '👨‍👩‍👧‍👦', description: 'The people who love me most!' },
+    { name: 'My Pet', image: '/favorites/pet.png', emoji: '🐕', description: 'My furry best friend!' },
+    { name: 'Playing Games', image: '/favorites/games.png', emoji: '🎮', description: 'So much fun to play!' },
+    { name: 'Ice Cream', image: '/favorites/icecream.png', emoji: '🍦', description: 'Sweet and delicious!' },
+    { name: 'Bedtime Stories', image: '/favorites/stories.png', emoji: '📚', description: 'Adventures before sleep!' },
+    { name: 'Drawing', image: '/favorites/drawing.png', emoji: '🎨', description: 'Creating colorful pictures!' },
+    { name: 'Music', image: '/favorites/music.png', emoji: '🎵', description: 'Songs that make me happy!' },
+    { name: 'Playing Outside', image: '/favorites/outside.png', emoji: '🌞', description: 'Fresh air and fun!' },
   ];
 
   const toggleFavorite = (name: string) => {
@@ -35,6 +39,8 @@ const ShowAndTell: React.FC<ShowAndTellProps> = ({ onComplete }) => {
     setTimeout(() => {
       setIsRecording(false);
       setHasShared(true);
+      setCanPlayback(true);
+      confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
       setTimeout(() => {
         setIsComplete(true);
         setTimeout(() => {
@@ -42,6 +48,11 @@ const ShowAndTell: React.FC<ShowAndTellProps> = ({ onComplete }) => {
         }, 2000);
       }, 1000);
     }, 3000);
+  };
+
+  const handlePlayback = () => {
+    setIsPlaying(true);
+    setTimeout(() => setIsPlaying(false), 2500);
   };
 
   return (
@@ -77,7 +88,23 @@ const ShowAndTell: React.FC<ShowAndTellProps> = ({ onComplete }) => {
                         : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
                     }`}
                   >
-                    <div className="text-3xl mb-2">{item.emoji}</div>
+                    <div className="mb-2 flex items-center justify-center">
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-12 h-12 object-contain drop-shadow-lg"
+                        onError={e => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          const parent = (e.target as HTMLImageElement).parentElement;
+                          if (parent && !parent.querySelector('.img-placeholder')) {
+                            const placeholder = document.createElement('div');
+                            placeholder.className = 'img-placeholder w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-xl text-gray-500';
+                            placeholder.innerText = '?';
+                            parent.appendChild(placeholder);
+                          }
+                        }}
+                      />
+                    </div>
                     <div className="font-bold text-sm mb-1">{item.name}</div>
                     <div className="text-xs opacity-75">{item.description}</div>
                     {isSelected && (
@@ -108,7 +135,23 @@ const ShowAndTell: React.FC<ShowAndTellProps> = ({ onComplete }) => {
                     const item = favoriteThings.find(i => i.name === name);
                     return (
                       <div key={name} className="text-center">
-                        <div className="text-2xl mb-1">{item?.emoji}</div>
+                        <div className="mb-1 flex items-center justify-center">
+                          <img
+                            src={item?.image}
+                            alt={item?.name}
+                            className="w-8 h-8 object-contain drop-shadow-lg"
+                            onError={e => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                              const parent = (e.target as HTMLImageElement).parentElement;
+                              if (parent && !parent.querySelector('.img-placeholder')) {
+                                const placeholder = document.createElement('div');
+                                placeholder.className = 'img-placeholder w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-lg text-gray-500';
+                                placeholder.innerText = '?';
+                                parent.appendChild(placeholder);
+                              }
+                            }}
+                          />
+                        </div>
                         <div className="text-sm font-semibold text-purple-700">{name}</div>
                       </div>
                     );
@@ -121,13 +164,23 @@ const ShowAndTell: React.FC<ShowAndTellProps> = ({ onComplete }) => {
                 disabled={isRecording}
                 className={`inline-flex items-center gap-3 px-8 py-4 rounded-full text-xl font-bold transition-all transform hover:scale-105 ${
                   isRecording
-                    ? 'bg-red-500 text-white cursor-not-allowed'
+                    ? 'bg-red-500 text-white cursor-not-allowed animate-pulse'
                     : 'bg-green-500 hover:bg-green-600 text-white'
                 }`}
               >
-                <Mic size={24} className={isRecording ? 'animate-pulse' : ''} />
+                <Mic size={32} className={isRecording ? 'animate-bounce' : ''} />
                 {isRecording ? 'Recording...' : 'Share Your Favorites!'}
               </button>
+              {canPlayback && (
+                <button
+                  onClick={handlePlayback}
+                  disabled={isPlaying}
+                  className={`ml-4 inline-flex items-center gap-2 px-6 py-3 rounded-full text-lg font-bold transition-all transform hover:scale-105 bg-blue-500 hover:bg-blue-600 text-white ${isPlaying ? 'opacity-50' : ''}`}
+                >
+                  <span role="img" aria-label="play">▶️</span>
+                  {isPlaying ? 'Playing...' : 'Playback'}
+                </button>
+              )}
               
               {isRecording && (
                 <div className="mt-4">
@@ -147,14 +200,13 @@ const ShowAndTell: React.FC<ShowAndTellProps> = ({ onComplete }) => {
       ) : (
         <div className="text-center">
           <div className="bg-green-100 border-2 border-green-400 rounded-xl p-8 max-w-lg mx-auto">
-            <div className="text-6xl mb-4">🎉</div>
+            <div className="text-6xl mb-4 animate-bounce">🎉</div>
             <h4 className="text-2xl font-bold text-green-700 mb-2">
               {isComplete ? 'Wonderful Sharing!' : 'Great Job!'}
             </h4>
             <p className="text-green-600 mb-4">
               Thank you for sharing your favorite things with us! Your favorites are special because they're yours.
             </p>
-            
             <div className="bg-white rounded-lg p-4 mb-4">
               <h5 className="font-bold text-gray-800 mb-2">What you shared:</h5>
               <div className="flex justify-center gap-4">
@@ -162,16 +214,31 @@ const ShowAndTell: React.FC<ShowAndTellProps> = ({ onComplete }) => {
                   const item = favoriteThings.find(i => i.name === name);
                   return (
                     <div key={name} className="text-center">
-                      <div className="text-xl mb-1">{item?.emoji}</div>
+                      <div className="mb-1 flex items-center justify-center">
+                        <img
+                          src={item?.image}
+                          alt={item?.name}
+                          className="w-6 h-6 object-contain drop-shadow-lg"
+                          onError={e => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            const parent = (e.target as HTMLImageElement).parentElement;
+                            if (parent && !parent.querySelector('.img-placeholder')) {
+                              const placeholder = document.createElement('div');
+                              placeholder.className = 'img-placeholder w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-base text-gray-500';
+                              placeholder.innerText = '?';
+                              parent.appendChild(placeholder);
+                            }
+                          }}
+                        />
+                      </div>
                       <div className="text-xs font-semibold text-gray-700">{name}</div>
                     </div>
                   );
                 })}
               </div>
             </div>
-            
             {isComplete && (
-              <div className="flex items-center justify-center gap-2">
+              <div className="flex items-center justify-center gap-2 animate-pulse">
                 <CheckCircle className="text-green-500" size={24} />
                 <span className="font-bold text-green-700">Complete!</span>
               </div>

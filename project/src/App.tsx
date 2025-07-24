@@ -14,6 +14,7 @@ import ARZone from './pages/ARZone';
 import LetterMatchingGame from './pages/LetterMatchingGame';
 import EducationalGame from './pages/EducationalGame';
 import ProtectedRoute from './components/ProtectedRoute';
+import ForestLetterHuntPage from './pages/forest-letter-hunt';
 import './index.css';
 
 function App() {
@@ -71,6 +72,14 @@ function App() {
                   element={
                     <ProtectedRoute role="parent">
                       <EducationalGame />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/forest-letter-hunt/:childId" 
+                  element={
+                    <ProtectedRoute role="parent">
+                      <ForestLetterHuntPage />
                     </ProtectedRoute>
                   } 
                 />

@@ -8,7 +8,7 @@ export interface LineArt {
   svgContent: string;
 }
 
-export type Tool = 'brush' | 'eraser' | 'bucket' | 'sticker';
+export type Tool = 'brush' | 'eraser' | 'fill' | 'sticker' | 'text' | 'fx';
 
 export type Sticker = {
   id: string;

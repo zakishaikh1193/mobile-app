@@ -23,7 +23,21 @@ export default {
         // --- NEW: A very bold, rounded font for headlines ---
         // To use this, import "Luckiest Guy" from Google Fonts in your index.css
         'fun': ['"Luckiest Guy"', 'cursive'], 
-      }
+      },
+      keyframes: {
+        'fly-x': {
+          '0%': { transform: 'translateX(-20%)' },
+          '100%': { transform: 'translateX(120vw)' },
+        },
+        'bounce-x': {
+          '0%, 100%': { transform: 'translateX(0)' },
+          '50%': { transform: 'translateX(60px)' },
+        },
+      },
+      animation: {
+        'fly-x': 'fly-x 8s linear infinite',
+        'bounce-x': 'bounce-x 2s ease-in-out infinite',
+      },
     },
   },
   plugins: [],
