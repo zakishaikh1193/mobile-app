@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import AnimatedButton from '../components/AnimatedButton';
-import SunnyMascot, { SunnyMood } from '../components/SunnyMascot';
 
 const CHARACTERS = [
   '🧙‍♂️', '👸', '🦄', '🐧', '🐸', '🐻', '🦊', '🐵', '🐼', '🐤',
@@ -173,7 +172,7 @@ const EducationalGame: React.FC = () => {
   };
 
   // Helper to map guideAnim to SunnyMood
-  const guideAnimToMood = (anim: string): SunnyMood => {
+  const guideAnimToMood = (anim: string): 'happy' | 'encourage' | 'hint' | 'idle' => {
     if (anim === 'bounce') return 'happy';
     if (anim === 'wave') return 'encourage';
     if (anim === 'hint') return 'hint';
@@ -317,7 +316,6 @@ const EducationalGame: React.FC = () => {
         ← Back
       </button>
       {/* Guide Character */}
-      <SunnyMascot message={guideMsg} mood={guideAnimToMood(guideAnim)} />
     </div>
   );
 };

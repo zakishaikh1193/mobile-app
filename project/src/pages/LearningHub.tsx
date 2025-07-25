@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, Trophy, RefreshCw } from 'lucide-react';
@@ -8,6 +8,433 @@ import AnimatedButton from '../components/AnimatedButton';
 import AudioButton from '../components/AudioButton';
 import DigitalPainting from '../components/DigitalPainting';
 import DigitalArtStudio from '../components/DigitalArtStudio';
+
+// New FamilyTreeActivity: Modern, mobile-first drag-and-drop family tree builder
+// NOTE: Make sure html2canvas is installed: npm install html2canvas
+import html2canvas from 'html2canvas';
+
+// Advanced FamilyTreeActivity with avatars, snapping, validation, and modal
+const FAMILY_MEMBERS_ADV = [
+  { key: 'grandpa', label: 'Grandpa', img: '/avatars/Grandfather.png' },
+  { key: 'grandma', label: 'Grandma', img: '/avatars/Grandmother.png' },
+  { key: 'dad', label: 'Dad', img: '/avatars/Father.png' },
+  { key: 'mom', label: 'Mom', img: '/avatars/Mother.png' },
+  { key: 'daughter', label: 'Daughter', img: '/avatars/Young%20sister.png' },
+  { key: 'son', label: 'Son', img: '/avatars/Brother.png' },
+];
+
+const initialPlaced = {};
+
+const AdvancedFamilyTreeActivity: React.FC<{ activity: any; onComplete: (score: number) => void }> = ({ activity, onComplete }) => {
+  const [dragged, setDragged] = useState<string | null>(null);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const [placed, setPlaced] = useState<Record<string, string>>({ ...initialPlaced });
+  const [showModal, setShowModal] = useState(false);
+  const [bounce, setBounce] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
+
+  // New container and node positions for larger tree
+  const TREE_CONTAINER_WIDTH = 480;
+  const TREE_CONTAINER_HEIGHT = 650;
+  const TREE_NODES = [
+    { key: 'grandpa', x: 80, y: 80 },      // top left
+    { key: 'grandma', x: 320, y: 80 },    // top right
+    { key: 'dad', x: 60, y: 270 },        // left
+    { key: 'mom', x: 340, y: 270 },       // right
+    { key: 'daughter', x: 120, y: 480 },  // bottom left
+    { key: 'son', x: 280, y: 480 },       // bottom right
+  ];
+
+  // Set initial positions for draggable cards (bottom area)
+  useEffect(() => {
+    const startY = TREE_CONTAINER_HEIGHT + 10;
+    const startX = [20, 100, 180, 260, 340, 420];
+    const pos: Record<string, { x: number; y: number }> = {};
+    FAMILY_MEMBERS_ADV.forEach((m, i) => {
+      pos[m.key] = { x: startX[i], y: startY };
+    });
+    setPositions(pos);
+  }, []);
+
+  // Drag logic
+  const handleDragStart = (key: string, e: React.TouchEvent | React.MouseEvent) => {
+    setDragged(key);
+    setBounce(null);
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    setOffset({
+      x: clientX - positions[key].x,
+      y: clientY - positions[key].y,
+    });
+  };
+  const handleDragMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!dragged) return;
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    setPositions(pos => ({
+      ...pos,
+      [dragged]: {
+        x: clientX - offset.x,
+        y: clientY - offset.y,
+      },
+    }));
+  };
+  const handleDragEnd = () => {
+    if (!dragged) return;
+    // Snap to nearest node if close
+    const card = positions[dragged];
+    let snapped = false;
+    for (const node of TREE_NODES) {
+      const dist = Math.hypot(card.x - node.x, card.y - node.y);
+      if (dist < 50 && !Object.values(placed).includes(node.key)) {
+        setPositions(pos => ({ ...pos, [dragged]: { x: node.x, y: node.y } }));
+        setPlaced(p => ({ ...p, [dragged]: node.key }));
+        setBounce(dragged);
+        snapped = true;
+        break;
+      }
+    }
+    if (!snapped) {
+      // Animate back to start
+      setPositions(pos => ({ ...pos, [dragged]: { x: pos[dragged].x, y: TREE_CONTAINER_HEIGHT + 10 } }));
+    }
+    setDragged(null);
+  };
+
+  // Validate tree
+  const handleComplete = () => {
+    const allPlaced = FAMILY_MEMBERS_ADV.every(m => placed[m.key]);
+    if (allPlaced) {
+      setShowModal(true);
+      setTimeout(() => onComplete(100), 1000);
+    }
+  };
+  const handleReset = () => {
+    setPlaced({ ...initialPlaced });
+    const startY = TREE_CONTAINER_HEIGHT + 10;
+    const startX = [20, 100, 180, 260, 340, 420];
+    const pos: Record<string, { x: number; y: number }> = {};
+    FAMILY_MEMBERS_ADV.forEach((m, i) => {
+      pos[m.key] = { x: startX[i], y: startY };
+    });
+    setPositions(pos);
+    setShowModal(false);
+  };
+
+  // Draw connection lines
+  const renderConnections = () => {
+    const lines = [
+      { from: 'grandpa', to: 'dad' },
+      { from: 'grandma', to: 'mom' },
+      { from: 'dad', to: 'daughter' },
+      { from: 'mom', to: 'son' },
+    ];
+    return (
+      <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
+        {lines.map((line, i) => {
+          const from = TREE_NODES.find(n => n.key === placed[line.from]);
+          const to = TREE_NODES.find(n => n.key === placed[line.to]);
+          if (!from || !to) return null;
+          return (
+            <line
+              key={i}
+              x1={from.x + 40}
+              y1={from.y + 40}
+              x2={to.x + 40}
+              y2={to.y + 40}
+              stroke="#a3a3a3"
+              strokeWidth={3}
+              strokeDasharray="8 4"
+            />
+          );
+        })}
+      </svg>
+    );
+  };
+
+  return (
+    <div className="w-full max-w-2xl mx-auto p-2">
+      <div className="bg-white rounded-3xl shadow-2xl border-4 border-blue-200 p-2 sm:p-6 mb-4 relative" style={{ minHeight: TREE_CONTAINER_HEIGHT + 120 }}>
+        <h2 className="text-2xl font-bold text-center mb-2">{activity.title}</h2>
+        <p className="text-center text-gray-600 mb-4">{activity.instruction}</p>
+        <div className="flex justify-center gap-2 mb-4">
+          <button onClick={handleComplete} className="px-3 py-1 rounded bg-green-500 hover:bg-green-600 text-white text-sm">Complete Tree</button>
+          <button onClick={handleReset} className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-sm">Reset</button>
+        </div>
+        <div
+          ref={canvasRef}
+          className="relative rounded-2xl shadow-lg mx-auto overflow-hidden flex items-center justify-center"
+          style={{ width: TREE_CONTAINER_WIDTH, height: TREE_CONTAINER_HEIGHT, touchAction: 'none', background: 'none' }}
+          onMouseMove={handleDragMove}
+          onMouseUp={handleDragEnd}
+          onMouseLeave={handleDragEnd}
+          onTouchMove={handleDragMove}
+          onTouchEnd={handleDragEnd}
+        >
+          {/* Tree background image */}
+          <img src="/avatars/Tree.png" alt="Family Tree" className="absolute left-0 top-0 w-full h-full object-contain z-0 pointer-events-none select-none" style={{maxWidth: TREE_CONTAINER_WIDTH, maxHeight: TREE_CONTAINER_HEIGHT}} />
+          {/* Tree nodes (drop targets) */}
+          {TREE_NODES.map(node => {
+            const placedKey = Object.entries(placed).find(([k, v]) => v === node.key)?.[0];
+            const member = placedKey ? FAMILY_MEMBERS_ADV.find(m => m.key === placedKey) : null;
+            return (
+              <div
+                key={node.key}
+                className={`absolute w-24 h-24 rounded-full border-4 border-white bg-white flex items-center justify-center z-10 transition-all duration-200 shadow-lg ${placedKey ? 'ring-4 ring-green-300' : 'ring-2 ring-blue-200'}`}
+                style={{ left: node.x, top: node.y }}
+                aria-label={node.key}
+              >
+                {/* Show avatar if placed, fully visible */}
+                {member && (
+                  <img
+                    src={member.img}
+                    alt={member.label}
+                    className="w-20 h-20 rounded-full object-cover shadow-lg"
+                  />
+                )}
+              </div>
+            );
+          })}
+          {renderConnections()}
+          {/* Draggable cards */}
+          {FAMILY_MEMBERS_ADV.map(member => (
+            <div
+              key={member.key}
+              className={`absolute w-20 h-24 flex flex-col items-center justify-center rounded-2xl shadow-lg border-2 border-white bg-white text-xs font-bold transition-all duration-200 select-none ${dragged === member.key ? 'z-20 scale-105' : 'z-10'} ${bounce === member.key ? 'animate-bounce' : ''}`}
+              style={{
+                left: positions[member.key]?.x,
+                top: positions[member.key]?.y,
+                touchAction: 'none',
+                cursor: dragged === member.key ? 'grabbing' : 'grab',
+                opacity: placed[member.key] ? 0.5 : 1,
+                pointerEvents: placed[member.key] ? 'none' : 'auto',
+              }}
+              onMouseDown={e => handleDragStart(member.key, e)}
+              onTouchStart={e => handleDragStart(member.key, e)}
+              tabIndex={0}
+              aria-label={member.label}
+            >
+              <img src={member.img} alt={member.label} className="w-14 h-14 rounded-full object-cover mb-1" />
+              <span className="font-semibold text-gray-700">{member.label}</span>
+            </div>
+          ))}
+        </div>
+        {/* Completion Modal */}
+        {showModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-xs w-full text-center animate-fade-in">
+              <div className="text-4xl mb-2">🎉</div>
+              <div className="text-xl font-bold mb-4">Family Tree Completed!</div>
+              <div className="flex flex-col gap-2">
+                <button onClick={handleReset} className="px-4 py-2 rounded bg-green-500 hover:bg-green-600 text-white font-bold">Play Again</button>
+                <button onClick={() => window.location.href = '/child-dashboard'} className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold">Back</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// --- NEW MOBILE-FIRST FAMILY TREE GAME ---
+const MOBILE_TREE_WIDTH = 320;
+const MOBILE_TREE_HEIGHT = 420;
+const MOBILE_TREE_NODES = [
+  { key: 'grandpa', x: 30, y: 30 },      // top left
+  { key: 'grandma', x: 180, y: 30 },    // top right
+  { key: 'dad', x: 10, y: 160 },        // left
+  { key: 'mom', x: 200, y: 160 },       // right
+  { key: 'daughter', x: 50, y: 320 },   // bottom left
+  { key: 'son', x: 160, y: 320 },       // bottom right
+];
+const MOBILE_MEMBERS = [
+  { key: 'grandpa', label: 'Grandpa', img: '/avatars/Grandfather.png' },
+  { key: 'grandma', label: 'Grandma', img: '/avatars/Grandmother.png' },
+  { key: 'dad', label: 'Dad', img: '/avatars/Father.png' },
+  { key: 'mom', label: 'Mom', img: '/avatars/Mother.png' },
+  { key: 'daughter', label: 'Daughter', img: '/avatars/Young%20sister.png' },
+  { key: 'son', label: 'Son', img: '/avatars/Brother.png' },
+];
+
+const MobileFamilyTreeGame: React.FC<{ activity: any; onComplete: (score: number) => void }> = ({ activity, onComplete }) => {
+  const [dragged, setDragged] = useState<string | null>(null);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const [placed, setPlaced] = useState<Record<string, string>>({});
+  const [showModal, setShowModal] = useState(false);
+  const [bounce, setBounce] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
+
+  // Responsive: use window width for scaling
+  const [containerWidth, setContainerWidth] = useState(MOBILE_TREE_WIDTH);
+  useEffect(() => {
+    const handleResize = () => {
+      const w = Math.min(window.innerWidth - 24, 400);
+      setContainerWidth(w);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  const scale = containerWidth / MOBILE_TREE_WIDTH;
+
+  // Set initial positions for draggable cards (bottom area)
+  useEffect(() => {
+    const startY = MOBILE_TREE_HEIGHT * scale + 10;
+    const startX = [10, 70, 130, 190, 250, 310].map(x => x * scale);
+    const pos: Record<string, { x: number; y: number }> = {};
+    MOBILE_MEMBERS.forEach((m, i) => {
+      pos[m.key] = { x: startX[i], y: startY };
+    });
+    setPositions(pos);
+  }, [scale]);
+
+  // Drag logic
+  const handleDragStart = (key: string, e: React.TouchEvent | React.MouseEvent) => {
+    setDragged(key);
+    setBounce(null);
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    setOffset({
+      x: clientX - positions[key].x,
+      y: clientY - positions[key].y,
+    });
+  };
+  const handleDragMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!dragged) return;
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    setPositions(pos => ({
+      ...pos,
+      [dragged]: {
+        x: clientX - offset.x,
+        y: clientY - offset.y,
+      },
+    }));
+  };
+  const handleDragEnd = () => {
+    if (!dragged) return;
+    // Snap to nearest node if close
+    const card = positions[dragged];
+    let snapped = false;
+    for (const node of MOBILE_TREE_NODES) {
+      const nodeX = node.x * scale;
+      const nodeY = node.y * scale;
+      const dist = Math.hypot(card.x - nodeX, card.y - nodeY);
+      if (dist < 40 * scale && !Object.values(placed).includes(node.key)) {
+        setPositions(pos => ({ ...pos, [dragged]: { x: nodeX, y: nodeY } }));
+        setPlaced(p => ({ ...p, [dragged]: node.key }));
+        setBounce(dragged);
+        snapped = true;
+        break;
+      }
+    }
+    if (!snapped) {
+      // Animate back to start
+      setPositions(pos => ({ ...pos, [dragged]: { x: pos[dragged].x, y: MOBILE_TREE_HEIGHT * scale + 10 } }));
+    }
+    setDragged(null);
+  };
+
+  // Validate tree
+  const handleComplete = () => {
+    const allPlaced = MOBILE_MEMBERS.every(m => placed[m.key]);
+    if (allPlaced) {
+      setShowModal(true);
+      setTimeout(() => onComplete(100), 1000);
+    }
+  };
+  const handleReset = () => {
+    setPlaced({});
+    const startY = MOBILE_TREE_HEIGHT * scale + 10;
+    const startX = [10, 70, 130, 190, 250, 310].map(x => x * scale);
+    const pos: Record<string, { x: number; y: number }> = {};
+    MOBILE_MEMBERS.forEach((m, i) => {
+      pos[m.key] = { x: startX[i], y: startY };
+    });
+    setPositions(pos);
+    setShowModal(false);
+  };
+
+  return (
+    <div className="w-full flex flex-col items-center px-1 py-2">
+      <div className="bg-white rounded-3xl shadow-2xl border-4 border-blue-200 p-2 mb-4 relative flex flex-col items-center justify-center" style={{ width: containerWidth, aspectRatio: '3/4', maxWidth: 400, minHeight: containerWidth * 1.3, overflow: 'hidden' }}>
+        <h2 className="text-xl font-bold text-center mb-2">{activity.title}</h2>
+        <p className="text-center text-gray-600 mb-2 text-sm">{activity.instruction}</p>
+        <div className="flex justify-center gap-2 mb-2">
+          <button onClick={handleComplete} className="px-3 py-1 rounded bg-green-500 hover:bg-green-600 text-white text-xs">Complete Tree</button>
+          <button onClick={handleReset} className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-xs">Reset</button>
+        </div>
+        <div
+          ref={canvasRef}
+          className="relative rounded-2xl shadow-lg mx-auto overflow-hidden flex items-center justify-center bg-white"
+          style={{ width: '100%', height: '100%', maxWidth: 360, maxHeight: 480, minHeight: 320, minWidth: 240, touchAction: 'none', background: 'none', position: 'relative' }}
+          onMouseMove={handleDragMove}
+          onMouseUp={handleDragEnd}
+          onMouseLeave={handleDragEnd}
+          onTouchMove={handleDragMove}
+          onTouchEnd={handleDragEnd}
+        >
+          {/* Tree background image */}
+          <img src="/avatars/Tree.png" alt="Family Tree" 
+            className="absolute left-0 top-0 w-full h-full object-contain z-0 pointer-events-none select-none"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              borderRadius: '1.5rem',
+              maxWidth: '100%',
+              maxHeight: '100%',
+              minWidth: 0,
+              minHeight: 0,
+              boxSizing: 'border-box',
+            }}
+          />
+          {/* Tree nodes (drop targets) - now invisible */}
+          {/* Draggable cards */}
+          {MOBILE_MEMBERS.map(member => (
+            <div
+              key={member.key}
+              className={`absolute flex flex-col items-center justify-center rounded-2xl shadow-lg border-2 border-white bg-white text-xs font-bold transition-all duration-200 select-none ${dragged === member.key ? 'z-20 scale-105' : 'z-10'} ${bounce === member.key ? 'animate-bounce' : ''}`}
+              style={{
+                left: positions[member.key]?.x,
+                top: positions[member.key]?.y,
+                width: 56 * scale,
+                height: 72 * scale,
+                touchAction: 'none',
+                cursor: dragged === member.key ? 'grabbing' : 'grab',
+                opacity: placed[member.key] ? 0.5 : 1,
+                pointerEvents: placed[member.key] ? 'none' : 'auto',
+              }}
+              onMouseDown={e => handleDragStart(member.key, e)}
+              onTouchStart={e => handleDragStart(member.key, e)}
+              tabIndex={0}
+              aria-label={member.label}
+            >
+              <img src={member.img} alt={member.label} className="rounded-full object-cover mb-1" style={{ width: 40 * scale, height: 40 * scale }} />
+              <span className="font-semibold text-gray-700" style={{ fontSize: 12 * scale }}>{member.label}</span>
+            </div>
+          ))}
+        </div>
+        {/* Completion Modal */}
+        {showModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-xs w-full text-center animate-fade-in">
+              <div className="text-4xl mb-2">🎉</div>
+              <div className="text-xl font-bold mb-4">Family Tree Completed!</div>
+              <div className="flex flex-col gap-2">
+                <button onClick={handleReset} className="px-4 py-2 rounded bg-green-500 hover:bg-green-600 text-white font-bold">Play Again</button>
+                <button onClick={() => window.location.href = '/child-dashboard'} className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold">Back</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const LearningHub: React.FC = () => {
   const { hubType, childId } = useParams<{ hubType: string; childId: string }>();
@@ -174,8 +601,8 @@ const LearningHub: React.FC = () => {
           title: 'Build Your Family Tree',
           instruction: 'Drag family members to build your family tree!',
           data: {
-            members: ['👨', '👩', '👧', '👦', '👴', '👵'],
-            roles: ['Dad', 'Mom', 'Sister', 'Brother', 'Grandpa', 'Grandma']
+            members: ['👴', '👵', '👨', '👩', '👧', '👦'],
+            roles: ['Grandpa', 'Grandma', 'Dad', 'Mom', 'Daughter', 'Son']
           }
         },
         {
@@ -238,7 +665,7 @@ const LearningHub: React.FC = () => {
       case 'digital-painting':
         return <DigitalPaintingActivity />;
       case 'family-tree':
-        return <FamilyTreeActivity activity={activity} onComplete={handleActivityComplete} />;
+        return <MobileFamilyTreeGame activity={activity} onComplete={handleActivityComplete} />;
       default:
         return <DefaultActivity activity={activity} onComplete={handleActivityComplete} />;
     }
@@ -704,95 +1131,6 @@ const ColoringActivity: React.FC<{ activity: any; onComplete: (score: number) =>
       
       <p className="text-sm text-gray-600 mt-4">
         Colored areas: {coloredAreas.length} / 6
-      </p>
-    </div>
-  );
-};
-
-const FamilyTreeActivity: React.FC<{ activity: any; onComplete: (score: number) => void }> = ({ activity, onComplete }) => {
-  const [placedMembers, setPlacedMembers] = useState<{[key: string]: string}>({});
-  const [draggedMember, setDraggedMember] = useState<string | null>(null);
-  const { speak } = useAudio();
-
-  useEffect(() => {
-    speak(activity.instruction);
-  }, [speak, activity.instruction]);
-
-  const handleDrop = (role: string, member: string) => {
-    setPlacedMembers({ ...placedMembers, [role]: member });
-    setDraggedMember(null);
-    
-    if (Object.keys(placedMembers).length >= 3) { // Complete after placing 4 members
-      setTimeout(() => onComplete(100), 1000);
-    }
-  };
-
-  return (
-    <div className="text-center">
-      <motion.h2
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-3xl font-bold text-gray-800 mb-4"
-      >
-        {activity.title}
-      </motion.h2>
-      <p className="text-lg text-gray-600 mb-8">{activity.instruction}</p>
-      
-      {/* Family Tree Structure */}
-      <div className="bg-white rounded-3xl p-8 shadow-lg max-w-2xl mx-auto mb-8">
-        <div className="grid grid-cols-2 gap-8 mb-8">
-          {/* Grandparents */}
-          <div className="text-center">
-            <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-full flex items-center justify-center text-3xl mb-2 mx-auto">
-              {placedMembers['Grandpa'] || '?'}
-            </div>
-            <p className="text-sm text-gray-600">Grandpa</p>
-          </div>
-          <div className="text-center">
-            <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-full flex items-center justify-center text-3xl mb-2 mx-auto">
-              {placedMembers['Grandma'] || '?'}
-            </div>
-            <p className="text-sm text-gray-600">Grandma</p>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-8">
-          {/* Parents */}
-          <div className="text-center">
-            <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-full flex items-center justify-center text-3xl mb-2 mx-auto">
-              {placedMembers['Dad'] || '?'}
-            </div>
-            <p className="text-sm text-gray-600">Dad</p>
-          </div>
-          <div className="text-center">
-            <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-full flex items-center justify-center text-3xl mb-2 mx-auto">
-              {placedMembers['Mom'] || '?'}
-            </div>
-            <p className="text-sm text-gray-600">Mom</p>
-          </div>
-        </div>
-      </div>
-      
-      {/* Available Family Members */}
-      <div className="flex justify-center space-x-4">
-        {activity.data.members.map((member: string, index: number) => (
-          <motion.button
-            key={index}
-            className="text-4xl p-4 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => {
-              const role = activity.data.roles[index];
-              handleDrop(role, member);
-            }}
-          >
-            {member}
-          </motion.button>
-        ))}
-      </div>
-      
-      <p className="text-sm text-gray-600 mt-4">
-        Placed: {Object.keys(placedMembers).length} / 4
       </p>
     </div>
   );

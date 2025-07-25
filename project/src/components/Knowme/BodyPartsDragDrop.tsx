@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, GripVertical } from 'lucide-react';
 import Confetti from 'react-confetti';
 import bodyImg from '../../source/body.png';
-import SunnyMascot from '../SunnyMascot';
 import b2Img from '../../source/B2.png';
 
 interface BodyPartsDragDropProps {
@@ -205,13 +204,6 @@ const BodyPartsDragDrop: React.FC<BodyPartsDragDropProps> = ({ onComplete }) => 
 
   return (
     <div className="min-h-[700px] flex flex-col items-center justify-center bg-gradient-to-br from-blue-200 via-purple-100 to-pink-100 rounded-3xl p-2 md:p-8 shadow-2xl">
-      {/* SunnyMascot at top left, small size */}
-      <div className="absolute left-4 top-4 z-30" style={{ width: 100, height: 100 }}>
-        <SunnyMascot
-          message={allCorrect ? 'Amazing! You labeled all the body parts correctly!' : sunnyMessage}
-          mood={allCorrect ? 'party' : sunnyMood}
-        />
-      </div>
       {/* Progress Bar */}
       <div className="w-full max-w-2xl mx-auto mt-2 mb-4">
         <div className="h-4 bg-white/70 rounded-full overflow-hidden shadow-inner border border-blue-200">
