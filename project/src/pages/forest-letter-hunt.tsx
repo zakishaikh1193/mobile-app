@@ -71,44 +71,25 @@ const ForestLetterHuntPage: React.FC = () => {
       <img
         src="/bushes/main.jpg"
         alt="Forest Background"
-        className="absolute inset-0 w-full h-full object-cover z-0"
+        className="absolute inset-0 w-full h-full object-cover z-0 blur-[2px]"
         style={{ minHeight: '100vh', minWidth: '100vw', opacity: 0.95 }}
       />
       {/* Animated Background Elements */}
       <div className="absolute inset-0 pointer-events-none">
-        {/* Animal A2 flying from left to right (animated, responsive, smaller on mobile) */}
-        <AnimatedA2
-          className="absolute top-[60%] left-0 w-12 sm:w-16 md:w-24 lg:w-32 animate-fly-x"
-          style={{ zIndex: 2 }}
-        />
-        {/* Floating butterflies */}
-        <div className="absolute top-20 left-10 animate-bounce text-2xl delay-500">🦋</div>
-        <div className="absolute top-32 right-20 animate-pulse text-xl delay-1000">🦋</div>
-        <div className="absolute top-60 left-1/3 animate-bounce text-lg delay-1500">🦋</div>
-        <div className="absolute top-80 right-10 animate-bounce text-xl delay-2000">🦋</div>
-        {/* Realistic forest trees */}
-        <div className="absolute bottom-0 left-0 text-8xl animate-pulse delay-300">🌲</div>
-        <div className="absolute bottom-0 right-0 text-9xl animate-pulse delay-800">🌲</div>
-        <div className="absolute bottom-0 left-1/4 text-7xl animate-pulse delay-1200">🌳</div>
-        <div className="absolute bottom-0 right-1/3 text-8xl animate-pulse delay-600">🌳</div>
-        <div className="absolute bottom-0 left-1/2 text-6xl animate-pulse delay-1500">🌲</div>
-        {/* Floating leaves */}
-        <div className="absolute top-40 left-1/2 text-xl animate-bounce delay-700">🍃</div>
-        <div className="absolute top-80 right-1/4 text-lg animate-bounce delay-1100">🍃</div>
-        <div className="absolute top-50 left-1/4 text-lg animate-bounce delay-1400">🍃</div>
-        {/* Forest floor elements */}
-        <div className="absolute bottom-10 left-1/3 text-sm animate-pulse delay-2000">🍄</div>
-        <div className="absolute bottom-8 right-1/4 text-sm animate-pulse delay-2500">🍄</div>
-        <div className="absolute bottom-12 left-3/4 text-xs animate-pulse delay-1800">🌿</div>
-        {/* Animated Frog jumping from left to pond (middle, responsive, always visible) */}
-        <AnimatedFrog
-          className="w-12 sm:w-16 md:w-20 lg:w-24"
-        />
-        {/* Animated Monkey in the middle of the background (responsive) */}
-        <AnimatedMonkey
-          className="absolute w-16 sm:w-20 md:w-28 lg:w-36"
-          topPercent={72}
-        />
+        {/* Animal A2 flying from left to right (animated, only on desktop/laptop) */}
+        <div className="hidden md:block">
+          <AnimatedA2
+            className="absolute top-[60%] left-0 w-12 sm:w-16 md:w-24 lg:w-32 animate-fly-x"
+            style={{ zIndex: 2 }}
+          />
+        </div>
+        {/* Animated Monkey in the middle of the background (only on desktop/laptop) */}
+        <div className="hidden md:block">
+          <AnimatedMonkey
+            className="absolute w-16 sm:w-20 md:w-28 lg:w-36 left-[60%] top-[80%]"
+            topPercent={80}
+          />
+        </div>
       </div>
       {/* Header */}
       <header className="relative z-10 flex justify-between items-center p-4 bg-green-800/20 backdrop-blur-sm">

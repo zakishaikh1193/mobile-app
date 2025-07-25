@@ -167,18 +167,37 @@ const Game: React.FC<GameProps> = ({ settings, progress, onProgressUpdate }) => 
 
   // Estimated bush positions (adjust as needed to match your background)
   const bushPositions = [
-    { left: '-10%', top: '47%' },
-    { left: '12%', top: '80%' },  // leftmost bush (by the pond)
-    { left: '30%', top: '48%' },
-    { left: '70%', top: '48%' },
-    { left: '110%', top: '66%' }
-     // rightmost bush
+    { left: '8%', top: '47%' },   // B1 (leftmost)
+    { left: '22%', top: '80%' }, // B2
+    { left: '40%', top: '48%' }, // B3
+    { left: '80%', top: '48%' }, // B4
+    { left: '80%', top: '90%' }  // B5 (rightmost, moved further down)
   ];
 
+  // Responsive bush/monkey size
+  const bushSize = 'clamp(60px, 12vw, 110px)';
+  const monkeySize = 'clamp(70px, 14vw, 120px)';
+
+  // Monkey walk animation: from B1 to B5
+  const walkStart = bushPositions[0];
+  const walkEnd = bushPositions[4];
+
+  // Only animate on first render of the level
+  const [walk, setWalk] = useState(true);
+  useEffect(() => {
+    setWalk(true);
+    const timeout = setTimeout(() => setWalk(false), 2500); // 2.5s walk duration
+    return () => clearTimeout(timeout);
+  }, [progress.level]);
+
+  // Monkey position: at the current target bush (or first bush if null)
+  const monkeyIndex = currentTargetIndex !== null ? currentTargetIndex : 0;
+  const monkeyPos = bushPositions[monkeyIndex];
+
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto w-full">
       {/* Game Status */}
-      <div className="flex justify-between items-center mb-6 bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg">
+      <div className="flex flex-wrap justify-between items-center mb-6 bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg">
         <div className="flex items-center gap-4">
           <div className="text-lg font-bold text-green-800">
             Level {progress.level} • {levelTheme.name}
@@ -221,7 +240,8 @@ const Game: React.FC<GameProps> = ({ settings, progress, onProgressUpdate }) => 
         </div>
       </div>
       {/* Game Board */}
-      <div className="relative w-full" style={{ height: '600px', marginTop: '3rem' }}>
+      <div className="relative w-full" style={{ height: 'min(60vw, 420px)', minHeight: '320px', marginTop: '3rem' }}>
+        {/* Bushes */}
         {bushLetters.map((letter, index) => (
           <div
             key={index}
@@ -229,8 +249,10 @@ const Game: React.FC<GameProps> = ({ settings, progress, onProgressUpdate }) => 
               position: 'absolute',
               left: bushPositions[index].left,
               top: bushPositions[index].top,
+              width: bushSize,
+              height: bushSize,
               transform: 'translate(-50%, -50%)',
-              zIndex: 2
+              zIndex: 20
             }}
           >
             <Bush
