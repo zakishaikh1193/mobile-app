@@ -65,9 +65,9 @@ const ParentDashboard: React.FC = () => {
         </header>
         
         {/* Decorative floating items */}
-        <motion.img animate={{ y: [-5, 5] }} transition={{ repeat: Infinity, repeatType: 'reverse', duration: 3 }} src="/abc.png" alt="Decorative ABC letters" className="absolute top-1/4 left-1/4 w-24 opacity-80" />
+        {/* <motion.img animate={{ y: [-5, 5] }} transition={{ repeat: Infinity, repeatType: 'reverse', duration: 3 }} src="/abc.png" alt="Decorative ABC letters" className="absolute top-1/4 left-1/4 w-24 opacity-80" />
         <motion.img animate={{ y: [-5, 5] }} transition={{ repeat: Infinity, repeatType: 'reverse', duration: 2.5 }} src="/abc.png" alt="Decorative lightbulb icon" className="absolute top-16 right-1/4 w-12 opacity-80" />
-        <motion.img animate={{ y: [-5, 5] }} transition={{ repeat: Infinity, repeatType: 'reverse', duration: 3.5 }} src="/numbers.png" alt="Decorative atom science icon" className="absolute top-[10%] left-1/2 w-48 opacity-80" />
+        <motion.img animate={{ y: [-5, 5] }} transition={{ repeat: Infinity, repeatType: 'reverse', duration: 3.5 }} src="/numbers.png" alt="Decorative atom science icon" className="absolute top-[10%] left-1/2 w-48 opacity-80" /> */}
 
         {/* Main Content Area */}
         <main className="relative mt-8 md:mt-12 flex flex-col md:flex-row">
@@ -118,14 +118,14 @@ const ParentDashboard: React.FC = () => {
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ duration: 0.8, delay: 0.2 }}
               /> */}
-<motion.img 
+{/* <motion.img 
   src="/ParentDashboardpic.png" 
   alt="A cartoon boy holding a tablet" 
   className="absolute top-[10%] left-1/5 w-[900px] h-[900px] z-20"
   initial={{ y: 200, opacity: 0 }}
   animate={{ y: 0, opacity: 1 }}
   transition={{ duration: 0.8 }}
-/>
+/> */}
               {/* YOUR CHILDREN rendered as floating, clickable circles */}
               {user.children?.map((child, index) => (
                   <motion.div

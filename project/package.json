@@ -10,12 +10,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
+    "@react-spring/web": "^10.0.1",
     "@types/react-router-dom": "^5.3.3",
     "axios": "^1.10.0",
+    "canvas-confetti": "^1.9.3",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.3",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
+    "react-confetti": "^6.4.0",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.6.3"
   },

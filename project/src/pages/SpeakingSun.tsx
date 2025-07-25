@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
 
+interface SpeakingSunProps {
+  animate: string;
+  showSpeechBubble: boolean;
+}
+
 const sunFrames = [
   '/bushes/S1.png', '/bushes/S2.png', '/bushes/S3.png', '/bushes/S4.png', '/bushes/S5.png', '/bushes/S6.png', '/bushes/S7.png', '/bushes/S8.png', '/bushes/S9.png', '/bushes/S10.png', '/bushes/S11.png',
 ];
@@ -37,7 +42,7 @@ function useTypingEffect(text: string, active: boolean, speed: number = 40, onDo
   return displayed;
 }
 
-const SpeakingSun: React.FC = () => {
+const SpeakingSun: React.FC<SpeakingSunProps> = ({ animate, showSpeechBubble }) => {
   const [frame, setFrame] = useState(0);
   const [stage, setStage] = useState<Stage>(STAGE.ENTER);
   const [showInduction, setShowInduction] = useState(false);
@@ -55,6 +60,17 @@ const SpeakingSun: React.FC = () => {
       return () => clearTimeout(timer);
     }
   }, [stage]);
+
+  // Use animate prop to control animation
+  useEffect(() => {
+    if (animate === 'start') {
+      setStage(STAGE.INDUCTION);
+      setShowInduction(true);
+    }
+  }, [animate]);
+
+  // Show/hide speech bubble based on prop
+  const showSpeechBubbleContent = showSpeechBubble && (showInduction || showStart);
 
   // 2. Induction: animate talking and show memory/info
   useEffect(() => {
@@ -148,8 +164,8 @@ const SpeakingSun: React.FC = () => {
         className="w-40 h-40"
         draggable={false}
       />
-      {/* Induction and Start containers, both visible until sun is in the corner */}
-      {(showInduction || showStart) && (
+      {/* Speech bubble container */}
+      {showSpeechBubbleContent && (
         <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 flex flex-col gap-2 max-w-md min-w-[180px]">
           {showInduction && (
             <div className="bg-yellow-50 border border-yellow-300 rounded-2xl px-6 py-2 shadow text-base font-semibold text-yellow-900 break-words whitespace-normal min-h-[90px] max-w-md text-wrap">
