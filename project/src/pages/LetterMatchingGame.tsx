@@ -73,6 +73,25 @@ const getRandomPositions = (
   return positions;
 };
 
+// --- Utility: Shuffle ---
+function shuffle<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// --- Responsive Sizing Helpers ---
+const getResponsiveSizes = (containerWidth: number, containerHeight: number) => {
+  // Card sizes scale with container, but clamp to min/max
+  const cardSize = Math.max(56, Math.min(90, Math.floor(containerWidth / 6)));
+  const picSize = Math.max(70, Math.min(110, Math.floor(containerWidth / 5.2)));
+  const padding = Math.max(10, Math.floor(containerWidth / 32));
+  return { cardSize, picSize, padding };
+};
+
 // --- Main Component ---
 const ALL_LEVELS = [
   // Level 1: A-E
@@ -148,26 +167,75 @@ const LetterMatchingGame: React.FC = () => {
 
   // --- Letters and Pictures for current level ---
   const currentSet = ALL_LEVELS[level] || [];
-  console.log('Current Level Data:', currentSet); // DEBUG: Print current level data
-  const LETTERS = currentSet.map(l => ({ char: l.char, id: l.id }));
-  const PICTURES = currentSet.map(l => ({ name: l.name, emoji: l.emoji, id: l.id }));
+  // Shuffle order for each level
+  const [shuffledLetters, setShuffledLetters] = useState<Letter[]>([]);
+  const [shuffledPictures, setShuffledPictures] = useState<Picture[]>([]);
+  useEffect(() => {
+    setShuffledLetters(shuffle(currentSet.map(l => ({ char: l.char, id: l.id }))));
+    setShuffledPictures(shuffle(currentSet.map(l => ({ name: l.name, emoji: l.emoji, id: l.id }))));
+  }, [level]);
+  const LETTERS = shuffledLetters;
+  const PICTURES = shuffledPictures;
   const totalPairs = currentSet.length;
   const isLastLevel = level === ALL_LEVELS.length - 1;
   const setIsValid = LETTERS.length === PICTURES.length;
 
+  // --- Add refs for each card ---
+  const letterRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const pictureRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // --- Track container size and recalculate lines on resize ---
+  const [containerSize, setContainerSize] = useState({ width: 360, height: 600 });
+  useEffect(() => {
+    const handleResize = () => {
+      const w = Math.max(320, Math.min(window.innerWidth * 0.97, 600));
+      const h = Math.max(420, Math.min(window.innerHeight * 0.8, 900));
+      setContainerSize({ width: w, height: h });
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  const { cardSize, picSize, padding } = getResponsiveSizes(containerSize.width, containerSize.height);
+
+  // --- Connection line positions ---
+  const [linePositions, setLinePositions] = useState<{ x1: number; y1: number; x2: number; y2: number; key: string }[]>([]);
+  useEffect(() => {
+    // Calculate line positions after render
+    const newLines: { x1: number; y1: number; x2: number; y2: number; key: string }[] = [];
+    matches.forEach((match) => {
+      const letterIdx = LETTERS.findIndex(l => l.id === match.letterId);
+      const picIdx = PICTURES.findIndex(p => p.id === match.pictureId);
+      const letterElem = letterRefs.current[letterIdx];
+      const picElem = pictureRefs.current[picIdx];
+      if (!letterElem || !picElem) return;
+      const letterRect = letterElem.getBoundingClientRect();
+      const picRect = picElem.getBoundingClientRect();
+      const containerRect = gameAreaRef.current?.getBoundingClientRect();
+      if (!containerRect) return;
+      // Calculate center points relative to SVG
+      const x1 = letterRect.right - containerRect.left;
+      const y1 = letterRect.top + letterRect.height / 2 - containerRect.top;
+      const x2 = picRect.left - containerRect.left;
+      const y2 = picRect.top + picRect.height / 2 - containerRect.top;
+      newLines.push({ x1, y1, x2, y2, key: match.letterId });
+    });
+    setLinePositions(newLines);
+  }, [matches, LETTERS, PICTURES, containerSize]);
+
   // --- Positioning ---
   useEffect(() => {
     if (gameAreaRef.current && setIsValid) {
-      const width = gameAreaRef.current.offsetWidth;
-      const height = gameAreaRef.current.offsetHeight;
-      const letterPositions = getRandomPositions(totalPairs, width * 0.4, height, 70, 20);
-      const picturePositions = getRandomPositions(totalPairs, width * 0.4, height, 90, 20);
+      const width = containerSize.width;
+      const height = containerSize.height;
+      const letterPositions = getRandomPositions(totalPairs, width * 0.4, height, cardSize, padding);
+      const picturePositions = getRandomPositions(totalPairs, width * 0.4, height, picSize, padding);
       setPositions({
         letters: letterPositions.map((pos) => ({ ...pos, x: pos.x + 0 })),
         pictures: picturePositions.map((pos) => ({ ...pos, x: pos.x + width * 0.6 })),
       });
     }
-  }, [gameAreaRef.current, level, setIsValid]);
+  }, [gameAreaRef.current, level, setIsValid, containerSize, cardSize, picSize, padding]);
 
   // --- Handle Matching ---
   const handleLetterClick = (id: string) => {
@@ -340,11 +408,9 @@ const LetterMatchingGame: React.FC = () => {
           </AnimatedButton>
         </div>
         <motion.h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent drop-shadow-lg mb-2 tracking-wide" initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ duration: 0.7 }}>
-          🌟 Fun Letter Matching Adventure! 🌟
+         
         </motion.h1>
-        <motion.p className="text-lg md:text-2xl font-semibold text-purple-700 mb-4 flex items-center gap-2">
-          Match Letters with Pictures - It's Super Fun! <span role="img" aria-label="game">🎮✨</span>
-        </motion.p>
+        
         <div className="flex gap-2 mb-4 items-center">
           <span className="text-base font-bold text-purple-600 bg-white/70 rounded-full px-4 py-1 shadow">Level {level + 1} / {ALL_LEVELS.length}</span>
           <span className="text-base font-bold text-blue-600 bg-white/70 rounded-full px-4 py-1 shadow">Matched {matches.length}/{totalPairs}</span>
@@ -383,100 +449,100 @@ const LetterMatchingGame: React.FC = () => {
         </motion.div>
       </div>
       {/* Game Area */}
-      <div ref={gameAreaRef} className="relative mx-auto bg-white/60 rounded-3xl shadow-xl backdrop-blur-lg w-[95vw] max-w-5xl h-[80vh] min-h-[600px] mb-8 z-10 overflow-visible">
-        {/* SVG Lines */}
+      <div
+        ref={gameAreaRef}
+        className="relative mx-auto bg-white/60 rounded-3xl shadow-xl backdrop-blur-lg w-full max-w-[clamp(320px,95vw,600px)] h-auto min-h-[420px] mb-8 z-10 overflow-visible flex items-center justify-center"
+        style={{ width: `clamp(320px, 95vw, 600px)`, height: containerSize.height }}
+      >
+        <div className="w-full max-w-2xl mx-auto grid grid-cols-2 gap-x-8 gap-y-6 md:gap-x-16 md:gap-y-10 py-8 px-2 sm:px-8">
+          {/* Letters column */}
+          <div className="flex flex-col gap-6 md:gap-10">
+            {LETTERS.map((letter, i) => {
+              const matched = matches.some(m => m.letterId === letter.id);
+              const disabled = matches.length === totalPairs;
+              const isHintTarget = hintLetter === letter.id && !matched;
+              return (
+                <motion.div
+                  ref={el => letterRefs.current[i] = el}
+                  key={letter.id}
+                  className={clsx(
+                    "flex items-center justify-center w-[clamp(48px,10vw,100px)] h-[clamp(48px,10vw,100px)] sm:w-20 sm:h-20 rounded-2xl font-extrabold text-2xl sm:text-3xl cursor-pointer select-none shadow-lg transition-all border-2 border-red-500 mx-auto",
+                    matched ? "bg-gradient-to-br from-green-200 to-green-400 ring-4 ring-green-400 scale-105" :
+                    isHintTarget ? "bg-gradient-to-br from-yellow-200 to-yellow-400 ring-4 ring-yellow-400 animate-bounce" :
+                    selectedLetter === letter.id ? "bg-gradient-to-br from-yellow-200 to-yellow-400 ring-4 ring-yellow-400 animate-bounce" :
+                    "bg-gradient-to-br from-purple-200 to-blue-200 hover:scale-110 hover:shadow-2xl",
+                    disabled && "opacity-60 cursor-not-allowed"
+                  )}
+                  style={{ zIndex: 2 }}
+                  onClick={() => !matched && !disabled && handleLetterClick(letter.id)}
+                  tabIndex={0}
+                  aria-label={`Letter ${letter.char}`}
+                  id={`letter-${letter.id}`}
+                >
+                  {letter.char}
+                  {matched && <Star className="absolute -top-2 -right-2 text-yellow-400 animate-ping" size={28} />}
+                </motion.div>
+              );
+            })}
+          </div>
+          {/* Images column */}
+          <div className="flex flex-col gap-6 md:gap-10">
+            {PICTURES.map((pic, i) => {
+              const matched = matches.some(m => m.pictureId === pic.id);
+              const disabled = matches.length === totalPairs;
+              const isHintTarget = hintLetter && !matched && pic.id === hintLetter;
+              return (
+                <motion.div
+                  ref={el => pictureRefs.current[i] = el}
+                  key={pic.id}
+                  className={clsx(
+                    "flex flex-col items-center justify-center w-[clamp(64px,12vw,120px)] h-[clamp(52px,10vw,100px)] sm:w-28 sm:h-24 rounded-3xl font-bold text-lg cursor-pointer select-none shadow-lg transition-all border-2 border-blue-500 mx-auto",
+                    matched ? "bg-gradient-to-br from-pink-200 to-pink-400 ring-4 ring-pink-400 scale-105" :
+                    isHintTarget ? "bg-gradient-to-br from-yellow-200 to-yellow-400 ring-4 ring-yellow-400 animate-bounce" :
+                    "bg-gradient-to-br from-blue-100 to-pink-100 hover:scale-110 hover:shadow-2xl",
+                    disabled && "opacity-60 cursor-not-allowed"
+                  )}
+                  style={{ zIndex: 2 }}
+                  onClick={() => !matched && !disabled && handlePictureClick(pic.id)}
+                  tabIndex={0}
+                  aria-label={`Picture ${pic.name}`}
+                  id={`pic-${pic.id}`}
+                >
+                  <span className="text-2xl sm:text-3xl mb-1 drop-shadow-lg">{pic.emoji}</span>
+                  <span className="font-extrabold text-purple-700 bg-white/70 rounded px-2 py-0.5 mt-1 shadow text-xs sm:text-base">{pic.name}</span>
+                  {matched && <Star className="absolute -top-2 -right-2 text-yellow-400 animate-ping" size={22} />}
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+        {/* SVG Lines for connections */}
         <svg className="absolute top-0 left-0 w-full h-full z-0 pointer-events-none">
-          {matches.map((match, i) => {
-            const letterPos = positions.letters[LETTERS.findIndex(l => l.id === match.letterId)];
-            const picPos = positions.pictures[PICTURES.findIndex(p => p.id === match.pictureId)];
-            if (!letterPos || !picPos) return null;
-            return (
-              <motion.line
-                key={match.letterId}
-                x1={letterPos.x + 45}
-                y1={letterPos.y + 45}
-                x2={picPos.x + 55}
-                y2={picPos.y + 55}
-                stroke="url(#gradient)"
-                strokeWidth="8"
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 0.7, delay: i * 0.1 }}
-                strokeLinecap="round"
-                filter="url(#glow)"
-              />
-            );
-          })}
+          {linePositions.map((line, i) => (
+            <motion.line
+              key={line.key}
+              x1={line.x1}
+              y1={line.y1}
+              x2={line.x2}
+              y2={line.y2}
+              stroke="url(#gradient)"
+              strokeWidth={6}
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 0.7, delay: i * 0.1 }}
+              strokeLinecap="round"
+              filter="url(#glow)"
+            />
+          ))}
+          {/* SVG Defs for filters (if needed for glow effect) */}
           <defs>
-            <linearGradient id="gradient" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#a78bfa" />
-              <stop offset="100%" stopColor="#f472b6" />
-            </linearGradient>
-            <filter id="glow">
-              <feGaussianBlur stdDeviation="4" result="coloredBlur" />
-              <feMerge>
-                <feMergeNode in="coloredBlur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="blur" />
+              <feColorMatrix in="blur" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="glow" />
+              <feBlend in="SourceGraphic" in2="glow" />
             </filter>
           </defs>
         </svg>
-        {/* Letters */}
-        {positions.letters.map((pos, i) => {
-          const letter = LETTERS[i];
-          const matched = matches.some(m => m.letterId === letter.id);
-          const disabled = matches.length === totalPairs;
-          // Highlight if this is the hint target
-          const isHintTarget = hintLetter === letter.id && !matched;
-          return (
-            <motion.div
-              key={letter.id}
-              className={clsx(
-                "absolute flex items-center justify-center w-[70px] h-[70px] rounded-2xl font-extrabold text-4xl cursor-pointer select-none shadow-lg transition-all border-2 border-red-500", // add red border for debug
-                matched ? "bg-gradient-to-br from-green-200 to-green-400 ring-4 ring-green-400 scale-105" :
-                isHintTarget ? "bg-gradient-to-br from-yellow-200 to-yellow-400 ring-4 ring-yellow-400 animate-bounce" :
-                selectedLetter === letter.id ? "bg-gradient-to-br from-yellow-200 to-yellow-400 ring-4 ring-yellow-400 animate-bounce" :
-                "bg-gradient-to-br from-purple-200 to-blue-200 hover:scale-110 hover:shadow-2xl",
-                disabled && "opacity-60 cursor-not-allowed"
-              )}
-              style={{ left: pos.x, top: pos.y, zIndex: 2 }}
-              onClick={() => !matched && !disabled && handleLetterClick(letter.id)}
-              tabIndex={0}
-              aria-label={`Letter ${letter.char}`}
-            >
-              {letter.char}
-              {matched && <Star className="absolute -top-2 -right-2 text-yellow-400 animate-ping" size={28} />}
-            </motion.div>
-          );
-        })}
-        {/* Pictures */}
-        {positions.pictures.map((pos, i) => {
-          const pic = PICTURES[i];
-          const matched = matches.some(m => m.pictureId === pic.id);
-          const disabled = matches.length === totalPairs;
-          // Highlight if this is the hint target
-          const isHintTarget = hintLetter && !matched && pic.id === hintLetter;
-          return (
-            <motion.div
-              key={pic.id}
-              className={clsx(
-                "absolute flex flex-col items-center justify-center w-[90px] h-[90px] rounded-3xl font-bold text-lg cursor-pointer select-none shadow-lg transition-all border-2 border-blue-500", // add blue border for debug
-                matched ? "bg-gradient-to-br from-pink-200 to-pink-400 ring-4 ring-pink-400 scale-105" :
-                isHintTarget ? "bg-gradient-to-br from-yellow-200 to-yellow-400 ring-4 ring-yellow-400 animate-bounce" :
-                "bg-gradient-to-br from-blue-100 to-pink-100 hover:scale-110 hover:shadow-2xl",
-                disabled && "opacity-60 cursor-not-allowed"
-              )}
-              style={{ left: pos.x, top: pos.y, zIndex: 2 }}
-              onClick={() => !matched && !disabled && handlePictureClick(pic.id)}
-              tabIndex={0}
-              aria-label={`Picture ${pic.name}`}
-            >
-              <span className="text-4xl mb-1 drop-shadow-lg">{pic.emoji}</span>
-              <span className="text-base font-extrabold text-purple-700 bg-white/70 rounded px-2 py-0.5 mt-1 shadow">{pic.name}</span>
-              {matched && <Star className="absolute -top-2 -right-2 text-yellow-400 animate-ping" size={28} />}
-            </motion.div>
-          );
-        })}
       </div>
       {/* Performance Insights, Recommendations, Next Adventure */}
       <div className="flex flex-wrap justify-center gap-4 mb-8 z-10 relative">

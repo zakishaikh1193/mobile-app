@@ -3,6 +3,7 @@
     "@hello-pangea/dnd": "^18.0.1",
     "@react-spring/web": "^10.0.1",
     "canvas-confetti": "^1.9.3",
+    "html2canvas": "^1.4.1",
     "lucide-react": "^0.525.0",
     "react": "^19.1.0",
     "react-confetti": "^6.4.0",
