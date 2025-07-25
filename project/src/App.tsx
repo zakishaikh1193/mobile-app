@@ -15,6 +15,8 @@ import LetterMatchingGame from './pages/LetterMatchingGame';
 import EducationalGame from './pages/EducationalGame';
 import ProtectedRoute from './components/ProtectedRoute';
 import ForestLetterHuntPage from './pages/forest-letter-hunt';
+import WordMatchGame from './components/WordMatchGame';
+import LetterPath from './components/LetterPath';
 import './index.css';
 
 function App() {
@@ -82,6 +84,22 @@ function App() {
                       <ForestLetterHuntPage />
                     </ProtectedRoute>
                   } 
+                />
+                <Route 
+                  path="/word-match/:childId"
+                  element={
+                    <ProtectedRoute role="parent">
+                      <WordMatchGame />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route 
+                  path="/letter-path/:childId"
+                  element={
+                    <ProtectedRoute role="parent">
+                      <LetterPath />
+                    </ProtectedRoute>
+                  }
                 />
                 <Route 
                   path="/teacher" 

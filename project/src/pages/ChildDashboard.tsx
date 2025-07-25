@@ -96,6 +96,22 @@ const ChildDashboard: React.FC = () => {
       emoji: '🎲'
     },
     {
+      id: 'word-match',
+      title: 'Word Match',
+      icon: null,
+      color: 'from-green-400 to-blue-400',
+      description: 'Drag and drop to match words',
+      emoji: '🔤'
+    },
+    {
+      id: 'tap-translation',
+      title: 'Tap the Correct Translation',
+      icon: null,
+      color: 'from-yellow-400 to-pink-400',
+      description: 'Tap the right answer',
+      emoji: '🖐️'
+    },
+    {
       id: 'know-me',
       title: 'Know Me: My Body and My Favorites',
       icon: null, // You can add a custom icon if desired
@@ -240,6 +256,10 @@ const ChildDashboard: React.FC = () => {
                     navigate(`/educational-game/${child.id}`);
                   } else if (hub.id === 'know-me') {
                     setShowKnowMe(true);
+                  } else if (hub.id === 'word-match') {
+                    navigate(`/letter-path/${child.id}`);
+                  } else if (hub.id === 'tap-translation') {
+                    navigate('/tap-translation');
                   } else {
                     navigate(`/learning/${hub.id}/${child.id}`);
                   }
