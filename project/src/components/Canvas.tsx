@@ -10,9 +10,10 @@ interface CanvasProps {
   brushSize: number;
   brushStyle: string;
   onSave: (canvasData: string) => void;
+  onChange?: () => void;
 }
 
-const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColor, brushSize, brushStyle, onSave }, ref) => {
+const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColor, brushSize, brushStyle, onSave, onChange }, ref) => {
   // Refs to always have latest tool/color/size
   const toolRef = useRef(currentTool);
   const colorRef = useRef(currentColor);
@@ -84,7 +85,11 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
     overlayCanvas.width = 600;
     overlayCanvas.height = 600;
 
-    // Draw the line art on overlay canvas AND main canvas for fill boundaries
+    // Clear both canvases
+    ctx.clearRect(0, 0, 600, 600);
+    overlayCtx.clearRect(0, 0, 600, 600);
+
+    // Draw the line art on overlay canvas only (for display)
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = artwork.svgContent;
     const svg = tempDiv.querySelector('svg');
@@ -94,9 +99,7 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
       const data = new XMLSerializer().serializeToString(svg);
       const img = new Image();
       img.onload = () => {
-        overlayCtx.clearRect(0, 0, 600, 600);
         overlayCtx.drawImage(img, 0, 0);
-        ctx.drawImage(img, 0, 0); // Draw on main canvas for fill boundaries
         saveState();
       };
       img.src = 'data:image/svg+xml;base64,' + btoa(data);
@@ -193,11 +196,18 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
 
   const floodFill = useCallback((startX: number, startY: number, fillColor: string, tolerance: number = 32) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const overlayCanvas = overlayCanvasRef.current;
+    if (!canvas || !overlayCanvas) return;
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const overlayCtx = overlayCanvas.getContext('2d');
+    if (!ctx || !overlayCtx) return;
 
+    // Get the overlay canvas data to check for line boundaries
+    const overlayImageData = overlayCtx.getImageData(0, 0, overlayCanvas.width, overlayCanvas.height);
+    const overlayData = overlayImageData.data;
+
+    // Get the main canvas data
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     
@@ -207,7 +217,7 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
     const startB = data[startPos + 2];
     const startA = data[startPos + 3];
 
-    // Prevent filling on transparent/line areas
+    // Prevent filling on transparent areas
     if (startA === 0) return;
 
     const fillColorRgb = hexToRgb(fillColor);
@@ -234,6 +244,11 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
       );
     }
 
+    // Helper to check if a pixel is a line boundary (from overlay canvas)
+    function isLineBoundary(idx: number) {
+      return overlayData[idx + 3] > 0; // If there's any opacity in the overlay at this pixel
+    }
+
     const pixelStack = [[Math.floor(startX), Math.floor(startY)]];
 
     while (pixelStack.length) {
@@ -241,7 +256,7 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
       if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) continue;
 
       const pos = (y * canvas.width + x) * 4;
-      if (colorMatch(pos) && !isAlreadyFilled(pos) && fillColorRgb) {
+      if (colorMatch(pos) && !isAlreadyFilled(pos) && !isLineBoundary(pos) && fillColorRgb) {
         data[pos] = fillColorRgb.r;
         data[pos + 1] = fillColorRgb.g;
         data[pos + 2] = fillColorRgb.b;
@@ -253,7 +268,12 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
 
     ctx.putImageData(imageData, 0, 0);
     playSound('fill');
-  }, [currentColor, playSound]);
+    
+    // Notify parent component of changes
+    if (onChange) {
+      onChange();
+    }
+  }, [currentColor, playSound, onChange]);
 
   const hexToRgb = (hex: string) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -345,7 +365,12 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
       ctx.stroke();
       playSound('paint');
     }
-  }, [isDrawing, playSound]);
+    
+    // Notify parent component of changes
+    if (onChange) {
+      onChange();
+    }
+  }, [isDrawing, playSound, onChange]);
 
   const stopDrawing = useCallback(() => {
     if (isDrawing) {
@@ -394,9 +419,49 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
 
   const handleSave = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const overlayCanvas = overlayCanvasRef.current;
+    if (!canvas || !overlayCanvas) return;
 
-    const dataURL = canvas.toDataURL('image/png');
+    console.log('Saving artwork with outlines...');
+
+    // Create a temporary canvas to combine line art and drawings
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d');
+    if (!tempCtx) return;
+
+    // Set the temporary canvas size
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+
+    // Fill with white background
+    tempCtx.fillStyle = 'white';
+    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+    // First, draw the user's drawings (colored areas)
+    tempCtx.drawImage(canvas, 0, 0);
+
+    // Create a new canvas for the line art with full opacity
+    const lineCanvas = document.createElement('canvas');
+    const lineCtx = lineCanvas.getContext('2d');
+    if (lineCtx) {
+      lineCanvas.width = overlayCanvas.width;
+      lineCanvas.height = overlayCanvas.height;
+      
+      // Draw the overlay canvas content with full opacity
+      lineCtx.globalAlpha = 1.0;
+      lineCtx.drawImage(overlayCanvas, 0, 0);
+      
+      // Draw the line art on top of the user's drawings
+      tempCtx.globalCompositeOperation = 'source-over';
+      tempCtx.globalAlpha = 1.0;
+      tempCtx.drawImage(lineCanvas, 0, 0);
+      
+      console.log('Line art drawn with full opacity');
+    }
+
+    // Get the combined image data
+    const dataURL = tempCanvas.toDataURL('image/png');
+    console.log('Image saved with outlines included');
     onSave(dataURL);
     playSound('celebrate');
     saveToGallery(dataURL);
