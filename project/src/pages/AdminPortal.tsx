@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import KodeitLogo from '../components/KodeitLogo';
 import AnimatedButton from '../components/AnimatedButton';
 import AudioButton from '../components/AudioButton';
+import ActivityManager from '../components/ActivityManager';
 
 // AddContentForm component
 const AddContentForm: React.FC<{
@@ -500,6 +501,7 @@ const AdminPortal: React.FC = () => {
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
     { id: 'content', label: 'Content', icon: BookOpen },
+    { id: 'activities', label: 'Activities', icon: Upload },
     { id: 'schools', label: 'Schools', icon: School },
     { id: 'feedback', label: 'Feedback', icon: MessageSquare },
     { id: 'settings', label: 'Settings', icon: Settings }
@@ -563,6 +565,7 @@ const AdminPortal: React.FC = () => {
         >
           {activeTab === 'overview' && renderOverview()}
           {activeTab === 'content' && renderContentManagement()}
+          {activeTab === 'activities' && <ActivityManager />}
           {activeTab === 'schools' && renderSchoolManagement()}
           {activeTab === 'feedback' && renderFeedback()}
           {activeTab === 'settings' && (

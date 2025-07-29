@@ -18,6 +18,7 @@ import ForestLetterHuntPage from './pages/forest-letter-hunt';
 import WordMatchGame from './components/WordMatchGame';
 import LetterPath from './components/LetterPath';
 import './index.css';
+import ColoringGame from './components/ColoringGame/ColoringGame';
 
 function App() {
   return (
@@ -115,6 +116,12 @@ function App() {
                     <ProtectedRoute role="admin">
                       <AdminPortal />
                     </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/coloring-game" 
+                  element={
+                      <ColoringGame />
                   } 
                 />
               </Routes>

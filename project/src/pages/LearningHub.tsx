@@ -8,10 +8,23 @@ import AnimatedButton from '../components/AnimatedButton';
 import AudioButton from '../components/AudioButton';
 import DigitalPainting from '../components/DigitalPainting';
 import DigitalArtStudio from '../components/DigitalArtStudio';
-
-// New FamilyTreeActivity: Modern, mobile-first drag-and-drop family tree builder
-// NOTE: Make sure html2canvas is installed: npm install html2canvas
+import { LineArt } from '../types/lineArt';
 import html2canvas from 'html2canvas';
+import { activityService, Activity as ApiActivity } from '../services/activityService';
+
+
+const adaptApiActivityToLineArt = (activity: ApiActivity): LineArt => {
+  return {
+    id: activity.id.toString(),
+    title: activity.title,
+    referenceImage: activity.image_url || '',
+    svgContent: activity.image_url || '',
+    difficulty: activity.difficulty,
+    category: activity.type.replace('_', ' '),
+    tags: [activity.type, activity.difficulty],
+  };
+};
+
 
 // Advanced FamilyTreeActivity with avatars, snapping, validation, and modal
 const FAMILY_MEMBERS_ADV = [
@@ -447,6 +460,10 @@ const LearningHub: React.FC = () => {
   const [completed, setCompleted] = useState<number[]>([]);
   const [showCelebration, setShowCelebration] = useState(false);
 
+  // --- 2. ADD STATE FOR DYNAMIC ACTIVITIES AND LOADING ---
+  const [dynamicActivities, setDynamicActivities] = useState<ApiActivity[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
   const child = user?.children?.find(c => c.id === childId);
 
   const hubContent = {
@@ -493,23 +510,7 @@ const LearningHub: React.FC = () => {
       title: 'Creativity Hub',
       emoji: '🎨',
       color: 'from-pink-500 to-rose-500',
-      activities: [
-        {
-          type: 'digital-painting',
-          title: 'Creativity Hub: Digital Painting',
-          instruction: 'Create your own masterpiece with our advanced digital painting tools! Try brushes, stickers, and more.',
-          data: {}
-        },
-        {
-          type: 'sticker-scene',
-          title: 'Sticker Scene',
-          instruction: 'Drag stickers to create your own scene!',
-          data: {
-            background: '🏞️',
-            stickers: ['🌸', '🦋', '🐝', '☀️', '☁️', '🌈']
-          }
-        }
-      ]
+      activities: [],
     },
     maths: {
       title: 'Maths Hub',
@@ -622,10 +623,34 @@ const LearningHub: React.FC = () => {
   const currentHub = hubContent[hubType as keyof typeof hubContent];
 
   useEffect(() => {
+    // Only fetch if the current hub is 'creativity'
+    if (hubType === 'creativity') {
+      const fetchCreativityActivities = async () => {
+        setIsLoading(true);
+        try {
+          const coloring = await activityService.getActivitiesByType('coloring');
+          const painting = await activityService.getActivitiesByType('digital_painting');
+          // We combine them and set our dynamic state
+          setDynamicActivities([...coloring, ...painting]);
+        } catch (error) {
+          console.error("Failed to fetch creative activities:", error);
+          setDynamicActivities([]); // Set to empty on error
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchCreativityActivities();
+    }
+  }, [hubType]); // This effect re-runs if the hubType changes
+
+  useEffect(() => {
     if (currentHub && child) {
       speak(`Welcome to the ${currentHub.title}! Let's have fun learning together, ${child.name}!`);
     }
   }, [currentHub, child, speak]);
+
+  const activities = hubType === 'creativity' ? dynamicActivities : currentHub.activities;
 
   const handleActivityComplete = (activityScore: number) => {
     const newScore = score + activityScore;
@@ -633,14 +658,16 @@ const LearningHub: React.FC = () => {
     setCompleted([...completed, currentActivity]);
     playSound('success');
     
-    if (currentActivity < currentHub.activities.length - 1) {
+    // Use our new 'activities' variable here
+    if (currentActivity < activities.length - 1) {
       speak('Great job! Ready for the next activity?');
       setTimeout(() => {
         setCurrentActivity(currentActivity + 1);
       }, 2000);
     } else {
       // Hub completed
-      const progressPercentage = Math.min(100, (newScore / (currentHub.activities.length * 100)) * 100);
+      // And here
+      const progressPercentage = activities.length > 0 ? 100 : 0; // Simple completion logic
       updateChildProgress(childId!, hubType!, progressPercentage);
       setShowCelebration(true);
       playSound('celebration');
@@ -648,10 +675,24 @@ const LearningHub: React.FC = () => {
     }
   };
 
+  
+
   const renderActivity = () => {
-    const activity = currentHub.activities[currentActivity];
+    if (activities.length === 0) {
+      // Handle case where there are no activities (e.g., after loading)
+      if (isLoading) {
+        return <div className="text-center text-purple-600 font-semibold text-xl">Loading creative activities...</div>;
+      }
+      return <div className="text-center text-gray-500 font-semibold text-xl">No activities found for this hub.</div>;
+    }
+    const activity = activities[currentActivity];
     
     switch (activity.type) {
+      case 'coloring':
+      case 'digital_painting':
+        const creativeActivities = activities as ApiActivity[];
+        const adaptedArtworks = creativeActivities.map(adaptApiActivityToLineArt);
+        return <DigitalArtStudio artworks={adaptedArtworks} />;
       case 'letter-match':
         return <LetterMatchActivity activity={activity} onComplete={handleActivityComplete} />;
       case 'bubble-pop':
@@ -711,7 +752,7 @@ const LearningHub: React.FC = () => {
               <span className="font-bold text-gray-800">{score}</span>
             </div>
             <div className="text-sm text-gray-600">
-              {currentActivity + 1} / {currentHub.activities.length}
+            {activities.length > 0 ? currentActivity + 1 : 0} / {activities.length}
             </div>
           </div>
         </div>
@@ -724,7 +765,8 @@ const LearningHub: React.FC = () => {
             <motion.div
               className={`bg-gradient-to-r ${currentHub.color} h-2 rounded-full`}
               initial={{ width: 0 }}
-              animate={{ width: `${((currentActivity + 1) / currentHub.activities.length) * 100}%` }}
+              // And finally, here
+              animate={{ width: `${activities.length > 0 ? ((currentActivity + 1) / activities.length) * 100 : 0}%` }}
               transition={{ duration: 0.5 }}
             />
           </div>

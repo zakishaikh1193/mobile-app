@@ -1,10 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Gallery from './Gallery';
 import DigitalPainting from './DigitalPainting';
 import { LineArt } from '../types/lineArt';
-import { lineArtData } from '../data/lineArt';
+import { lineArtData } from '../data/lineArt'; // Keep for fallback/default
 
-const DigitalArtStudio: React.FC = () => {
+// --- 1. DEFINE THE PROPS INTERFACE ---
+// We will now accept an optional 'artworks' prop.
+interface DigitalArtStudioProps {
+  artworks?: LineArt[];
+}
+
+// --- 2. UPDATE THE COMPONENT TO ACCEPT PROPS ---
+// If 'artworks' is passed, use it. Otherwise, use the hardcoded lineArtData.
+const DigitalArtStudio: React.FC<DigitalArtStudioProps> = ({ artworks = lineArtData }) => {
   const [selectedArt, setSelectedArt] = useState<LineArt | null>(null);
   const [completed, setCompleted] = useState(false);
 
@@ -15,7 +23,6 @@ const DigitalArtStudio: React.FC = () => {
 
   const handleComplete = (score: number) => {
     setCompleted(true);
-    // You can add logic to save the artwork, show a score, etc.
   };
 
   const handleBack = () => {
@@ -26,7 +33,8 @@ const DigitalArtStudio: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100">
       {!selectedArt ? (
-        <Gallery artworks={lineArtData} onSelectArtwork={handleSelect} />
+        // --- 3. USE THE 'artworks' PROP IN THE GALLERY ---
+        <Gallery artworks={artworks} onSelectArtwork={handleSelect} />
       ) : (
         <div className="p-6">
           <button
@@ -58,4 +66,4 @@ const DigitalArtStudio: React.FC = () => {
   );
 };
 
-export default DigitalArtStudio; 
+export default DigitalArtStudio;
