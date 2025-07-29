@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Music, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Music, CheckCircle, ArrowLeft, MousePointer, Link, PenTool } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BodyPartsDragDrop from './BodyPartsDragDrop';
 import BodyPartsMatching from './BodyPartsMatching';
@@ -24,7 +24,7 @@ const MyBodySection: React.FC<MyBodySectionProps> = ({
       id: 'body-dragdrop',
       title: 'Label My Body',
       description: 'Drag body part names to the right places!',
-      icon: '🫵',
+      icon: <MousePointer className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16" />,
       activity: 'dragdrop',
       color: 'from-blue-400 via-blue-500 to-blue-600',
       shadowColor: 'rgba(59, 130, 246, 0.4)'
@@ -33,7 +33,7 @@ const MyBodySection: React.FC<MyBodySectionProps> = ({
       id: 'body-matching',
       title: 'What Do They Do?',
       description: 'Match body parts with their jobs!',
-      icon: '🔗',
+      icon: <Link className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16" />,
       activity: 'matching',
       color: 'from-green-400 via-green-500 to-green-600',
       shadowColor: 'rgba(34, 197, 94, 0.4)'
@@ -42,7 +42,7 @@ const MyBodySection: React.FC<MyBodySectionProps> = ({
       id: 'body-song',
       title: 'Head, Shoulders Song',
       description: 'Sing and move with the music!',
-      icon: '🎵',
+      icon: <Music className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16" />,
       activity: 'song',
       color: 'from-purple-400 via-purple-500 to-purple-600',
       shadowColor: 'rgba(139, 92, 246, 0.4)'
@@ -51,7 +51,7 @@ const MyBodySection: React.FC<MyBodySectionProps> = ({
       id: 'body-tracing',
       title: 'Trace & Learn',
       description: 'Trace body parts and hear their names!',
-      icon: '✏️',
+      icon: <PenTool className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16" />,
       activity: 'tracing',
       color: 'from-orange-400 via-orange-500 to-orange-600',
       shadowColor: 'rgba(249, 115, 22, 0.4)'
@@ -65,10 +65,11 @@ const MyBodySection: React.FC<MyBodySectionProps> = ({
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -100 }}
         transition={{ duration: 0.5 }}
+        className="px-2 sm:px-4"
       >
         <motion.button
           onClick={() => setCurrentActivity('menu')}
-          className="mb-6 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-xl border border-white/20"
+          className="mb-4 sm:mb-6 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 sm:px-6 md:px-8 py-3 sm:py-4 rounded-2xl font-bold text-sm sm:text-base md:text-lg shadow-xl border border-white/20 touch-manipulation min-h-[44px]"
           whileHover={{ scale: 1.05, x: -5 }}
           whileTap={{ scale: 0.95 }}
           initial={{ x: -100, opacity: 0 }}
@@ -76,8 +77,8 @@ const MyBodySection: React.FC<MyBodySectionProps> = ({
           transition={{ delay: 0.2 }}
         >
           <div className="flex items-center gap-2">
-            <ArrowLeft size={24} />
-            Back to Activities
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+            <span>Back to Activities</span>
           </div>
         </motion.button>
         
@@ -85,25 +86,21 @@ const MyBodySection: React.FC<MyBodySectionProps> = ({
           {currentActivity === 'dragdrop' && (
             <BodyPartsDragDrop 
               onComplete={() => onActivityComplete('body-dragdrop')} 
-              soundEnabled={soundEnabled}
             />
           )}
           {currentActivity === 'matching' && (
             <BodyPartsMatching 
               onComplete={() => onActivityComplete('body-matching')}
-              soundEnabled={soundEnabled}
             />
           )}
           {currentActivity === 'song' && (
             <HeadShouldersGame 
               onComplete={() => onActivityComplete('body-song')}
-              soundEnabled={soundEnabled}
             />
           )}
           {currentActivity === 'tracing' && (
             <TracingActivity 
               onComplete={() => onActivityComplete('body-tracing')}
-              soundEnabled={soundEnabled}
             />
           )}
         </AnimatePresence>
@@ -113,24 +110,25 @@ const MyBodySection: React.FC<MyBodySectionProps> = ({
 
   return (
     <motion.div 
-      className="py-8"
+      className="py-4 sm:py-6 md:py-8 px-2 sm:px-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
     >
-      <div className="text-center mb-12">
+      {/* Header Section */}
+      <div className="text-center mb-6 sm:mb-8 md:mb-12">
         <motion.h2 
-          className="text-4xl md:text-6xl font-bold text-white mb-6 font-comic"
+          className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold text-gray-800 mb-3 sm:mb-4 md:mb-6 font-comic leading-tight"
           animate={{ 
             textShadow: [
-              '0 0 20px rgba(255,255,255,0.5)',
-              '0 0 30px rgba(255,255,255,0.8)',
-              '0 0 20px rgba(255,255,255,0.5)'
+              '0 0 20px rgba(59, 130, 246, 0.3)',
+              '0 0 30px rgba(139, 92, 246, 0.5)',
+              '0 0 20px rgba(59, 130, 246, 0.3)'
             ]
           }}
           transition={{ duration: 2, repeat: Infinity }}
         >
-          My Amazing Body! 
+          My Amazing Body!
           <motion.span
             animate={{ 
               rotate: [0, 20, -20, 0],
@@ -144,7 +142,7 @@ const MyBodySection: React.FC<MyBodySectionProps> = ({
         </motion.h2>
         
         <motion.p 
-          className="text-xl md:text-2xl text-white/90"
+          className="text-sm sm:text-base md:text-xl lg:text-2xl text-gray-600 leading-relaxed px-2 sm:px-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
@@ -153,7 +151,8 @@ const MyBodySection: React.FC<MyBodySectionProps> = ({
         </motion.p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+      {/* Activity Cards Grid */}
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 md:gap-8 max-w-4xl mx-auto">
         {activities.map((activity, index) => {
           const isCompleted = completedActivities.includes(activity.id);
           
@@ -171,9 +170,9 @@ const MyBodySection: React.FC<MyBodySectionProps> = ({
             >
               <motion.button
                 onClick={() => setCurrentActivity(activity.activity as any)}
-                className={`group w-full bg-gradient-to-br ${activity.color} text-white p-8 rounded-3xl shadow-2xl relative overflow-hidden border border-white/20`}
+                className={`group w-full bg-gradient-to-br ${activity.color} text-white p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl shadow-2xl relative overflow-hidden border border-white/20 touch-manipulation min-h-[140px] sm:min-h-[160px] md:min-h-[180px] lg:min-h-[200px]`}
                 whileHover={{ 
-                  scale: 1.05,
+                  scale: 1.02,
                   rotateY: 5,
                   boxShadow: `0 25px 50px ${activity.shadowColor}`
                 }}
@@ -193,25 +192,25 @@ const MyBodySection: React.FC<MyBodySectionProps> = ({
                     <motion.div
                       initial={{ scale: 0, rotate: -180 }}
                       animate={{ scale: 1, rotate: 0 }}
-                      className="absolute top-4 right-4 z-10"
+                      className="absolute top-2 sm:top-4 right-2 sm:right-4 z-10"
                     >
-                      <div className="bg-green-500 text-white rounded-full p-2 shadow-lg">
+                      <div className="bg-green-500 text-white rounded-full p-1 sm:p-2 shadow-lg">
                         <motion.div
                           animate={{ rotate: 360 }}
                           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                         >
-                          <CheckCircle size={28} />
+                          <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-7 lg:h-7" />
                         </motion.div>
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
                 
-                <div className="relative z-10 flex flex-col items-center">
+                <div className="relative z-10 flex flex-col items-center h-full justify-center p-2">
                   <motion.div 
-                    className="text-8xl mb-6"
+                    className="text-white mb-3 sm:mb-4 md:mb-6"
                     whileHover={{ 
-                      scale: 1.2, 
+                      scale: 1.1, 
                       rotate: 360 
                     }}
                     transition={{ duration: 0.8 }}
@@ -220,25 +219,25 @@ const MyBodySection: React.FC<MyBodySectionProps> = ({
                   </motion.div>
                   
                   <motion.h3 
-                    className="text-2xl md:text-3xl font-bold mb-4 font-comic"
+                    className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mb-2 sm:mb-3 md:mb-4 font-comic text-center leading-tight"
                     animate={{ scale: [1, 1.05, 1] }}
                     transition={{ duration: 2, repeat: Infinity, delay: index * 0.5 }}
                   >
                     {activity.title}
                   </motion.h3>
                   
-                  <p className="text-lg md:text-xl opacity-90 mb-6 leading-relaxed">
+                  <p className="text-xs sm:text-sm md:text-lg lg:text-xl opacity-90 mb-3 sm:mb-4 md:mb-6 leading-relaxed text-center px-2 sm:px-4">
                     {activity.description}
                   </p>
                   
                   <motion.div 
-                    className="bg-white/20 backdrop-blur-sm px-6 py-3 rounded-full"
+                    className="bg-white/20 backdrop-blur-sm px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-full"
                     whileHover={{ 
                       scale: 1.1, 
                       backgroundColor: 'rgba(255,255,255,0.3)' 
                     }}
                   >
-                    <span className="font-bold text-lg">Let's Play!</span>
+                    <span className="font-bold text-xs sm:text-sm md:text-lg">Let's Play!</span>
                   </motion.div>
                 </div>
 
@@ -247,7 +246,7 @@ const MyBodySection: React.FC<MyBodySectionProps> = ({
                   {[...Array(5)].map((_, i) => (
                     <motion.div
                       key={i}
-                      className="absolute w-2 h-2 bg-white/30 rounded-full"
+                      className="absolute w-1 h-1 sm:w-2 sm:h-2 bg-white/30 rounded-full"
                       initial={{ 
                         x: Math.random() * 100 + '%',
                         y: Math.random() * 100 + '%',

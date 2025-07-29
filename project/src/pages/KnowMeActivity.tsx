@@ -1,15 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Star, Music, QrCode, ArrowLeft, Volume2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-// @ts-ignore
-import Confetti from 'react-confetti';
+import { Volume2, Star, Home, ArrowLeft } from 'lucide-react';
 import GameMenu from '../components/Knowme/GameMenu';
 import MyBodySection from '../components/Knowme/MyBodySection';
 import MyLikesSection from '../components/Knowme/MyLikesSection';
-import ProgressBar from '../components/Knowme/ProgressBar';
-import VoiceNarrator from '../components/Knowme/VoiceNarrator';
 import ParticleBackground from '../components/Knowme/ParticleBackground';
-import '../index.css';
 
 interface KnowMeActivityProps {
   onClose: () => void;
@@ -18,23 +13,17 @@ interface KnowMeActivityProps {
 const KnowMeActivity: React.FC<KnowMeActivityProps> = ({ onClose }) => {
   const [currentSection, setCurrentSection] = useState<'menu' | 'body' | 'likes'>('menu');
   const [stars, setStars] = useState(0);
-  const [completedActivities, setCompletedActivities] = useState<string[]>([]);
-  const [showConfetti, setShowConfetti] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const [completedActivities, setCompletedActivities] = useState<string[]>([]);
 
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const resetGame = () => {
+    setCurrentSection('menu');
+    setStars(0);
+    setCompletedActivities([]);
+  };
 
   const addStars = (amount: number) => {
     setStars(prev => prev + amount);
-    setShowConfetti(true);
-    setTimeout(() => setShowConfetti(false), 3000);
   };
 
   const markActivityComplete = (activityId: string) => {
@@ -44,131 +33,149 @@ const KnowMeActivity: React.FC<KnowMeActivityProps> = ({ onClose }) => {
     }
   };
 
-  const resetGame = () => {
-    setCurrentSection('menu');
-    setStars(0);
-    setCompletedActivities([]);
-  };
+  useEffect(() => {
+    // Set viewport meta for mobile but allow scrolling
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (viewport) {
+      viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover');
+    }
 
-  const pageVariants = {
-    initial: { opacity: 0, scale: 0.8, rotateY: -10 },
-    in: { opacity: 1, scale: 1, rotateY: 0 },
-    out: { opacity: 0, scale: 1.2, rotateY: 10 }
-  };
-
-  const pageTransition = {
-    type: "spring" as const,
-    stiffness: 100,
-    damping: 20,
-    duration: 0.8
-  };
+    return () => {
+      // Reset viewport on unmount
+      if (viewport) {
+        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0');
+      }
+    };
+  }, []);
 
   return (
-    <div className="min-h-screen bg-white relative overflow-hidden">
-      <ParticleBackground />
-      {showConfetti && (
-        <Confetti
-          width={windowSize.width}
-          height={windowSize.height}
-          recycle={false}
-          numberOfPieces={200}
-          gravity={0.3}
-        />
-      )}
+    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 relative overflow-x-hidden">
       {/* Animated Background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22none%22 fill-rule=%22evenodd%22%3E%3Cg fill=%22%23ffffff%22 fill-opacity=%220.1%22%3E%3Ccircle cx=%2230%22 cy=%2230%22 r=%224%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] animate-pulse"></div>
-      </div>
-      {/* Header: Title at the very top left, no margin or centering */}
-      <div>
-        <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent font-comic m-0 p-0 text-left">
-          Know Me: My Body & Favorites!
-        </h1>
-        <div className="flex items-center gap-4">
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className={`p-3 rounded-2xl transition-all duration-300 ${
-              soundEnabled 
-                ? 'bg-green-500 hover:bg-green-600 text-white' 
-                : 'bg-gray-400 hover:bg-gray-500 text-white'
-            }`}
-          >
-            <Volume2 size={24} />
-          </motion.button>
-          <motion.div 
-            className="flex items-center gap-3 bg-gradient-to-r from-yellow-400 to-orange-400 px-6 py-3 rounded-2xl shadow-lg"
-            whileHover={{ scale: 1.05 }}
-            animate={{ 
-              boxShadow: ['0 4px 20px rgba(251, 191, 36, 0.3)', '0 8px 30px rgba(251, 191, 36, 0.5)', '0 4px 20px rgba(251, 191, 36, 0.3)']
-            }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            <motion.div
-              animate={{ rotate: [0, 360] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+      <ParticleBackground />
+      
+      {/* Header - Fixed at top */}
+      <div className="sticky top-0 z-30 bg-white/90 backdrop-blur-sm border-b border-gray-200 shadow-sm">
+        <div className="p-3 sm:p-4 flex items-center justify-between gap-2 sm:gap-3 w-full max-w-6xl mx-auto">
+          {/* Title */}
+          <h1 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent font-comic leading-tight flex-1">
+            Know Me: My Body & Favorites!
+          </h1>
+          
+          {/* Controls - Touch optimized */}
+          <div className="flex items-center gap-1 sm:gap-2 md:gap-3 flex-shrink-0">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className={`p-2 sm:p-2.5 rounded-xl transition-all duration-300 touch-manipulation min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center ${
+                soundEnabled 
+                  ? 'bg-green-500 hover:bg-green-600 text-white' 
+                  : 'bg-gray-400 hover:bg-gray-500 text-white'
+              }`}
             >
-              <Star className="text-yellow-700 fill-yellow-700" size={28} />
+              <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
+            </motion.button>
+            
+            <motion.div 
+              className="flex items-center gap-1 sm:gap-2 md:gap-3 bg-gradient-to-r from-yellow-400 to-orange-400 px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 rounded-xl shadow-lg touch-manipulation min-h-[40px] sm:min-h-[44px]"
+              whileHover={{ scale: 1.02 }}
+              animate={{ 
+                boxShadow: ['0 4px 20px rgba(251, 191, 36, 0.3)', '0 8px 30px rgba(251, 191, 36, 0.5)', '0 4px 20px rgba(251, 191, 36, 0.3)']
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <motion.div
+                animate={{ rotate: [0, 360] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              >
+                <Star className="text-yellow-700 fill-yellow-700 w-4 h-4 sm:w-5 sm:h-5" />
+              </motion.div>
+              <motion.span 
+                className="text-xs sm:text-sm md:text-base font-bold text-yellow-700"
+                key={stars}
+                initial={{ scale: 1.5, color: '#fff' }}
+                animate={{ scale: 1, color: '#b45309' }}
+                transition={{ duration: 0.5 }}
+              >
+                {stars}
+              </motion.span>
             </motion.div>
-            <motion.span 
-              className="text-2xl font-bold text-yellow-700"
-              key={stars}
-              initial={{ scale: 1.5, color: '#fff' }}
-              animate={{ scale: 1, color: '#b45309' }}
-              transition={{ duration: 0.5 }}
+            
+            <motion.button
+              whileHover={{ scale: 1.05, rotate: 5 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={resetGame}
+              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white p-2 sm:p-2.5 rounded-xl shadow-lg transition-all duration-300 touch-manipulation min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center"
             >
-              {stars}
-            </motion.span>
-          </motion.div>
-          <motion.button
-            whileHover={{ scale: 1.1, rotate: 5 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={resetGame}
-            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white p-4 rounded-2xl shadow-lg transition-all duration-300"
-          >
-            <Home size={28} />
-          </motion.button>
+              <Home className="w-4 h-4 sm:w-5 sm:h-5" />
+            </motion.button>
+            
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onClose}
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white p-2 sm:p-2.5 rounded-xl shadow-lg transition-all duration-300 touch-manipulation min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center"
+            >
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+            </motion.button>
+          </div>
         </div>
       </div>
-      {/* Progress Bar */}
-      <ProgressBar completedActivities={completedActivities} totalActivities={8} />
-      {/* Voice Narrator */}
-      <VoiceNarrator enabled={soundEnabled} />
-      {/* Main Content */}
-      <main className="relative z-10 w-full max-w-3xl mx-auto px-2 sm:px-4 py-2 flex flex-col items-center justify-center">
+
+      {/* Main Content - Scrollable */}
+      <main className="relative z-10 w-full px-2 sm:px-4 md:px-6 py-2 sm:py-4 md:py-6 max-w-6xl mx-auto overflow-y-auto" style={{ height: 'calc(100vh - 80px)' }}>
         <AnimatePresence mode="wait">
-          <motion.div
-            key={currentSection}
-            initial="initial"
-            animate="in"
-            exit="out"
-            variants={pageVariants}
-            transition={pageTransition}
-          >
-            {currentSection === 'menu' && (
-              <GameMenu onSectionSelect={setCurrentSection} />
-            )}
-            {currentSection === 'body' && (
+          {currentSection === 'menu' && (
+            <motion.div
+              key="menu"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.5 }}
+              className="min-h-full flex flex-col pb-8"
+            >
+              <GameMenu 
+                onSectionSelect={setCurrentSection}
+              />
+            </motion.div>
+          )}
+          
+          {currentSection === 'body' && (
+            <motion.div
+              key="body"
+              initial={{ opacity: 0, x: 100 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -100 }}
+              transition={{ duration: 0.5 }}
+              className="min-h-full pb-8"
+            >
               <MyBodySection 
                 onActivityComplete={markActivityComplete}
                 completedActivities={completedActivities}
                 soundEnabled={soundEnabled}
               />
-            )}
-            {currentSection === 'likes' && (
+            </motion.div>
+          )}
+          
+          {currentSection === 'likes' && (
+            <motion.div
+              key="likes"
+              initial={{ opacity: 0, x: 100 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -100 }}
+              transition={{ duration: 0.5 }}
+              className="min-h-full pb-8"
+            >
               <MyLikesSection 
                 onActivityComplete={markActivityComplete}
                 completedActivities={completedActivities}
               />
-            )}
-          </motion.div>
+            </motion.div>
+          )}
         </AnimatePresence>
       </main>
-      {/* Enhanced QR Code Section */}
-      {/* Removed the entire QR code section as requested */}
     </div>
   );
-}
-
-export default KnowMeActivity; 
+  };
+  
+  export default KnowMeActivity; 

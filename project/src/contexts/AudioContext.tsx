@@ -5,6 +5,7 @@ interface AudioContextType {
   toggleMute: () => void;
   speak: (text: string) => void;
   playSound: (soundType: 'success' | 'click' | 'celebration') => void;
+  stopAllAudio: () => void;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -18,7 +19,10 @@ export const useAudio = () => {
 };
 
 export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(() => {
+    const saved = localStorage.getItem('audioMuted');
+    return saved ? JSON.parse(saved) : false;
+  });
 
   const speak = (text: string) => {
     if (isMuted || !('speechSynthesis' in window)) return;
@@ -83,14 +87,26 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const toggleMute = () => {
-    setIsMuted(!isMuted);
+    const newMutedState = !isMuted;
+    setIsMuted(newMutedState);
+    localStorage.setItem('audioMuted', JSON.stringify(newMutedState));
+    
+    // Stop any ongoing speech synthesis
+    if (newMutedState) {
+      speechSynthesis.cancel();
+    }
+  };
+
+  const stopAllAudio = () => {
+    speechSynthesis.cancel();
   };
 
   const value = {
     isMuted,
     toggleMute,
     speak,
-    playSound
+    playSound,
+    stopAllAudio
   };
 
   return <AudioContext.Provider value={value}>{children}</AudioContext.Provider>;
