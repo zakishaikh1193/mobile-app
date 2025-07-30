@@ -10,6 +10,7 @@ import AudioButton from '../components/AudioButton';
 import ProgressWheel from '../components/ProgressWheel';
 import { useContentLibrary } from '../contexts/ContentLibraryContext';
 import EducationalGame from './EducationalGame';
+import { useProgressService } from '../services/progressService';
 
 const KnowMeActivity = React.lazy(() => import('./KnowMeActivity'));
 
@@ -19,8 +20,10 @@ const ChildDashboard: React.FC = () => {
   const { speak } = useAudio();
   const navigate = useNavigate();
   const { contentLibrary } = useContentLibrary();
+  const { updateProgress, completeCard, updateStreakAndBadges } = useProgressService();
   const [htmlModalUrl, setHtmlModalUrl] = useState<string | null>(null);
   const [showKnowMe, setShowKnowMe] = useState(false);
+  const [updateTrigger, setUpdateTrigger] = useState(0);
 
   const child = user?.children?.find(c => c.id === childId);
 
@@ -29,6 +32,18 @@ const ChildDashboard: React.FC = () => {
       speak(`Hi ${child.name}! Ready for some fun learning today? Let's explore together!`);
     }
   }, [child, speak]);
+
+  // Refresh user data when updateTrigger changes
+  useEffect(() => {
+    if (updateTrigger > 0) {
+      // Force refresh of user data from localStorage
+      const savedUser = localStorage.getItem('kodeit_user');
+      if (savedUser) {
+        // This will trigger a re-render with updated data
+        window.location.reload();
+      }
+    }
+  }, [updateTrigger]);
 
   const learningHubs = [
     {
@@ -157,6 +172,8 @@ const ChildDashboard: React.FC = () => {
     return progressValues.reduce((sum, val) => sum + val, 0) / progressValues.length;
   };
 
+
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100">
       <AudioButton />
@@ -168,7 +185,7 @@ const ChildDashboard: React.FC = () => {
             <AnimatedButton
               variant="secondary"
               size="sm"
-              onClick={() => navigate('/parent-dashboard')}
+              onClick={() => navigate(`/letter-path/${childId}`)}
               className="flex items-center space-x-2"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -239,7 +256,13 @@ const ChildDashboard: React.FC = () => {
               <div className="mb-4">
                 <img src="/star1.png" alt="streak" className="w-16 h-16 mx-auto" />
               </div>
-              <div className="text-3xl font-bold text-orange-600">{child.streak}</div>
+              <motion.div 
+                className="text-3xl font-bold text-orange-600"
+                animate={updateTrigger > 0 ? { scale: [1, 1.2, 1], color: ['#ea580c', '#f97316', '#ea580c'] } : {}}
+                transition={{ duration: 0.5 }}
+              >
+                {child.streak}
+              </motion.div>
               <p className="text-gray-600">Day Streak</p>
             </div>
             
@@ -247,8 +270,23 @@ const ChildDashboard: React.FC = () => {
               <div className="mb-4">
                 <img src="/badges/B1.png" alt="badges" className="w-16 h-16 mx-auto" />
               </div>
-              <div className="text-3xl font-bold text-yellow-600">{child.badges.length}</div>
-              <p className="text-gray-600">Badges Earned</p>
+              <motion.div 
+                className="text-3xl font-bold text-yellow-600"
+                animate={updateTrigger > 0 ? { scale: [1, 1.2, 1], color: ['#ca8a04', '#eab308', '#ca8a04'] } : {}}
+                transition={{ duration: 0.5 }}
+              >
+                {child.badges.length}
+              </motion.div>
+              <p className="text-gray-600">LetterPath Badges</p>
+              <div className="flex justify-center gap-1 mt-2">
+                {['B1', 'B2', 'B3', 'B4', 'B5'].map((badge) => (
+                  <div key={badge} className={`w-6 h-6 rounded-full ${child.badges.includes(badge) ? 'bg-green-500' : 'bg-gray-300'}`}>
+                    {child.badges.includes(badge) && (
+                      <img src={`/badges/${badge}.png`} alt={badge} className="w-full h-full object-contain" />
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </motion.div>
@@ -268,8 +306,16 @@ const ChildDashboard: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.1 * index }}
-                className="bg-white rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group"
+                className={`bg-white rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group ${
+                  getProgressValue(hub.id) >= 100 ? 'ring-4 ring-green-500 ring-opacity-50' : ''
+                }`}
                 onClick={() => {
+                  // Complete the card when clicked
+                  completeCard(child.id, hub.id);
+                  
+                  // Force re-render to update streaks and badges
+                  setUpdateTrigger(prev => prev + 1);
+                  
                   if (hub.id === 'literacy') {
                     navigate(`/letter-matching/${child.id}`);
                   } else if (hub.id === 'forest-letter-hunt') {
@@ -279,7 +325,7 @@ const ChildDashboard: React.FC = () => {
                   } else if (hub.id === 'know-me') {
                     setShowKnowMe(true);
                   } else if (hub.id === 'word-match') {
-                    navigate(`/letter-path/${child.id}`);
+                    navigate(`/word-match/${child.id}`);
                   } else if (hub.id === 'tap-translation') {
                     navigate('/tap-translation');
                   } else {
@@ -303,7 +349,7 @@ const ChildDashboard: React.FC = () => {
                   </div>
                   <h3 className="text-lg font-bold text-gray-800 mb-1">{hub.title}</h3>
                   <p className="text-sm text-gray-600 mb-3">{hub.description}</p>
-                  <div className="mb-3">
+                  <div className="mb-3 relative">
                     <ProgressWheel 
                       progress={getProgressValue(hub.id)} 
                       size={60}
@@ -317,12 +363,17 @@ const ChildDashboard: React.FC = () => {
                         {getProgressValue(hub.id)}%
                       </span>
                     </ProgressWheel>
+                    {getProgressValue(hub.id) >= 100 && (
+                      <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                        ✓
+                      </div>
+                    )}
                   </div>
                   <AnimatedButton
                     size="sm"
                     className={`bg-gradient-to-r ${hub.color} text-white text-sm px-3 py-1`}
                   >
-                    Let's Play!
+                    {getProgressValue(hub.id) >= 100 ? 'Completed!' : 'Let\'s Play!'}
                   </AnimatedButton>
                 </div>
               </motion.div>

@@ -88,7 +88,7 @@ const ParentDashboard: React.FC = () => {
                     className="cursor-pointer text-center p-1 sm:p-2"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => navigate(`/child-dashboard/${child.id}`)}
+                    onClick={() => navigate(`/letter-path/${child.id}`)}
                   >
                     <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/90 rounded-full shadow-md flex items-center justify-center border-4 border-cyan-500 p-1">
                       <div className="w-20 h-20 md:w-24 md:h-24">
