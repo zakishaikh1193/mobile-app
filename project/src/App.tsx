@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { AudioProvider } from './contexts/AudioContext';
-import { ContentLibraryProvider } from './contexts/ContentLibraryContext';
+import { ContentLibraryProvider, ContentLibraryDebug } from './contexts/ContentLibraryContext';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import ParentDashboard from './pages/ParentDashboard';
@@ -21,115 +21,121 @@ import './index.css';
 import ColoringGame from './components/ColoringGame/ColoringGame';
 
 function App() {
+  console.log('App rendering...');
+  
   return (
-    <ContentLibraryProvider>
-      <AuthProvider>
-        <AudioProvider>
-          <Router>
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
-              <Routes>
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/auth" element={<AuthPage />} />
-                <Route 
-                  path="/parent-dashboard" 
-                  element={
-                    <ProtectedRoute role="parent">
-                      <ParentDashboard />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/child-dashboard/:childId" 
-                  element={
-                    <ProtectedRoute role="parent">
-                      <ChildDashboard />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/learning/:hubType/:childId" 
-                  element={
-                    <ProtectedRoute role="parent">
-                      <LearningHub />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/ar-zone/:childId" 
-                  element={
-                    <ProtectedRoute role="parent">
-                      <ARZone />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/letter-matching/:childId" 
-                  element={
-                    <ProtectedRoute role="parent">
-                      <LetterMatchingGame />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/educational-game/:childId" 
-                  element={
-                    <ProtectedRoute role="parent">
-                      <EducationalGame />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/forest-letter-hunt/:childId" 
-                  element={
-                    <ProtectedRoute role="parent">
-                      <ForestLetterHuntPage />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/word-match/:childId"
-                  element={
-                    <ProtectedRoute role="parent">
-                      <WordMatchGame />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route 
-                  path="/letter-path/:childId"
-                  element={
-                    <ProtectedRoute role="parent">
-                      <LetterPath />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route 
-                  path="/teacher" 
-                  element={
-                    <ProtectedRoute role="teacher">
-                      <TeacherPortal />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/admin" 
-                  element={
-                    <ProtectedRoute role="admin">
-                      <AdminPortal />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/coloring-game" 
-                  element={
-                      <ColoringGame />
-                  } 
-                />
-              </Routes>
-            </div>
-          </Router>
-        </AudioProvider>
-      </AuthProvider>
-    </ContentLibraryProvider>
+    <React.StrictMode>
+      <ContentLibraryProvider>
+        <AuthProvider>
+          <AudioProvider>
+            {/* Debug component to track context */}
+            <ContentLibraryDebug />
+            <Router>
+              <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+                <Routes>
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/auth" element={<AuthPage />} />
+                  <Route 
+                    path="/parent-dashboard" 
+                    element={
+                      <ProtectedRoute role="parent">
+                        <ParentDashboard />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/child-dashboard/:childId" 
+                    element={
+                      <ProtectedRoute role="parent">
+                        <ChildDashboard />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/learning/:hubType/:childId" 
+                    element={
+                      <ProtectedRoute role="parent">
+                        <LearningHub />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/ar-zone/:childId" 
+                    element={
+                      <ProtectedRoute role="parent">
+                        <ARZone />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/letter-matching/:childId" 
+                    element={
+                      <ProtectedRoute role="parent">
+                        <LetterMatchingGame />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/educational-game/:childId" 
+                    element={
+                      <ProtectedRoute role="parent">
+                        <EducationalGame />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/forest-letter-hunt/:childId" 
+                    element={
+                      <ProtectedRoute role="parent">
+                        <ForestLetterHuntPage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/word-match/:childId"
+                    element={
+                      <ProtectedRoute role="parent">
+                        <WordMatchGame />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route 
+                    path="/letter-path/:childId"
+                    element={
+                      <ProtectedRoute role="parent">
+                        <LetterPath />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route 
+                    path="/teacher" 
+                    element={
+                      <ProtectedRoute role="teacher">
+                        <TeacherPortal />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/admin" 
+                    element={
+                      <ProtectedRoute role="admin">
+                        <AdminPortal />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/coloring-game" 
+                    element={
+                        <ColoringGame />
+                    } 
+                  />
+                </Routes>
+              </div>
+            </Router>
+          </AudioProvider>
+        </AuthProvider>
+      </ContentLibraryProvider>
+    </React.StrictMode>
   );
 }
 
