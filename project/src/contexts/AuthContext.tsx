@@ -96,51 +96,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           email,
           role: 'parent' as const,
           name: 'Parent User',
-          children: [
-            {
-              id: 'child1',
-              name: 'Emma',
-              age: 5,
-              avatar: '👧',
-              gender: 'girl' as const,
-              progress: {
-                literacy: 65,
-                creativity: 80,
-                maths: 45,
-                emotions: 70,
-                body: 55,
-                family: 90
-              },
-              streak: 7,
-              badges: ['reader', 'artist', 'mathlete']
-            }
-          ]
+          children: []
         };
       } else {
         throw new Error('Invalid user type');
       }
 
-      // Add children data for parent
+      // Initialize empty children array for parent
       if (mockUser.role === 'parent') {
-        mockUser.children = [
-          {
-            id: 'child1',
-            name: 'Emma',
-            age: 5,
-            avatar: '👧',
-            gender: 'girl' as const,
-            progress: {
-              literacy: 65,
-              creativity: 80,
-              maths: 45,
-              emotions: 70,
-              body: 55,
-              family: 90
-            },
-            streak: 7,
-            badges: ['reader', 'artist', 'mathlete']
-          }
-        ];
+        mockUser.children = [];
       }
 
       setUser(mockUser);

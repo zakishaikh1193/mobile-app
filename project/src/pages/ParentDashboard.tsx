@@ -3,19 +3,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Plus, LogOut, ArrowLeft } from 'lucide-react';
 
-// Assuming these hooks and components are correctly set up
 import { useAuth } from '../contexts/AuthContext';
 import { useAudio } from '../contexts/AudioContext';
 import AudioButton from '../components/AudioButton';
 import { avatars } from '../assets/avatars';
 
 const ParentDashboard: React.FC = () => {
-  // --- All your original state and logic remains untouched ---
   const { user, logout, createChild } = useAuth();
   const { speak } = useAudio();
   const navigate = useNavigate();
   const [showCreateChild, setShowCreateChild] = useState(false);
-  const [childForm, setChildForm] = useState({ name: '', age: 4, avatar: avatars.girl[0], gender: 'girl' as 'boy' | 'girl' });
+  const [childForm, setChildForm] = useState({
+    name: '',
+    age: 4,
+    avatar: avatars.girl[0],
+    gender: 'girl' as 'boy' | 'girl',
+  });
 
   useEffect(() => {
     if (user) {
@@ -35,28 +38,33 @@ const ParentDashboard: React.FC = () => {
   if (!user) return null;
 
   return (
-    <>
-      {/* 
-        Main container with the new background and layout.
-        Flexbox is used to center the main content area.
-      */}
-      <div 
-  className="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-[#DCECFB] bg-cover bg-center font-sans relative"
-  // style={{ backgroundImage: "url('/parentscreenbackground.png')" }}
->
-        {/* Top bar for navigation and controls */}
-        <header className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center w-full">
+    <div className="relative w-full min-h-screen font-sans overflow-hidden">
+      {/* Background image layer */}
+      <div
+        className="absolute inset-0 w-full h-full z-0"
+        style={{
+          backgroundImage: "url('/ParentDashboardBackground.png')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      />
+
+      {/* Foreground scrollable content */}
+      <div className="relative z-10 w-full min-h-screen flex flex-col items-center overflow-y-auto bg-[#DCECFB]/70 backdrop-blur-sm">
+        {/* Header */}
+        <header className="w-full max-w-7xl mx-auto p-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <button 
-              onClick={() => navigate(-1)} 
+            <button
+              onClick={() => navigate(-1)}
               className="flex items-center space-x-2 bg-white/60 p-3 rounded-full text-gray-700 hover:bg-white transition-colors shadow-md backdrop-blur-sm"
             >
               <ArrowLeft size={24} />
             </button>
             <AudioButton />
           </div>
-          <button 
-            onClick={logout} 
+          <button
+            onClick={logout}
             className="flex items-center space-x-2 bg-white/60 py-3 px-5 rounded-full text-gray-700 hover:bg-white transition-colors font-semibold shadow-md backdrop-blur-sm"
           >
             <LogOut size={20} />
@@ -64,56 +72,59 @@ const ParentDashboard: React.FC = () => {
           </button>
         </header>
 
-        {/* Main content aligned to the center */}
-        <main className="flex flex-col items-center">
-          {/* Logo styled to look like the "SkyGround Kids" text in the image */}
-          <div className="bg-white rounded-3xl shadow-lg p-5 text-center">
-            <h1 className="text-6xl md:text-7xl font-extrabold" style={{ color: '#5C3A21' }}>
-              Welcome to your 
-              <br />
-              Learning Land
-            </h1>
-          </div>
-
-          {/* 
-            Your "Add Your Child" button, now styled like the main button in the image.
-            It triggers your existing modal functionality.
-          */}
-          <motion.button
-            onClick={() => setShowCreateChild(true)}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="mt-10 flex items-center gap-3 py-4 px-10 bg-cyan-500 text-white font-bold text-xl uppercase rounded-full shadow-lg hover:bg-cyan-600 transition-colors"
-          >
-            <Plus />
-            <span>Add Your Child</span>
-          </motion.button>
-
-          {/* Displaying existing children for quick navigation */}
+        {/* Main content */}
+        <main className="flex flex-col items-center w-full max-w-7xl mx-auto px-4 py-20 sm:py-24 md:py-28">
+          {/* Children list */}
           {user.children && user.children.length > 0 && (
-            <div className="mt-8">
-              <h2 className="font-bold text-xl text-center mb-4" style={{ color: '#5C3A21' }}>Your Kids</h2>
-              <div className="flex items-center justify-center gap-4">
-                {user.children.map(child => (
-                   <motion.div
+            <div className="w-full mb-8 sm:mb-10 md:mb-12">
+              <h2 className="font-bold text-xl sm:text-2xl md:text-3xl text-center mb-4 sm:mb-6" style={{ color: '#5C3A21' }}>
+                Your Kids
+              </h2>
+              <div className="flex flex-wrap items-center justify-center gap-4">
+                {user.children.map((child) => (
+                  <motion.div
                     key={child.id}
-                    className="cursor-pointer text-center"
-                    whileHover={{ scale: 1.1 }}
+                    className="cursor-pointer text-center p-1 sm:p-2"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => navigate(`/child-dashboard/${child.id}`)}
                   >
-                      <div className="w-24 h-24 bg-white rounded-full shadow-lg flex items-center justify-center border-4 border-cyan-500 p-1">
-                          <img src={child.avatar} alt={child.name} className="w-full h-full object-cover rounded-full" />
-                      </div>
-                      <p className="text-center font-bold mt-2 text-lg" style={{ color: '#5C3A21' }}>{child.name}</p>
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/90 rounded-full shadow-md flex items-center justify-center border-4 border-cyan-500 p-1">
+                      <img src={child.avatar} alt={child.name} className="w-full h-full object-cover rounded-full" />
+                    </div>
+                    <p className="text-center font-bold mt-1 text-sm sm:text-base" style={{ color: '#5C3A21' }}>
+                      {child.name}
+                    </p>
                   </motion.div>
                 ))}
               </div>
             </div>
           )}
+
+          {/* Add child button */}
+          <motion.button
+            onClick={() => setShowCreateChild(true)}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="mt-8 sm:mt-10 flex items-center gap-2 sm:gap-3 py-3 sm:py-4 px-6 sm:px-10 bg-cyan-500 text-white font-bold text-lg sm:text-xl uppercase rounded-full shadow-lg hover:bg-cyan-600 transition-colors"
+          >
+            <Plus />
+            <span>Add Your Child</span>
+          </motion.button>
+
+          {/* Logo */}
+          <div className="mt-12 sm:mt-20 w-full flex justify-center">
+            <img
+              src="/KODEIT_Logo_2.png"
+              alt="KODEIT Logo"
+              className="h-auto max-w-full"
+              style={{ maxWidth: '15vh' }}
+            />
+          </div>
         </main>
       </div>
 
-      {/* Your original "Create Child" Modal remains the same */}
+      {/* Create child modal */}
       <AnimatePresence>
         {showCreateChild && (
           <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
@@ -142,7 +153,9 @@ const ParentDashboard: React.FC = () => {
                       <button
                         type="button"
                         key={avatar}
-                        className={`w-16 h-16 rounded-full border-4 transition-colors ${childForm.avatar === avatar ? 'border-brand-primary' : 'border-transparent'} flex items-center justify-center`}
+                        className={`w-16 h-16 rounded-full border-4 transition-colors ${
+                          childForm.avatar === avatar ? 'border-brand-primary' : 'border-transparent'
+                        } flex items-center justify-center`}
                         onClick={() => setChildForm({ ...childForm, avatar })}
                       >
                         <img src={avatar} alt="Avatar" className="w-14 h-14 object-cover rounded-full" />
@@ -151,15 +164,26 @@ const ParentDashboard: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex space-x-4 pt-4">
-                  <button type="button" onClick={() => setShowCreateChild(false)} className="flex-1 bg-gray-400 text-white py-3 text-xl font-bold uppercase rounded-xl hover:bg-gray-500 transition-colors">Cancel</button>
-                  <button type="submit" className="flex-1 bg-brand-accent text-white py-3 text-xl font-bold uppercase rounded-xl hover:brightness-110 transition-transform">Add</button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateChild(false)}
+                    className="flex-1 bg-gray-400 text-white py-3 text-xl font-bold uppercase rounded-xl hover:bg-gray-500 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-brand-accent text-white py-3 text-xl font-bold uppercase rounded-xl hover:brightness-110 transition-transform"
+                  >
+                    Add
+                  </button>
                 </div>
               </form>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-    </>
+    </div>
   );
 };
 
