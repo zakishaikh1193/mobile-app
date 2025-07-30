@@ -128,8 +128,8 @@ const WordMatchGame: React.FC = () => {
     setFeedback(null);
   };
 
-  const handleBackToPath = () => {
-    navigate(`/letter-path/${childId}?finishedLevel=${level}`);
+  const handleBackToDashboard = () => {
+    navigate(`/child-dashboard/${childId}`);
   };
 
   return (
@@ -156,12 +156,12 @@ const WordMatchGame: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
-      {/* Back to Path Button (top left corner, fixed) */}
+      {/* Back to Dashboard Button (top left corner, fixed) */}
       <button
         className="fixed top-4 left-4 px-4 py-2 rounded-full bg-blue-500 text-white font-bold shadow hover:bg-blue-600 active:scale-95 transition z-50"
-        onClick={() => navigate(`/letter-path/${childId}`)}
+        onClick={handleBackToDashboard}
       >
-        ← Back
+        ← Back to Dashboard
       </button>
       {/* Game Card Container with WALL2 and WALL1 as accents */}
       <div className="relative z-20 w-full max-w-2xl bg-white bg-opacity-80 rounded-3xl shadow-xl p-4 mt-8 mb-4 flex flex-col items-center border-2 border-gray-100 mx-2 md:mx-8">
@@ -250,9 +250,9 @@ const WordMatchGame: React.FC = () => {
               </button>
               <button
                 className="w-full py-3 rounded-xl bg-gradient-to-r from-pink-400 to-yellow-400 text-white font-bold text-lg shadow active:scale-95"
-                onClick={handleBackToPath}
+                onClick={handleBackToDashboard}
               >
-                Back
+                Back to Dashboard
               </button>
             </div>
           </motion.div>

@@ -8,6 +8,7 @@ import AuthPage from './pages/AuthPage';
 import ParentDashboard from './pages/ParentDashboard';
 import ChildDashboard from './pages/ChildDashboard';
 import TeacherPortal from './pages/TeacherPortal';
+import TeacherDashboard from './pages/TeacherDashboard';
 import AdminPortal from './pages/AdminPortal';
 import LearningHub from './pages/LearningHub';
 import ARZone from './pages/ARZone';
@@ -17,6 +18,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import ForestLetterHuntPage from './pages/forest-letter-hunt';
 import WordMatchGame from './components/WordMatchGame';
 import LetterPath from './components/LetterPath';
+
+
 import './index.css';
 import ColoringGame from './components/ColoringGame/ColoringGame';
 
@@ -46,6 +49,8 @@ function App() {
                     </ProtectedRoute>
                   } 
                 />
+                
+
                 <Route 
                   path="/learning/:hubType/:childId" 
                   element={
@@ -107,6 +112,14 @@ function App() {
                   element={
                     <ProtectedRoute role="teacher">
                       <TeacherPortal />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/teacher-dashboard" 
+                  element={
+                    <ProtectedRoute role="teacher">
+                      <TeacherDashboard />
                     </ProtectedRoute>
                   } 
                 />
