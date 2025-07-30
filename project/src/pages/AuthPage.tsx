@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// Assuming these hooks and components are correctly set up
 import { useAuth } from '../contexts/AuthContext';
 import { useAudio } from '../contexts/AudioContext';
-import AudioButton from '../components/AudioButton'; // For text-to-speech
+import AudioButton from '../components/AudioButton';
+import OptimizedImage from '../components/OptimizedImage';
 
 const AuthPage: React.FC = () => {
   // --- All your original state and logic is preserved ---
@@ -76,14 +76,19 @@ const AuthPage: React.FC = () => {
     // --- MODIFIED: Changed items-center to items-start and added pt-28 to move container up ---
     <div className="relative min-h-screen font-sans overflow-hidden flex items-start justify-center p-4 pt-28">
 
-      {/* --- Background Image Layer --- */}
-      <div
-  className="absolute inset-0 w-full h-full bg-cover bg-center z-0"
-  style={{ backgroundImage: `url('/loginbackground.png')` }}
->
-  {/* Thin white layer, almost fully transparent */}
-  <div className="absolute inset-0 w-full h-full bg-white/5 backdrop-blur-sm"></div>
-</div>
+      {/* Background Image Layer with OptimizedImage */}
+      <div className="absolute inset-0 w-full h-full z-0">
+        <OptimizedImage
+          src="/loginbackground.webp"
+          alt="Background"
+          isBackground
+          className="w-full h-full object-cover"
+          containerClassName="absolute inset-0 w-full h-full"
+        >
+          {/* Thin white layer, almost fully transparent */}
+          <div className="absolute inset-0 w-full h-full bg-white/1 backdrop-blur-sm"></div>
+        </OptimizedImage>
+      </div>
 
       {/* --- Container for top buttons (z-50 makes it highest) --- */}
       <div className="absolute top-4 right-4 z-50 flex items-center space-x-3">
@@ -92,10 +97,11 @@ const AuthPage: React.FC = () => {
           className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md focus:outline-none p-2.5"
           aria-label={isMuted ? "Unmute background music" : "Mute background music"}
         >
-          <img
+          <OptimizedImage
             src={isMuted ? '/unmute.png' : '/mute.png'}
             alt={isMuted ? 'Unmute' : 'Mute'}
             className="w-full h-full object-contain"
+            lazy={false} // Important UI element, load immediately
           />
         </button>
         <AudioButton />

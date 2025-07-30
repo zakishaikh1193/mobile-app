@@ -6,6 +6,7 @@ import { Plus, LogOut, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAudio } from '../contexts/AudioContext';
 import AudioButton from '../components/AudioButton';
+import OptimizedImage from '../components/OptimizedImage';
 import { avatars } from '../assets/avatars';
 
 const ParentDashboard: React.FC = () => {
@@ -39,19 +40,19 @@ const ParentDashboard: React.FC = () => {
 
   return (
     <div className="relative w-full min-h-screen font-sans overflow-hidden">
-      {/* Background image layer */}
-      <div
-        className="absolute inset-0 w-full h-full z-0"
-        style={{
-          backgroundImage: "url('/ParentDashboardBackground.png')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-        }}
-      />
+      {/* Background with optimized image */}
+      <div className="absolute inset-0 w-full h-full">
+        <OptimizedImage
+          src="/ParentDashboardBackground.webp"
+          alt="Background"
+          isBackground
+          className="w-full h-full object-cover"
+          containerClassName="absolute inset-0 w-full h-full"
+        />
+      </div>
 
       {/* Foreground scrollable content */}
-      <div className="relative z-10 w-full min-h-screen flex flex-col items-center overflow-y-auto bg-[#DCECFB]/70 backdrop-blur-sm">
+      <div className="relative z-10 w-full min-h-screen flex flex-col items-center overflow-y-auto bg-white/20 backdrop-blur-[1px]">
         {/* Header */}
         <header className="w-full max-w-7xl mx-auto p-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
@@ -76,7 +77,7 @@ const ParentDashboard: React.FC = () => {
         <main className="flex flex-col items-center w-full max-w-7xl mx-auto px-4 py-20 sm:py-24 md:py-28">
           {/* Children list */}
           {user.children && user.children.length > 0 && (
-            <div className="w-full mb-8 sm:mb-10 md:mb-12">
+            <div className="w-full mb-1sm:mb-10 md:mb-12">
               <h2 className="font-bold text-xl sm:text-2xl md:text-3xl text-center mb-4 sm:mb-6" style={{ color: '#5C3A21' }}>
                 Your Kids
               </h2>
@@ -90,7 +91,18 @@ const ParentDashboard: React.FC = () => {
                     onClick={() => navigate(`/child-dashboard/${child.id}`)}
                   >
                     <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/90 rounded-full shadow-md flex items-center justify-center border-4 border-cyan-500 p-1">
-                      <img src={child.avatar} alt={child.name} className="w-full h-full object-cover rounded-full" />
+                      <div className="w-20 h-20 md:w-24 md:h-24">
+                        <OptimizedImage
+                          src={child.avatar}
+                          alt={child.name}
+                          className="w-full h-full object-cover rounded-full"
+                          width={96}
+                          height={96}
+                          // Simple gray placeholder for the child avatar
+                          blurDataURL="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMjQgMjQnPjxwYXRoIGZpbGw9JyNkMWQxZDEnIGQ9J00xMiAyQzYuNDggMiAyIDYuNDggMiAxMnYxMGgxMGM1LjUyIDAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6Jy8+PC9zdmc+"
+                          placeholderSrc={avatars.girl[0]} // Fallback avatar
+                        />
+                      </div>
                     </div>
                     <p className="text-center font-bold mt-1 text-sm sm:text-base" style={{ color: '#5C3A21' }}>
                       {child.name}
@@ -106,20 +118,22 @@ const ParentDashboard: React.FC = () => {
             onClick={() => setShowCreateChild(true)}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="mt-8 sm:mt-10 flex items-center gap-2 sm:gap-3 py-3 sm:py-4 px-6 sm:px-10 bg-cyan-500 text-white font-bold text-lg sm:text-xl uppercase rounded-full shadow-lg hover:bg-cyan-600 transition-colors"
+            className="mt-10 sm:mt-24 flex items-center gap-2 sm:gap-3 py-3 sm:py-4 px-6 sm:px-10 bg-cyan-500 text-white font-bold text-lg sm:text-xl uppercase rounded-full shadow-lg hover:bg-cyan-600 transition-colors"
           >
             <Plus />
             <span>Add Your Child</span>
           </motion.button>
 
           {/* Logo */}
-          <div className="mt-12 sm:mt-20 w-full flex justify-center">
-            <img
-              src="/KODEIT_Logo_2.png"
-              alt="KODEIT Logo"
-              className="h-auto max-w-full"
-              style={{ maxWidth: '15vh' }}
-            />
+          <div className="mt-20 sm:mt-24 w-15 flex justify-center">
+  <OptimizedImage
+    src="/KODEIT_Logo_2.png"
+    alt="Kodeit Logo"
+    className="w-15 h-10 md:w-8 md:h-8 object-contain"
+    style={{ width: "100px", height: "80px" }}
+    lazy={false}
+    blurDataURL="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMTAwIDEwMCc+PHJlY3Qgd2lkdGg9JzEwMCUnIGhlaWdodD0nMTAwJScgZmlsbD0nI2UzZjJmZicvPjwvc3ZnPg=="
+/>
           </div>
         </main>
       </div>
@@ -158,7 +172,12 @@ const ParentDashboard: React.FC = () => {
                         } flex items-center justify-center`}
                         onClick={() => setChildForm({ ...childForm, avatar })}
                       >
-                        <img src={avatar} alt="Avatar" className="w-14 h-14 object-cover rounded-full" />
+                        <OptimizedImage
+                          src={avatar}
+                          alt="Avatar"
+                          className="w-14 h-14 object-cover rounded-full"
+                          placeholderSrc={avatars.girl[0]} // Fallback avatar
+                        />
                       </button>
                     ))}
                   </div>
