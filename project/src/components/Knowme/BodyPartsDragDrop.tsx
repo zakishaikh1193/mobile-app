@@ -1,231 +1,284 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, GripVertical } from 'lucide-react';
+import { useAudio } from '../../contexts/AudioContext';
+import { useAuth } from '../../contexts/AuthContext';
 import Confetti from 'react-confetti';
+
+// Import images
 import bodyImg from '../../source/body.png';
-import b2Img from '../../source/B2.png';
+import b2Img from '../../source/D1.png';
 
 interface BodyPartsDragDropProps {
-  onComplete?: () => void;
+  onActivityComplete: () => void;
+  completedActivities: string[];
 }
 
-interface Slot {
-  label: string;
-  dot: { x: number; y: number };
-  slot: { x: number; y: number };
-  side: 'left' | 'right';
-}
-
-const SLOTS: Slot[] = [
-  { label: 'HEAD', dot: { x: 100, y: 70 }, slot: { x: 10, y: 60 }, side: 'left' },
-  { label: 'EYE', dot: { x: 90, y: 55 }, slot: { x: 10, y: 120 }, side: 'left' },
-  { label: 'ARM', dot: { x: 40, y: 150 }, slot: { x: 10, y: 200 }, side: 'left' },
-  { label: 'LEG', dot: { x: 70, y: 300 }, slot: { x: 10, y: 320 }, side: 'left' },
-  { label: 'EAR', dot: { x: 60, y: 65 }, slot: { x: 10, y: 260 }, side: 'left' },
-  { label: 'EYEBROW', dot: { x: 100, y: 45 }, slot: { x: 210, y: 60 }, side: 'right' },
-  { label: 'NOSE', dot: { x: 100, y: 70 }, slot: { x: 210, y: 120 }, side: 'right' },
-  { label: 'MOUTH', dot: { x: 100, y: 90 }, slot: { x: 210, y: 200 }, side: 'right' },
-  { label: 'HAND', dot: { x: 25, y: 190 }, slot: { x: 10, y: 380 }, side: 'left' },
-  { label: 'LIP', dot: { x: 100, y: 85 }, slot: { x: 210, y: 260 }, side: 'right' },
-  { label: 'TONGUE', dot: { x: 100, y: 95 }, slot: { x: 210, y: 320 }, side: 'right' },
-  { label: 'FOOT', dot: { x: 70, y: 320 }, slot: { x: 210, y: 380 }, side: 'right' },
-];
-
-const UNIQUE_LABELS = SLOTS.map(s => s.label);
-
-const cartoonChildSVG = (
-  <svg viewBox="0 0 220 400" width="220" height="400" className="mx-auto block">
-    {/* Head */}
-    <ellipse cx="100" cy="60" rx="40" ry="45" fill="#ffe0b2" stroke="#b08860" strokeWidth="2" />
-    {/* Body */}
-    <ellipse cx="100" cy="160" rx="35" ry="60" fill="#ffe0b2" stroke="#b08860" strokeWidth="2" />
-    {/* Arms */}
-    <rect x="25" y="110" width="25" height="80" rx="15" fill="#ffe0b2" stroke="#b08860" strokeWidth="2" />
-    <rect x="150" y="110" width="25" height="80" rx="15" fill="#ffe0b2" stroke="#b08860" strokeWidth="2" />
-    {/* Legs */}
-    <rect x="70" y="220" width="20" height="90" rx="10" fill="#ffe0b2" stroke="#b08860" strokeWidth="2" />
-    <rect x="110" y="220" width="20" height="90" rx="10" fill="#ffe0b2" stroke="#b08860" strokeWidth="2" />
-    {/* Feet */}
-    <ellipse cx="80" cy="320" rx="15" ry="8" fill="#ffe0b2" stroke="#b08860" strokeWidth="2" />
-    <ellipse cx="120" cy="320" rx="15" ry="8" fill="#ffe0b2" stroke="#b08860" strokeWidth="2" />
-    {/* Face features (simple) */}
-    <ellipse cx="100" cy="60" rx="30" ry="35" fill="none" stroke="#b08860" strokeWidth="1.5" />
-    <ellipse cx="90" cy="55" rx="5" ry="7" fill="#fff" />
-    <ellipse cx="110" cy="55" rx="5" ry="7" fill="#fff" />
-    <ellipse cx="90" cy="55" rx="2" ry="3" fill="#333" />
-    <ellipse cx="110" cy="55" rx="2" ry="3" fill="#333" />
-    <ellipse cx="100" cy="75" rx="8" ry="4" fill="#e57373" />
-    {/* Eyebrows */}
-    <rect x="83" y="45" width="10" height="2" rx="1" fill="#b08860" />
-    <rect x="107" y="45" width="10" height="2" rx="1" fill="#b08860" />
-    {/* Ears */}
-    <ellipse cx="60" cy="65" rx="7" ry="12" fill="#ffe0b2" stroke="#b08860" strokeWidth="2" />
-    <ellipse cx="140" cy="65" rx="7" ry="12" fill="#ffe0b2" stroke="#b08860" strokeWidth="2" />
-    {/* Mouth */}
-    <ellipse cx="100" cy="85" rx="10" ry="4" fill="#e57373" />
-    {/* Tongue */}
-    <ellipse cx="100" cy="89" rx="5" ry="2" fill="#d84315" />
-  </svg>
-);
-
-// List of body parts with side and dot coordinates (best-guess, adjust as needed)
-const PARTS = [
-  // Left side
-  { label: 'Hair', side: 'left', dot: { x: 220, y: 70 }, box: { x: 40, y: 40 } },
-  { label: 'Eye', side: 'left', dot: { x: 290, y: 120 }, box: { x: 30, y: 90 } },
-  { label: 'Ear', side: 'left', dot: { x: 210, y: 150 }, box: { x: 40, y: 140 } },
-  { label: 'Neck', side: 'left', dot: { x: 330, y: 230 }, box: { x: 40, y: 200 } },
-  { label: 'Shoulder', side: 'left', dot: { x: 240, y: 250 }, box: { x: 40, y: 260 } },
-  { label: 'Hand', side: 'left', dot: { x: 160, y: 340 }, box: { x: 40, y: 370 } },
-  { label: 'Foot', side: 'left', dot: { x: 230, y: 480 }, box: { x: 40, y: 470 } },
-  // Right side
-  { label: 'Eyebrow', side: 'right', dot: { x: 380, y: 100 }, box: { x: 610, y: 50 } },
-  { label: 'Nose', side: 'right', dot: { x: 340, y: 160 }, box: { x: 610, y: 110 } },
-  { label: 'Mouth', side: 'right', dot: { x: 340, y: 200 }, box: { x: 610, y: 160 } },
-  { label: 'Chest', side: 'right', dot: { x: 340, y: 250 }, box: { x: 610, y: 210 } },
-  { label: 'Abdomen', side: 'right', dot: { x: 340, y: 300 }, box: { x: 610, y: 260 } },
-  { label: 'Hip', side: 'right', dot: { x: 340, y: 350 }, box: { x: 610, y: 310 } },
-  { label: 'Leg', side: 'right', dot: { x: 420, y: 440 }, box: { x: 610, y: 400 } },
-  // Removed 14th part (Knee/Foot on right)
-];
-
-const BODY_IMG_WIDTH = 400;
-const BODY_IMG_HEIGHT = 550;
-
-// Helper for TTS with slower, child-friendly rate
-function speakSunny(message: string) {
-  if (!('speechSynthesis' in window) || !message) return;
-  const synth = window.speechSynthesis;
-  const utter = new window.SpeechSynthesisUtterance(message);
-  utter.pitch = 1.2;
-  utter.rate = 0.8; // slower for children
-  utter.volume = 1;
-  utter.lang = 'en-US';
-  // Prefer a child-friendly voice if available
-  const voices = synth.getVoices();
-  utter.voice = voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('female')) || voices[0];
-  synth.cancel();
-  synth.speak(utter);
-}
-
-const BodyPartsDragDrop: React.FC<BodyPartsDragDropProps> = ({ onComplete }) => {
-  // Track which label is being dragged
+const BodyPartsDragDrop: React.FC<BodyPartsDragDropProps> = ({ 
+  onActivityComplete, 
+  completedActivities 
+}) => {
+  const { speak, playSound } = useAudio();
+  const { updateChildProgress } = useAuth();
+  const [placed, setPlaced] = useState<{ [key: number]: string }>({});
+  const [feedback, setFeedback] = useState<{ [key: number]: 'correct' | 'incorrect' | undefined }>({});
   const [draggedLabel, setDraggedLabel] = useState<string | null>(null);
-  // Track which label is placed in each box (by index)
-  const [placed, setPlaced] = useState<{ [idx: number]: string }>(() => ({}));
-  // Track feedback for each box
-  const [feedback, setFeedback] = useState<{ [idx: number]: 'correct' | 'incorrect' | undefined }>({});
-  const [showConfetti, setShowConfetti] = useState(false);
-  const [sunnyMessage, setSunnyMessage] = useState('Drag the correct name to each body part!');
-  const [sunnyMood, setSunnyMood] = useState<'encourage' | 'party' | 'hint'>('encourage');
-  const demoTimeoutRef = useRef<number | null>(null);
-  // Track which drop zone is being hovered for highlight
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
-  // Add a state to track if all are correct
-  const allCorrect = Object.keys(placed).length === PARTS.length && Object.entries(placed).every(([idx, label]) => PARTS[Number(idx)].label === label);
+  // Update window size on resize
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-  // Only show labels that are not placed
+  // Calculate responsive dimensions
+  const isMobile = windowSize.width < 768;
+  const isTablet = windowSize.width >= 768 && windowSize.width < 1024;
+  const isLargeScreen = windowSize.width >= 1200;
+  
+  // Responsive sizing based on viewport
+  const CONTAINER_WIDTH = Math.min(windowSize.width * 0.98, isLargeScreen ? 1000 : 800);
+  const CONTAINER_HEIGHT = Math.min(windowSize.height * 0.65, isLargeScreen ? 700 : 600);
+  const BODY_IMG_WIDTH = Math.min(CONTAINER_WIDTH * (isMobile ? 0.6 : 0.45), isLargeScreen ? 300 : 250);
+  const BODY_IMG_HEIGHT = Math.min(CONTAINER_HEIGHT * (isMobile ? 0.75 : 0.8), isLargeScreen ? 500 : 400);
+
+  // Responsive drop zone sizing
+  const DROP_ZONE_WIDTH = isMobile ? 90 : isTablet ? 110 : isLargeScreen ? 140 : 120;
+  const DROP_ZONE_HEIGHT = isMobile ? 35 : isTablet ? 40 : isLargeScreen ? 50 : 45;
+  const DROP_ZONE_FONT_SIZE = isMobile ? '0.75rem' : isTablet ? '0.9rem' : isLargeScreen ? '1rem' : '0.85rem';
+
+  // Responsive label sizing
+  const LABEL_MIN_WIDTH = isMobile ? 70 : isTablet ? 85 : isLargeScreen ? 100 : 90;
+  const LABEL_HEIGHT = isMobile ? 40 : isTablet ? 45 : isLargeScreen ? 50 : 48;
+  const LABEL_FONT_SIZE = isMobile ? '0.8rem' : isTablet ? '0.9rem' : isLargeScreen ? '1rem' : '0.95rem';
+
+  // Debug viewport information
+  const viewportInfo = {
+    width: windowSize.width,
+    height: windowSize.height,
+    deviceType: isMobile ? 'Mobile' : isTablet ? 'Tablet' : isLargeScreen ? 'Large Screen' : 'Desktop',
+    containerWidth: CONTAINER_WIDTH,
+    containerHeight: CONTAINER_HEIGHT,
+    bodyImgWidth: BODY_IMG_WIDTH,
+    bodyImgHeight: BODY_IMG_HEIGHT
+  };
+
+  // List of body parts with improved responsive coordinates
+  const PARTS = [
+    // Left side - adjusted for better positioning
+    { label: 'Hair', side: 'left', dot: { x: BODY_IMG_WIDTH * 0.5, y: BODY_IMG_HEIGHT * 0.05 }, box: { x: 15, y: CONTAINER_HEIGHT * 0.08 } },
+    { label: 'Eye', side: 'left', dot: { x: BODY_IMG_WIDTH * 0.45, y: BODY_IMG_HEIGHT * 0.15 }, box: { x: 15, y: CONTAINER_HEIGHT * 0.18 } },
+    { label: 'Ear', side: 'left', dot: { x: BODY_IMG_WIDTH * 0.3, y: BODY_IMG_HEIGHT * 0.18 }, box: { x: 15, y: CONTAINER_HEIGHT * 0.28 } },
+    { label: 'Neck', side: 'left', dot: { x: BODY_IMG_WIDTH * 0.5, y: BODY_IMG_HEIGHT * 0.28 }, box: { x: 15, y: CONTAINER_HEIGHT * 0.38 } },
+    { label: 'Shoulder', side: 'left', dot: { x: BODY_IMG_WIDTH * 0.325, y: BODY_IMG_HEIGHT * 0.35 }, box: { x: 15, y: CONTAINER_HEIGHT * 0.48 } },
+    { label: 'Hand', side: 'left', dot: { x: BODY_IMG_WIDTH * 0.125, y: BODY_IMG_HEIGHT * 0.55 }, box: { x: 15, y: CONTAINER_HEIGHT * 0.58 } },
+    { label: 'Foot', side: 'left', dot: { x: BODY_IMG_WIDTH * 0.35, y: BODY_IMG_HEIGHT * 0.85 }, box: { x: 15, y: CONTAINER_HEIGHT * 0.68 } },
+    // Right side - adjusted for better positioning
+    { label: 'Eyebrow', side: 'right', dot: { x: BODY_IMG_WIDTH * 0.5, y: BODY_IMG_HEIGHT * 0.12 }, box: { x: CONTAINER_WIDTH - DROP_ZONE_WIDTH - 15, y: CONTAINER_HEIGHT * 0.08 } },
+    { label: 'Nose', side: 'right', dot: { x: BODY_IMG_WIDTH * 0.5, y: BODY_IMG_HEIGHT * 0.2 }, box: { x: CONTAINER_WIDTH - DROP_ZONE_WIDTH - 15, y: CONTAINER_HEIGHT * 0.18 } },
+    { label: 'Mouth', side: 'right', dot: { x: BODY_IMG_WIDTH * 0.5, y: BODY_IMG_HEIGHT * 0.26 }, box: { x: CONTAINER_WIDTH - DROP_ZONE_WIDTH - 15, y: CONTAINER_HEIGHT * 0.28 } },
+    { label: 'Chest', side: 'right', dot: { x: BODY_IMG_WIDTH * 0.5, y: BODY_IMG_HEIGHT * 0.4 }, box: { x: CONTAINER_WIDTH - DROP_ZONE_WIDTH - 15, y: CONTAINER_HEIGHT * 0.38 } },
+    { label: 'Abdomen', side: 'right', dot: { x: BODY_IMG_WIDTH * 0.5, y: BODY_IMG_HEIGHT * 0.52 }, box: { x: CONTAINER_WIDTH - DROP_ZONE_WIDTH - 15, y: CONTAINER_HEIGHT * 0.48 } },
+    { label: 'Hip', side: 'right', dot: { x: BODY_IMG_WIDTH * 0.5, y: BODY_IMG_HEIGHT * 0.64 }, box: { x: CONTAINER_WIDTH - DROP_ZONE_WIDTH - 15, y: CONTAINER_HEIGHT * 0.58 } },
+    { label: 'Leg', side: 'right', dot: { x: BODY_IMG_WIDTH * 0.55, y: BODY_IMG_HEIGHT * 0.75 }, box: { x: CONTAINER_WIDTH - DROP_ZONE_WIDTH - 15, y: CONTAINER_HEIGHT * 0.68 } },
+  ];
+
   const availableLabels = PARTS.map(p => p.label).filter(label => !Object.values(placed).includes(label));
+  const progress = Math.round((Object.keys(placed).length / PARTS.length) * 100);
+  const allCorrect = Object.keys(placed).length === PARTS.length;
 
-  const handleDragStart = (label: string) => setDraggedLabel(label);
-  const handleDragEnd = () => setDraggedLabel(null);
+  // Mobile touch handlers
+  const handleLabelSelect = (label: string) => {
+    if (isMobile) {
+      setSelectedLabel(label);
+      speak(`Selected ${label.toLowerCase()}`);
+    }
+  };
 
-  // Feedback handler for correct/wrong
+  const handleDropZoneTap = (index: number) => {
+    if (isMobile && selectedLabel) {
+      const part = PARTS[index];
+      const isCorrect = selectedLabel === part.label;
+      
+      if (isCorrect) {
+        setPlaced(prev => ({ ...prev, [index]: selectedLabel }));
+        setFeedback(prev => ({ ...prev, [index]: 'correct' }));
+        playSound('success');
+      } else {
+        setFeedback(prev => ({ ...prev, [index]: 'incorrect' }));
+        playSound('click');
+      }
+      
+      handleDropFeedback(isCorrect, selectedLabel);
+      setTimeout(() => setFeedback(prev => ({ ...prev, [index]: undefined })), 1200);
+      setSelectedLabel(null);
+    }
+  };
+
   const handleDropFeedback = (isCorrect: boolean, label: string) => {
     if (isCorrect) {
-      setSunnyMessage(`Great job! ${label} is correct!`);
-      setSunnyMood('party');
-      speakSunny(`Great job! ${label} is correct!`);
+      speak(`Great job! That's the ${label.toLowerCase()}`);
+      if (Object.keys(placed).length + 1 === PARTS.length) {
+        setTimeout(() => {
+          setShowConfetti(true);
+          setShowCelebration(true);
+          speak("Congratulations! You labeled all the body parts correctly!");
+          onActivityComplete();
+        }, 500);
+      }
     } else {
-      setSunnyMessage('Try again!');
-      setSunnyMood('hint');
-      speakSunny('Try again!');
+      speak("Try again! That's not quite right.");
     }
   };
 
-  // Demo mode (auto drag-drop)
+  // Desktop drag handlers
+  const handleDragStart = (label: string) => {
+    if (!isMobile) {
+      setDraggedLabel(label);
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragEnd = () => {
+    if (!isMobile) {
+      setDraggedLabel(null);
+      setIsDragging(false);
+      setHoveredIdx(null);
+    }
+  };
+
   const runDemo = () => {
-    setSunnyMessage('Watch how to play!');
-    setSunnyMood('hint');
-    speakSunny('Watch how to play!');
-    let i = 0;
+    speak("Let me show you how to play! " + (isMobile ? "Tap a label, then tap the correct body part!" : "Drag the labels to the correct body parts!"));
+    const demoLabels = ['Hair', 'Eye', 'Ear', 'Mouth'];
+    let demoIndex = 0;
+
     const demoStep = () => {
-      if (i >= PARTS.length) {
-        setTimeout(() => {
-          setPlaced({});
-          setSunnyMessage('Now it\'s your turn! Drag the correct name to each body part!');
-          setSunnyMood('encourage');
-          speakSunny('Now it\'s your turn! Drag the correct name to each body part!');
-        }, 1200);
+      if (demoIndex >= demoLabels.length) {
+        speak("Now you try! " + (isMobile ? "Tap labels and body parts!" : "Drag the labels to the correct spots!"));
         return;
       }
-      setPlaced(prev => ({ ...prev, [i]: PARTS[i].label }));
-      setSunnyMessage(`This is the ${PARTS[i].label}`);
-      setSunnyMood('hint');
-      speakSunny(`This is the ${PARTS[i].label}`);
-      i++;
-      demoTimeoutRef.current = setTimeout(demoStep, 1200);
+
+      const label = demoLabels[demoIndex];
+      const partIndex = PARTS.findIndex(p => p.label === label);
+      
+      if (partIndex !== -1) {
+        setTimeout(() => {
+          setPlaced(prev => ({ ...prev, [partIndex]: label }));
+          setFeedback(prev => ({ ...prev, [partIndex]: 'correct' }));
+          speak(`This is the ${label.toLowerCase()}`);
+          setTimeout(() => {
+            setFeedback(prev => ({ ...prev, [partIndex]: undefined }));
+            demoIndex++;
+            demoStep();
+          }, 1500);
+        }, 1000);
+      }
     };
-    setPlaced({});
-    if (demoTimeoutRef.current) clearTimeout(demoTimeoutRef.current);
-    demoTimeoutRef.current = setTimeout(demoStep, 1000);
+
+    demoStep();
   };
 
-  // Show celebration popup when all correct
-  React.useEffect(() => {
-    if (allCorrect) {
-      setTimeout(() => setShowCelebration(true), 800);
-    }
-  }, [allCorrect]);
-
-  // Progress bar calculation
-  const progress = Math.round((Object.keys(placed).length / PARTS.length) * 100);
-
-  // Play again handler
-  const handlePlayAgain = () => {
+  const resetGame = () => {
     setPlaced({});
+    setFeedback({});
+    setShowConfetti(false);
     setShowCelebration(false);
-    setSunnyMessage('Drag the correct name to each body part!');
-    setSunnyMood('encourage');
-    speakSunny('Let’s play again! Drag the correct name to each body part!');
+    setDraggedLabel(null);
+    setSelectedLabel(null);
+    setHoveredIdx(null);
+    setIsDragging(false);
+    speak("Let's play again! " + (isMobile ? "Tap labels and body parts!" : "Drag the labels to the correct body parts!"));
   };
 
-  // Back to dashboard handler (calls onComplete if provided)
-  const handleBack = () => {
-    if (onComplete) onComplete();
+  const goBack = () => {
+    window.history.back();
   };
-
-  // Group slots by side and sort by dot.y
-  const leftSlots = SLOTS.map((s, i) => ({...s, idx: i})).filter(s => s.side === 'left').sort((a, b) => a.dot.y - b.dot.y);
-  const rightSlots = SLOTS.map((s, i) => ({...s, idx: i})).filter(s => s.side === 'right').sort((a, b) => a.dot.y - b.dot.y);
-  const boxSpacing = 60;
 
   return (
-    <div className="min-h-[700px] flex flex-col items-center justify-center bg-gradient-to-br from-blue-200 via-purple-100 to-pink-100 rounded-3xl p-2 md:p-8 shadow-2xl">
-      {/* Progress Bar */}
-      <div className="w-full max-w-2xl mx-auto mt-2 mb-4">
-        <div className="h-4 bg-white/70 rounded-full overflow-hidden shadow-inner border border-blue-200">
-          <div
-            className="h-4 bg-gradient-to-r from-green-400 to-blue-400 rounded-full transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
+    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 relative overflow-x-hidden p-2 sm:p-4 md:p-6 lg:p-8">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3 sm:mb-4 md:mb-6 lg:mb-8">
+        <button
+          onClick={goBack}
+          className="px-2 sm:px-3 md:px-4 lg:px-6 py-2 bg-blue-200 text-blue-900 rounded-full font-bold shadow hover:bg-blue-300 transition text-xs sm:text-sm md:text-base lg:text-lg touch-manipulation min-h-[40px] sm:min-h-[44px]"
+        >
+          ← Back
+        </button>
+        <div className="text-center flex-1 mx-2 sm:mx-4">
+          <h1 className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold text-gray-800 mb-1">
+            Label My Body
+          </h1>
+          <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600">
+            {isMobile ? "Tap labels and body parts!" : "Drag the labels to the correct body parts!"}
+          </p>
         </div>
-        <div className="text-center text-xs text-blue-700 font-bold mt-1">Progress: {progress}%</div>
+        <button
+          onClick={resetGame}
+          className="px-2 sm:px-3 md:px-4 lg:px-6 py-2 bg-green-200 text-green-900 rounded-full font-bold shadow hover:bg-green-300 transition text-xs sm:text-sm md:text-base lg:text-lg touch-manipulation min-h-[40px] sm:min-h-[44px]"
+        >
+          Reset
+        </button>
       </div>
-      <div className="w-full flex flex-col md:flex-row items-center justify-center gap-4">
-        {/* Main activity area */}
-        <div className="relative flex items-center justify-center p-2 md:p-8" style={{ width: 700, height: BODY_IMG_HEIGHT, minWidth: 320 }}>
-          {/* Central body image: grayscale or colored if all correct */}
+
+      {/* Progress bar */}
+      <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3 md:h-4 mb-3 sm:mb-4 md:mb-6">
+        <div 
+          className="bg-gradient-to-r from-green-400 to-blue-500 h-full rounded-full transition-all duration-500"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+
+      {/* Viewport Debug Info - Remove this in production */}
+      <div className="bg-blue-100 border border-blue-300 rounded-lg p-2 mb-3 text-xs sm:text-sm">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div><strong>Device:</strong> {viewportInfo.deviceType}</div>
+          <div><strong>Viewport:</strong> {viewportInfo.width}×{viewportInfo.height}</div>
+          <div><strong>Container:</strong> {Math.round(viewportInfo.containerWidth)}×{Math.round(viewportInfo.containerHeight)}</div>
+          <div><strong>Body Image:</strong> {Math.round(viewportInfo.bodyImgWidth)}×{Math.round(viewportInfo.bodyImgHeight)}</div>
+        </div>
+      </div>
+
+      {/* Main activity area */}
+      <div className="relative flex items-center justify-center p-2 sm:p-4 md:p-6 lg:p-8 w-full max-w-7xl mx-auto">
+        <div 
+          className="relative flex items-center justify-center"
+          style={{ 
+            width: CONTAINER_WIDTH, 
+            height: CONTAINER_HEIGHT, 
+            minWidth: isMobile ? 300 : 400,
+            minHeight: isMobile ? 400 : 500
+          }}
+        >
+          {/* Central body image */}
           <img
             src={allCorrect ? b2Img : bodyImg}
             alt="Body"
-            style={{ width: BODY_IMG_WIDTH, height: BODY_IMG_HEIGHT, position: 'absolute', left: '50%', top: 0, transform: 'translateX(-50%)', userSelect: 'none', touchAction: 'none' }}
+            style={{ 
+              width: BODY_IMG_WIDTH, 
+              height: BODY_IMG_HEIGHT, 
+              position: 'absolute', 
+              left: '50%', 
+              top: '50%', 
+              transform: 'translate(-50%, -50%)', 
+              userSelect: 'none', 
+              touchAction: 'none',
+              maxWidth: '100%',
+              maxHeight: '100%'
+            }}
             draggable={false}
+            className="object-contain"
           />
+
           {/* Highlight dot on body part when dragging over drop zone */}
-          {hoveredIdx !== null && (
+          {hoveredIdx !== null && !isMobile && (
             <div
               className="absolute rounded-full bg-yellow-400 border-4 border-yellow-300 shadow-lg animate-pulse"
               style={{
@@ -238,134 +291,189 @@ const BodyPartsDragDrop: React.FC<BodyPartsDragDropProps> = ({ onComplete }) => 
               }}
             />
           )}
-          {/* Lines and green drop zones */}
-          {PARTS.map((part, i) => (
-            <React.Fragment key={part.label}>
-              <svg style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none' }} width={700} height={BODY_IMG_HEIGHT}>
-                <line
-                  x1={part.dot.x}
-                  y1={part.dot.y}
-                  x2={part.box.x + 48 / 2}
-                  y2={part.box.y + 16}
-                  stroke="#b2b2b2"
-                  strokeWidth="2"
-                />
-              </svg>
-              <div
-                className={`absolute rounded-lg flex items-center justify-center shadow text-lg font-bold select-none transition-colors duration-300
-                  ${feedback[i] === 'correct' ? 'bg-green-300 border-green-600 text-green-900' :
-                    feedback[i] === 'incorrect' ? 'bg-red-300 border-red-600 text-red-900' :
-                    'bg-green-200 border-green-400 text-green-900'}`}
-                style={{ left: part.box.x, top: part.box.y, width: 130, height: 48, zIndex: 10, borderWidth: 2, borderStyle: 'solid', cursor: placed[i] ? 'default' : 'pointer', fontSize: '1.1rem', touchAction: 'none' }}
-                onDragOver={e => { e.preventDefault(); setHoveredIdx(i); }}
-                onDragLeave={() => setHoveredIdx(null)}
-                onDrop={e => {
-                  e.preventDefault();
-                  setHoveredIdx(null);
-                  if (!draggedLabel) return;
-                  const isCorrect = draggedLabel === part.label;
-                  if (isCorrect) {
-                    setPlaced(prev => ({ ...prev, [i]: draggedLabel }));
-                    setFeedback(prev => ({ ...prev, [i]: 'correct' }));
-                  } else {
-                    setFeedback(prev => ({ ...prev, [i]: 'incorrect' }));
-                  }
-                  handleDropFeedback(isCorrect, draggedLabel);
-                  setTimeout(() => setFeedback(prev => ({ ...prev, [i]: undefined })), 1200);
-                  setDraggedLabel(null);
-                }}
-              >
-                {placed[i]
-                  ? (feedback[i] === 'correct' ? 'Correct!' : placed[i])
-                  : (feedback[i] === 'incorrect' ? 'Try again!' : '')}
-              </div>
-            </React.Fragment>
-          ))}
-          {/* Celebration Popup */}
-          <AnimatePresence>
-            {showCelebration && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="fixed inset-0 flex items-center justify-center z-50"
-                style={{ background: 'rgba(0,0,0,0.15)' }}
-              >
-                <div className="bg-white rounded-3xl shadow-2xl p-10 border-4 border-yellow-300 flex flex-col items-center max-w-xs w-full mx-2">
-                  <div className="text-5xl mb-2">🥳🏆🌞👏🎈⭐</div>
-                  <h3 className="text-3xl font-bold text-yellow-700 mb-2 font-comic text-center">Congratulations!</h3>
-                  <p className="text-lg text-gray-700 mb-4 text-center">You labeled all the body parts correctly!</p>
-                  <div className="flex gap-4 mt-2 w-full">
-                    <button
-                      className="flex-1 px-4 py-2 bg-purple-500 text-white rounded-full font-bold shadow-lg hover:bg-purple-600 transition text-lg"
-                      onClick={handlePlayAgain}
-                    >
-                      Play Again
-                    </button>
-                    <button
-                      className="flex-1 px-4 py-2 bg-blue-400 text-white rounded-full font-bold shadow-lg hover:bg-blue-500 transition text-lg"
-                      onClick={handleBack}
-                    >
-                      Back to Dashboard
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-        {/* Help button on the right side of the activity area */}
-        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 z-20">
-          <button
-            className="px-6 py-2 bg-blue-200 text-blue-900 rounded-full font-bold shadow hover:bg-blue-300 transition text-base md:text-lg"
-            onClick={runDemo}
-            type="button"
-          >
-            Help
-          </button>
-        </div>
-      </div>
-      {/* Draggable labels row at the bottom */}
-      <div className="flex flex-row flex-wrap gap-4 items-center justify-center mt-8 w-full px-2">
-        {availableLabels.map(label => (
-          <div
-            key={label}
-            className="px-4 py-3 rounded-full shadow bg-gradient-to-r from-yellow-300 to-orange-400 text-blue-900 font-bold font-comic border-2 border-white text-lg cursor-grab select-none"
-            draggable
-            onDragStart={() => setDraggedLabel(label)}
-            onDragEnd={() => setDraggedLabel(null)}
-            style={{ opacity: draggedLabel && draggedLabel !== label ? 0.5 : 1, minWidth: 110, minHeight: 48, touchAction: 'none', fontSize: '1.1rem' }}
-          >
-            {label}
-          </div>
-        ))}
-      </div>
-      {/* Confetti and Congratulations popup */}
-      <AnimatePresence>
-        {showConfetti && (
-          <>
-            <Confetti width={window.innerWidth} height={window.innerHeight} recycle={false} numberOfPieces={300} gravity={0.3} />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.7 }}
-              className="fixed inset-0 flex items-center justify-center z-50"
-            >
-              <div className="bg-white rounded-3xl shadow-2xl p-12 border-4 border-green-400 flex flex-col items-center">
-                <CheckCircle className="text-green-500 mb-4" size={64} />
-                <h3 className="text-3xl font-bold text-green-700 mb-2 font-comic">Congratulations!</h3>
-                <p className="text-lg text-gray-700 mb-4">You labeled all the body parts correctly!</p>
-                <button
-                  className="mt-2 px-6 py-2 bg-green-500 text-white rounded-full font-bold shadow-lg hover:bg-green-600 transition"
-                  onClick={() => setShowConfetti(false)}
+
+          {/* Lines and drop zones */}
+          {PARTS.map((part, i) => {
+            const scaledDotX = part.dot.x;
+            const scaledDotY = part.dot.y;
+            const scaledBoxX = part.box.x;
+            const scaledBoxY = part.box.y;
+            
+            return (
+              <React.Fragment key={part.label}>
+                <svg style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none' }} width={CONTAINER_WIDTH} height={CONTAINER_HEIGHT}>
+                  <line
+                    x1={scaledDotX}
+                    y1={scaledDotY}
+                    x2={scaledBoxX + DROP_ZONE_WIDTH / 2}
+                    y2={scaledBoxY + DROP_ZONE_HEIGHT / 2}
+                    stroke="#b2b2b2"
+                    strokeWidth={isMobile ? "1.5" : "2"}
+                  />
+                </svg>
+                <div
+                  className={`absolute rounded-lg flex items-center justify-center shadow font-bold select-none transition-all duration-300 touch-manipulation
+                    ${feedback[i] === 'correct' ? 'bg-green-300 border-green-600 text-green-900' :
+                      feedback[i] === 'incorrect' ? 'bg-red-300 border-red-600 text-red-900' :
+                      selectedLabel === part.label ? 'bg-yellow-200 border-yellow-500 text-yellow-900 scale-105' :
+                      'bg-green-200 border-green-400 text-green-900 hover:bg-green-300'}`}
+                  style={{ 
+                    left: scaledBoxX, 
+                    top: scaledBoxY, 
+                    width: DROP_ZONE_WIDTH, 
+                    height: DROP_ZONE_HEIGHT, 
+                    zIndex: 10, 
+                    borderWidth: 2, 
+                    borderStyle: 'solid', 
+                    cursor: placed[i] ? 'default' : 'pointer', 
+                    fontSize: DROP_ZONE_FONT_SIZE, 
+                    touchAction: 'none',
+                    minWidth: DROP_ZONE_WIDTH,
+                    minHeight: DROP_ZONE_HEIGHT
+                  }}
+                  onDragOver={e => { 
+                    if (!isMobile) {
+                      e.preventDefault(); 
+                      setHoveredIdx(i); 
+                    }
+                  }}
+                  onDragLeave={() => {
+                    if (!isMobile) setHoveredIdx(null);
+                  }}
+                  onDrop={e => {
+                    if (!isMobile) {
+                      e.preventDefault();
+                      setHoveredIdx(null);
+                      if (!draggedLabel) return;
+                      const isCorrect = draggedLabel === part.label;
+                      if (isCorrect) {
+                        setPlaced(prev => ({ ...prev, [i]: draggedLabel }));
+                        setFeedback(prev => ({ ...prev, [i]: 'correct' }));
+                      } else {
+                        setFeedback(prev => ({ ...prev, [i]: 'incorrect' }));
+                      }
+                      handleDropFeedback(isCorrect, draggedLabel);
+                      setTimeout(() => setFeedback(prev => ({ ...prev, [i]: undefined })), 1200);
+                      setDraggedLabel(null);
+                    }
+                  }}
+                  onClick={() => handleDropZoneTap(i)}
                 >
-                  Close
+                  {placed[i]
+                    ? (feedback[i] === 'correct' ? 'Correct!' : placed[i])
+                    : (feedback[i] === 'incorrect' ? 'Try again!' : 
+                       selectedLabel === part.label ? 'Tap here!' : '')}
+                </div>
+              </React.Fragment>
+            );
+          })}
+
+          {/* Help button */}
+          <div className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 z-20">
+            <button
+              className="px-2 sm:px-3 md:px-4 lg:px-6 py-2 bg-blue-200 text-blue-900 rounded-full font-bold shadow hover:bg-blue-300 transition text-xs sm:text-sm md:text-base lg:text-lg touch-manipulation min-h-[40px] sm:min-h-[44px]"
+              onClick={runDemo}
+              type="button"
+            >
+              Help
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Labels section */}
+      <div className="mt-3 sm:mt-4 md:mt-6 lg:mt-8">
+        <h3 className="text-center text-xs sm:text-sm md:text-base lg:text-lg font-bold text-gray-700 mb-2 sm:mb-3 md:mb-4">
+          {isMobile ? "Tap a label, then tap the correct body part:" : "Drag these labels to the correct body parts:"}
+        </h3>
+        
+        {/* Draggable labels */}
+        <div className="flex flex-wrap justify-center gap-2 sm:gap-3 md:gap-4 lg:gap-5 px-2 sm:px-4 md:px-6 lg:px-8">
+          {availableLabels.map((label) => (
+            <motion.div
+              key={label}
+              draggable={!isMobile}
+              onDragStart={() => handleDragStart(label)}
+              onDragEnd={handleDragEnd}
+              onClick={() => handleLabelSelect(label)}
+              className={`px-2 sm:px-3 md:px-4 lg:px-6 py-2 sm:py-3 border-2 rounded-lg shadow-md font-bold touch-manipulation flex items-center justify-center transition-all duration-200
+                ${selectedLabel === label 
+                  ? 'bg-yellow-300 border-yellow-500 text-yellow-900 scale-105' 
+                  : 'bg-white border-blue-300 text-blue-900 hover:bg-blue-50'}`}
+              style={{ 
+                fontSize: LABEL_FONT_SIZE,
+                minWidth: LABEL_MIN_WIDTH,
+                minHeight: LABEL_HEIGHT,
+                maxWidth: LABEL_MIN_WIDTH * 1.5
+              }}
+              whileHover={{ scale: isMobile ? 1 : 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {!isMobile && <GripVertical className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />}
+              <span className="text-center">{label}</span>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Mobile instructions */}
+        {isMobile && selectedLabel && (
+          <div className="text-center mt-3 sm:mt-4 p-3 bg-blue-100 rounded-lg mx-2 sm:mx-4 md:mx-6">
+            <p className="text-xs sm:text-sm font-bold text-blue-800">
+              Selected: <span className="text-blue-600">{selectedLabel}</span>
+            </p>
+            <p className="text-xs text-blue-700 mt-1">
+              Now tap the correct body part on the image!
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Celebration popup */}
+      <AnimatePresence>
+        {showCelebration && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 lg:p-10 text-center max-w-xs sm:max-w-sm md:max-w-md shadow-2xl">
+              <CheckCircle className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 text-green-500 mx-auto mb-3 sm:mb-4" />
+              <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-800 mb-2 sm:mb-3 md:mb-4">
+                Excellent!
+              </h2>
+              <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 mb-3 sm:mb-4 md:mb-6">
+                You've labeled all the body parts correctly!
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4">
+                <button
+                  onClick={resetGame}
+                  className="px-3 sm:px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 transition min-h-[40px] sm:min-h-[44px] text-sm sm:text-base"
+                >
+                  Play Again
+                </button>
+                <button
+                  onClick={goBack}
+                  className="px-3 sm:px-4 py-2 bg-gray-500 text-white rounded-lg font-bold hover:bg-gray-600 transition min-h-[40px] sm:min-h-[44px] text-sm sm:text-base"
+                >
+                  Back to Menu
                 </button>
               </div>
-            </motion.div>
-          </>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Confetti */}
+      {showConfetti && (
+        <Confetti
+          width={windowSize.width}
+          height={windowSize.height}
+          recycle={false}
+          numberOfPieces={200}
+          onConfettiComplete={() => setShowConfetti(false)}
+        />
+      )}
     </div>
   );
 };

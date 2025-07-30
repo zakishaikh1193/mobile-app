@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, useCallback, useImperativeHandle, f
 import { Save, Download, Sparkles, Volume2 } from 'lucide-react';
 import { LineArt, Tool } from '../types/lineArt';
 import StickerPanel from './StickerPanel';
+import { useAudio } from '../contexts/AudioContext';
 
 interface CanvasProps {
   artwork: LineArt;
@@ -37,38 +38,26 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
   const [dragOffset, setDragOffset] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
   const [resizingSticker, setResizingSticker] = useState<number | null>(null);
 
+  // Audio context
+  const { playSound: playAudioSound } = useAudio();
+
   // Sound effects
   const playSound = useCallback((type: 'paint' | 'fill' | 'save' | 'celebrate') => {
-    // In a real app, you'd play actual audio files
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
     switch (type) {
       case 'paint':
-        oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime);
-        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+        playAudioSound('click');
         break;
       case 'fill':
-        oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime);
-        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+        playAudioSound('success');
         break;
       case 'save':
-        oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime);
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        playAudioSound('success');
         break;
       case 'celebrate':
-        oscillator.frequency.setValueAtTime(1046.50, audioContext.currentTime);
-        gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+        playAudioSound('celebration');
         break;
     }
-    
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + 0.1);
-  }, []);
+  }, [playAudioSound]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

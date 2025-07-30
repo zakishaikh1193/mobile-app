@@ -37,15 +37,17 @@ const ChildDashboard: React.FC = () => {
       icon: BookOpen,
       color: 'from-blue-500 to-cyan-500',
       description: 'Letters, sounds, and stories',
-      emoji: '📚'
+      emoji: '📚',
+      image: '/images/Literacy Hub.png'
     },
     {
       id: 'forest-letter-hunt',
       title: 'Forest Letter Hunt',
-      icon: null, // You can add a custom icon if desired
+      icon: '/1.png', // You can add a custom icon if desired
       color: 'from-green-700 to-lime-400',
       description: 'Find letters hiding in the magical forest!',
-      emoji: '🌳'
+      emoji: '🌳',
+      image: '/images/Forest Letter Hunt.png'
     },
     {
       id: 'creativity',
@@ -53,7 +55,8 @@ const ChildDashboard: React.FC = () => {
       icon: Palette,
       color: 'from-pink-500 to-rose-500',
       description: 'Colors, drawing, and art',
-      emoji: '🎨'
+      emoji: '🎨',
+      image: '/images/Creativity Hub.png'
     },
     {
       id: 'maths',
@@ -61,7 +64,8 @@ const ChildDashboard: React.FC = () => {
       icon: Calculator,
       color: 'from-green-500 to-emerald-500',
       description: 'Numbers, shapes, and counting',
-      emoji: '🔢'
+      emoji: '🔢',
+      image: '/images/Maths Hub.png'
     },
     {
       id: 'emotions',
@@ -69,7 +73,8 @@ const ChildDashboard: React.FC = () => {
       icon: Heart,
       color: 'from-red-500 to-pink-500',
       description: 'Feelings and expressions',
-      emoji: '😊'
+      emoji: '😊',
+      image: '/images/Emotions Hub.png'
     },
     {
       id: 'body',
@@ -77,7 +82,8 @@ const ChildDashboard: React.FC = () => {
       icon: User,
       color: 'from-orange-500 to-yellow-500',
       description: 'Body parts and health',
-      emoji: '🏃‍♂️'
+      emoji: '🏃‍♂️',
+      image: '/src/source/body.png'
     },
     {
       id: 'family',
@@ -85,7 +91,8 @@ const ChildDashboard: React.FC = () => {
       icon: Users,
       color: 'from-purple-500 to-indigo-500',
       description: 'Family and relationships',
-      emoji: '👨‍👩‍👧‍👦'
+      emoji: '👨‍👩‍👧‍👦',
+      image: '/images/My Family Hub.png'
     },
     {
       id: 'educational-game',
@@ -93,7 +100,8 @@ const ChildDashboard: React.FC = () => {
       icon: null, // You can add a custom icon if desired
       color: 'from-yellow-400 to-orange-400',
       description: 'Fun games and learning tasks',
-      emoji: '🎲'
+      emoji: '🎲',
+      image: '/images/Educational Games & Tasks.png'
     },
     {
       id: 'word-match',
@@ -101,7 +109,8 @@ const ChildDashboard: React.FC = () => {
       icon: null,
       color: 'from-green-400 to-blue-400',
       description: 'Drag and drop to match words',
-      emoji: '🔤'
+      emoji: '🔤',
+      image: '/words/BG.png'
     },
     {
       id: 'tap-translation',
@@ -109,7 +118,8 @@ const ChildDashboard: React.FC = () => {
       icon: null,
       color: 'from-yellow-400 to-pink-400',
       description: 'Tap the right answer',
-      emoji: '🖐️'
+      emoji: '🖐️',
+      image: '/speech.png'
     },
     {
       id: 'know-me',
@@ -118,6 +128,7 @@ const ChildDashboard: React.FC = () => {
       color: 'from-blue-400 to-pink-400',
       description: 'Interactive Learning Adventure',
       emoji: '🧒',
+      image: '/kid1.png',
       cardDescription: 'Discover your amazing body and share your favorite things! Learn about body parts, their functions, and express your likes and dislikes through fun interactive games.'
     }
   ];
@@ -134,6 +145,12 @@ const ChildDashboard: React.FC = () => {
       </div>
     );
   }
+
+  // Helper to ensure progress is always a valid number
+  const getProgressValue = (id: string) => {
+    const val = child.progress[id as keyof typeof child.progress];
+    return typeof val === 'number' && !isNaN(val) ? val : 0;
+  };
 
   const getOverallProgress = () => {
     const progressValues = Object.values(child.progress) as number[];
@@ -185,7 +202,8 @@ const ChildDashboard: React.FC = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-4xl md:text-5xl font-bold text-gray-800 mb-4"
           >
-            Hi {child.name}! 👋
+            Hi {child.name}! 
+            <img src="/start.png" alt="wave" className="inline-block w-12 h-12 ml-2" />
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 10 }}
@@ -218,13 +236,17 @@ const ChildDashboard: React.FC = () => {
             </div>
             
             <div className="text-center">
-              <div className="text-6xl mb-4">🔥</div>
+              <div className="mb-4">
+                <img src="/star1.png" alt="streak" className="w-16 h-16 mx-auto" />
+              </div>
               <div className="text-3xl font-bold text-orange-600">{child.streak}</div>
               <p className="text-gray-600">Day Streak</p>
             </div>
             
             <div className="text-center">
-              <div className="text-6xl mb-4">🏆</div>
+              <div className="mb-4">
+                <img src="/badges/B1.png" alt="badges" className="w-16 h-16 mx-auto" />
+              </div>
               <div className="text-3xl font-bold text-yellow-600">{child.badges.length}</div>
               <p className="text-gray-600">Badges Earned</p>
             </div>
@@ -266,29 +288,39 @@ const ChildDashboard: React.FC = () => {
                 }}
               >
                 <div className="text-center">
-                  <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300">
-                    {hub.emoji}
+                  <div className="mb-3 group-hover:scale-110 transition-transform duration-300">
+                    {hub.image ? (
+                      <img 
+                        src={hub.image} 
+                        alt={hub.title}
+                        className="w-24 h-24 mx-auto object-contain"
+                      />
+                    ) : (
+                      <div className="text-5xl">
+                        {hub.emoji}
+                      </div>
+                    )}
                   </div>
-                  <h3 className="text-xl font-bold text-gray-800 mb-2">{hub.title}</h3>
-                  <p className="text-gray-600 mb-4">{hub.description}</p>
-                  <div className="mb-4">
+                  <h3 className="text-lg font-bold text-gray-800 mb-1">{hub.title}</h3>
+                  <p className="text-sm text-gray-600 mb-3">{hub.description}</p>
+                  <div className="mb-3">
                     <ProgressWheel 
-                      progress={child.progress[hub.id as keyof typeof child.progress]} 
-                      size={80}
+                      progress={getProgressValue(hub.id)} 
+                      size={60}
                       color={hub.color.includes('blue') ? '#3B82F6' : 
                              hub.color.includes('pink') ? '#EC4899' :
                              hub.color.includes('green') ? '#10B981' :
                              hub.color.includes('red') ? '#EF4444' :
                              hub.color.includes('orange') ? '#F59E0B' : '#8B5CF6'}
                     >
-                      <span className="text-sm font-bold">
-                        {child.progress[hub.id as keyof typeof child.progress]}%
+                      <span className="text-xs font-bold">
+                        {getProgressValue(hub.id)}%
                       </span>
                     </ProgressWheel>
                   </div>
                   <AnimatedButton
                     size="sm"
-                    className={`bg-gradient-to-r ${hub.color} text-white`}
+                    className={`bg-gradient-to-r ${hub.color} text-white text-sm px-3 py-1`}
                   >
                     Let's Play!
                   </AnimatedButton>
@@ -305,7 +337,9 @@ const ChildDashboard: React.FC = () => {
           transition={{ duration: 0.6, delay: 0.6 }}
           className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-3xl p-8 text-white text-center"
         >
-          <div className="text-6xl mb-4">📱</div>
+          <div className="mb-4">
+            <img src="/sunny-mascot.png" alt="AR" className="w-20 h-20 mx-auto" />
+          </div>
           <h3 className="text-2xl font-bold mb-4">AR Magic Zone</h3>
           <p className="text-lg mb-6 opacity-90">
             Point your camera at the book pages to see them come to life in 3D!
@@ -324,9 +358,18 @@ const ChildDashboard: React.FC = () => {
 
       {/* Know Me Activity Modal/Page */}
       {showKnowMe && (
-        <Suspense fallback={<div className="fixed inset-0 flex items-center justify-center bg-white/80 z-50">Loading...</div>}>
-          <KnowMeActivity onClose={() => setShowKnowMe(false)} />
-        </Suspense>
+        <div className="fixed inset-0 z-50 bg-white">
+          <Suspense fallback={
+            <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading Know Me Activity...</p>
+              </div>
+            </div>
+          }>
+            <KnowMeActivity onClose={() => setShowKnowMe(false)} />
+          </Suspense>
+        </div>
       )}
     </div>
   );
