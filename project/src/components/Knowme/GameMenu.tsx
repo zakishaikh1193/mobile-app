@@ -32,7 +32,7 @@ const GameMenu: React.FC<GameMenuProps> = ({ onSectionSelect }) => {
       opacity: 1,
       scale: 1,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         damping: 12,
         stiffness: 200
       }
@@ -41,13 +41,14 @@ const GameMenu: React.FC<GameMenuProps> = ({ onSectionSelect }) => {
 
   return (
     <motion.div 
-      className="text-center py-12"
+      className="text-center py-4 sm:py-6 flex flex-col justify-start touch-manipulation px-2 sm:px-4"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      <animated.div style={titleSpring} className="mb-12">
-        <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20 relative overflow-hidden">
+      {/* Welcome Title Card */}
+      <animated.div style={titleSpring} className="mb-4 sm:mb-6">
+        <div className="bg-white/95 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-2xl border border-white/20 relative overflow-hidden">
           {/* Animated background elements */}
           <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 via-purple-400/10 to-pink-400/10 animate-pulse"></div>
           
@@ -66,7 +67,7 @@ const GameMenu: React.FC<GameMenuProps> = ({ onSectionSelect }) => {
           
           <div className="relative z-10">
             <motion.h2 
-              className="text-4xl md:text-6xl font-bold text-gray-800 mb-4 font-comic"
+              className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-800 mb-2 font-comic leading-tight"
               animate={{ 
                 textShadow: [
                   '0 0 20px rgba(59, 130, 246, 0.5)',
@@ -76,18 +77,11 @@ const GameMenu: React.FC<GameMenuProps> = ({ onSectionSelect }) => {
               }}
               transition={{ duration: 2, repeat: Infinity }}
             >
-              Welcome to Your Learning Adventure! 
-              <motion.span
-                animate={{ rotate: [0, 20, -20, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="inline-block ml-2"
-              >
-                🎉
-              </motion.span>
+              Welcome to Your Learning Adventure!
             </motion.h2>
             
             <motion.p 
-              className="text-xl md:text-2xl text-gray-600 mb-8"
+              className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 mb-3 sm:mb-4 leading-relaxed"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
@@ -96,27 +90,28 @@ const GameMenu: React.FC<GameMenuProps> = ({ onSectionSelect }) => {
             </motion.p>
             
             <motion.div
-              animate={{ y: [0, -10, 0] }}
+              animate={{ y: [0, -5, 0] }}
               transition={{ duration: 2, repeat: Infinity }}
               className="flex justify-center"
             >
-              <Sparkles className="text-yellow-500" size={32} />
+              <Sparkles className="text-yellow-500 w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
             </motion.div>
           </div>
         </div>
       </animated.div>
 
+      {/* Activity Cards Container */}
       <motion.div 
-        className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto"
+        className="grid grid-cols-1 gap-4 sm:gap-6 max-w-4xl mx-auto w-full touch-manipulation"
         variants={containerVariants}
       >
-        {/* My Body Section */}
-        <motion.div variants={itemVariants}>
+        {/* My Body Section Card */}
+        <motion.div variants={itemVariants} className="flex">
           <motion.button
             onClick={() => onSectionSelect('body')}
-            className="group w-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 text-white p-8 rounded-3xl shadow-2xl relative overflow-hidden"
+            className="group w-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 text-white p-4 sm:p-5 md:p-6 rounded-2xl shadow-2xl relative overflow-hidden touch-manipulation min-h-[140px] sm:min-h-[160px] md:min-h-[180px] lg:min-h-[200px]"
             whileHover={{ 
-              scale: 1.05, 
+              scale: 1.02, 
               rotateY: 5,
               boxShadow: "0 25px 50px rgba(59, 130, 246, 0.4)"
             }}
@@ -130,50 +125,52 @@ const GameMenu: React.FC<GameMenuProps> = ({ onSectionSelect }) => {
               transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
             />
             
-            <div className="relative z-10 flex flex-col items-center">
+            <div className="relative z-10 flex flex-col items-center h-full justify-center p-2">
               <motion.div 
-                className="bg-white/20 backdrop-blur-sm p-8 rounded-full mb-6 group-hover:bg-white/30 transition-all duration-300"
+                className="bg-white/20 backdrop-blur-sm p-2 sm:p-3 md:p-4 rounded-full mb-2 sm:mb-3 group-hover:bg-white/30 transition-all duration-300"
                 whileHover={{ rotate: 360, scale: 1.1 }}
                 transition={{ duration: 0.8 }}
               >
-                <User size={80} />
+                <User className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-12 lg:h-12" />
               </motion.div>
               
               <motion.h3 
-                className="text-3xl md:text-4xl font-bold mb-4 font-comic"
+                className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold mb-1 sm:mb-2 font-comic text-center"
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
                 My Body
               </motion.h3>
               
-              <p className="text-lg md:text-xl opacity-90 mb-6 leading-relaxed">
-                Learn about your amazing body parts and what they do!
-              </p>
-              
-              <motion.div 
-                className="flex items-center gap-3 bg-white/20 backdrop-blur-sm px-6 py-3 rounded-full"
-                whileHover={{ scale: 1.1, backgroundColor: 'rgba(255,255,255,0.3)' }}
+              <motion.p 
+                className="text-xs sm:text-sm md:text-base opacity-90 text-center leading-tight px-2 sm:px-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
               >
-                <motion.div
-                  animate={{ x: [0, 5, 0] }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                >
-                  <Play size={24} />
-                </motion.div>
-                <span className="font-bold text-lg">Start Learning</span>
+                Learn about your amazing body parts and how they work!
+              </motion.p>
+              
+              <motion.div
+                className="mt-2 sm:mt-3 flex items-center gap-1 sm:gap-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <Play className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="text-xs sm:text-sm font-semibold">Start Learning</span>
               </motion.div>
             </div>
           </motion.button>
         </motion.div>
 
-        {/* My Likes Section */}
-        <motion.div variants={itemVariants}>
+        {/* My Likes Section Card */}
+        <motion.div variants={itemVariants} className="flex">
           <motion.button
             onClick={() => onSectionSelect('likes')}
-            className="group w-full bg-gradient-to-br from-pink-400 via-pink-500 to-pink-600 text-white p-8 rounded-3xl shadow-2xl relative overflow-hidden"
+            className="group w-full bg-gradient-to-br from-pink-400 via-pink-500 to-pink-600 text-white p-4 sm:p-5 md:p-6 rounded-2xl shadow-2xl relative overflow-hidden touch-manipulation min-h-[140px] sm:min-h-[160px] md:min-h-[180px] lg:min-h-[200px]"
             whileHover={{ 
-              scale: 1.05, 
+              scale: 1.02, 
               rotateY: -5,
               boxShadow: "0 25px 50px rgba(236, 72, 153, 0.4)"
             }}
@@ -187,75 +184,45 @@ const GameMenu: React.FC<GameMenuProps> = ({ onSectionSelect }) => {
               transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
             />
             
-            <div className="relative z-10 flex flex-col items-center">
+            <div className="relative z-10 flex flex-col items-center h-full justify-center p-2">
               <motion.div 
-                className="bg-white/20 backdrop-blur-sm p-8 rounded-full mb-6 group-hover:bg-white/30 transition-all duration-300"
+                className="bg-white/20 backdrop-blur-sm p-2 sm:p-3 md:p-4 rounded-full mb-2 sm:mb-3 group-hover:bg-white/30 transition-all duration-300"
                 whileHover={{ rotate: -360, scale: 1.1 }}
                 transition={{ duration: 0.8 }}
               >
-                <motion.div
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                >
-                  <Heart size={80} />
-                </motion.div>
+                <Heart className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-12 lg:h-12" />
               </motion.div>
               
               <motion.h3 
-                className="text-3xl md:text-4xl font-bold mb-4 font-comic"
+                className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold mb-1 sm:mb-2 font-comic text-center"
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
               >
                 My Favorites
               </motion.h3>
               
-              <p className="text-lg md:text-xl opacity-90 mb-6 leading-relaxed">
-                Discover what you love and share your favorite things!
-              </p>
-              
-              <motion.div 
-                className="flex items-center gap-3 bg-white/20 backdrop-blur-sm px-6 py-3 rounded-full"
-                whileHover={{ scale: 1.1, backgroundColor: 'rgba(255,255,255,0.3)' }}
+              <motion.p 
+                className="text-xs sm:text-sm md:text-base opacity-90 text-center leading-tight px-2 sm:px-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
               >
-                <motion.div
-                  animate={{ x: [0, 5, 0] }}
-                  transition={{ duration: 1, repeat: Infinity, delay: 0.5 }}
-                >
-                  <Play size={24} />
-                </motion.div>
-                <span className="font-bold text-lg">Start Exploring</span>
+                Discover what you love and what makes you special!
+              </motion.p>
+              
+              <motion.div
+                className="mt-2 sm:mt-3 flex items-center gap-1 sm:gap-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <Play className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="text-xs sm:text-sm font-semibold">Start Learning</span>
               </motion.div>
             </div>
           </motion.button>
         </motion.div>
       </motion.div>
-
-      {/* Floating elements */}
-      <div className="absolute inset-0 pointer-events-none">
-        {[...Array(6)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute text-4xl"
-            initial={{ 
-              x: Math.random() * window.innerWidth,
-              y: Math.random() * window.innerHeight,
-              opacity: 0.6
-            }}
-            animate={{
-              y: [0, -20, 0],
-              rotate: [0, 360],
-              opacity: [0.6, 0.8, 0.6]
-            }}
-            transition={{
-              duration: 3 + Math.random() * 2,
-              repeat: Infinity,
-              delay: Math.random() * 2
-            }}
-          >
-            {['⭐', '🌟', '✨', '🎈', '🎊', '🌈'][i]}
-          </motion.div>
-        ))}
-      </div>
     </motion.div>
   );
 };

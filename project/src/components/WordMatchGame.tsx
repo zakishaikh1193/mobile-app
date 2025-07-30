@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Draggable, Droppable, DropResult, DraggableProvided, DraggableStateSnapshot, DroppableProvided, DroppableStateSnapshot } from '@hello-pangea/dnd';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 // Define unique words/images for each level
 const LEVEL_WORDS = [
@@ -70,6 +71,7 @@ const WordMatchGame: React.FC = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [bgMusic, setBgMusic] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const { updateChildProgress } = useAuth();
 
   React.useEffect(() => {
     if (audioRef.current) {
@@ -92,6 +94,14 @@ const WordMatchGame: React.FC = () => {
       setTimeout(() => setShowConfetti(false), 2500);
     }
   }, [matches, levelWords.length]);
+
+  React.useEffect(() => {
+    if (completed && childId) {
+      // Calculate progress percentage
+      const percent = Math.round((level / LEVEL_WORDS.length) * 100);
+      updateChildProgress(childId, 'word-match', percent);
+    }
+  }, [completed, childId, level, updateChildProgress]);
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -169,7 +179,7 @@ const WordMatchGame: React.FC = () => {
                   {draggables.map(({ word, img }, idx) => (
                     <Draggable key={word} draggableId={word} index={idx} isDragDisabled={matches[word]}>
                       {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
-                        <motion.div
+                        <div
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           {...provided.dragHandleProps}
@@ -179,7 +189,7 @@ const WordMatchGame: React.FC = () => {
                         >
                           <img src={img} alt={word} className="h-16 w-16 object-contain rounded-xl mr-4 bg-white" />
                           <span className="text-xl font-bold text-gray-700 drop-shadow-md">{word}</span>
-                        </motion.div>
+                        </div>
                       )}
                     </Draggable>
                   ))}

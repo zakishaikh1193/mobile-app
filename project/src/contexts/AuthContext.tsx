@@ -213,7 +213,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const updateChildProgress = (childId: string, hub: string, progress: number) => {
     if (!user || user.role !== 'parent') return;
-    setUser({
+    const updatedUser = {
       ...user,
       children: user.children?.map(child =>
         child.id === childId
@@ -226,7 +226,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
           : child
       )
-    });
+    };
+    setUser(updatedUser);
+    localStorage.setItem('kodeit_user', JSON.stringify(updatedUser));
   };
 
   const value = {
