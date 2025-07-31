@@ -1,39 +1,36 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { authAPI } from '../services/api';
 
-interface User {
+export interface User {
   id: string;
+  username: string;
   email: string;
-  role: 'parent' | 'teacher' | 'admin';
-  name: string;
-  children?: Child[];
+  role: 'admin' | 'teacher' | 'student';
+  firstName: string;
+  lastName: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
-interface Child {
-  id: string;
-  name: string;
-  age: number;
-  avatar: string;
-  gender: 'boy' | 'girl';
-  progress: {
-    literacy: number;
-    creativity: number;
-    maths: number;
-    emotions: number;
-    body: number;
-    family: number;
-  };
-  streak: number;
-  badges: string[];
+export interface RegisterData {
+  username: string;
+  email: string;
+  password: string;
+  role: 'admin' | 'teacher' | 'student';
+  firstName: string;
+  lastName: string;
 }
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string, role: string) => Promise<void>;
+  register: (userData: RegisterData) => Promise<void>;
   logout: () => void;
-  createChild: (childData: Omit<Child, 'id' | 'progress' | 'streak' | 'badges'>) => void;
-  updateChildProgress: (childId: string, hub: string, progress: number) => void;
   loading: boolean;
+  error: string | null;
+  clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -49,150 +46,79 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const clearError = useCallback(() => setError(null), []);
+
+  const handleAuthSuccess = useCallback((token: string, userData: User) => {
+    localStorage.setItem('token', token);
+    setUser(userData);
+    if (userData.role === 'admin') {
+      navigate('/admin/dashboard');
+    } else if (userData.role === 'teacher') {
+      navigate('/teacher/dashboard');
+    } else {
+      navigate('/student/dashboard');
+    }
+  }, [navigate]);
+
+  const loadUser = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const userData = await authAPI.getProfile();
+      setUser(userData);
+    } catch (error) {
+      console.error('Error loading user:', error);
+      localStorage.removeItem('token');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    // Simulate loading user from localStorage or API
-    const savedUser = localStorage.getItem('kodeit_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
-  }, []);
+    loadUser();
+  }, [loadUser]);
 
   const login = async (email: string, password: string): Promise<void> => {
     setLoading(true);
+    setError(null);
+    
     try {
-      // Hardcoded credentials
-      const credentials: Record<string, string> = {
-        'Admin@demo.com': 'Admin@123',
-        'Teacher@demo.com': 'Teacher@123',
-        'Parent@demo.com': 'Parent@123'
-      };
-
-      // Check if credentials are valid
-      if (!Object.keys(credentials).includes(email) || credentials[email as keyof typeof credentials] !== password) {
-        throw new Error('Invalid credentials');
-      }
-
-      // Create user based on email
-      let mockUser: User;
-      if (email === 'Admin@demo.com') {
-        mockUser = {
-          id: '1',
-          email,
-          role: 'admin' as const,
-          name: 'Admin User'
-        };
-      } else if (email === 'Teacher@demo.com') {
-        mockUser = {
-          id: '2',
-          email,
-          role: 'teacher' as const,
-          name: 'Teacher User'
-        };
-      } else if (email === 'Parent@demo.com') {
-        mockUser = {
-          id: '3',
-          email,
-          role: 'parent' as const,
-          name: 'Parent User',
-          children: []
-        };
-      } else {
-        throw new Error('Invalid user type');
-      }
-
-      // Initialize empty children array for parent
-      if (mockUser.role === 'parent') {
-        mockUser.children = [];
-      }
-
-      setUser(mockUser);
-      setLoading(false);
-      localStorage.setItem('kodeit_user', JSON.stringify(mockUser));
-
-      // Navigate based on role
-      if (mockUser.role === 'admin') {
-        window.location.href = '/admin';
-      } else if (mockUser.role === 'teacher') {
-        window.location.href = '/teacher';
-      } else {
-        window.location.href = '/parent-dashboard';
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      setLoading(false);
+      const response = await authAPI.login(email, password);
+      handleAuthSuccess(response.token, response.user);
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Login failed. Please try again.');
       throw error;
-    }
-  };
-
-  const register = async (email: string, password: string, name: string, role: string) => {
-    setLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newUser: User = {
-        id: Date.now().toString(),
-        email,
-        role: role as 'parent' | 'teacher' | 'admin',
-        name,
-        children: role === 'parent' ? [] : undefined
-      };
-      
-      setUser(newUser);
-      localStorage.setItem('kodeit_user', JSON.stringify(newUser));
-    } catch (error) {
-      throw new Error('Registration failed');
     } finally {
       setLoading(false);
     }
   };
 
-  const logout = () => {
+  const register = async (userData: RegisterData): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await authAPI.register(userData);
+      handleAuthSuccess(response.token, response.user);
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Registration failed. Please try again.');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = (): void => {
+    localStorage.removeItem('token');
     setUser(null);
-    localStorage.removeItem('kodeit_user');
-  };
-
-  const createChild = (childData: Omit<Child, 'id' | 'progress' | 'streak' | 'badges'>) => {
-    if (!user || user.role !== 'parent') return;
-    const newChild: Child = {
-      ...childData,
-      id: `child${Date.now()}`,
-      progress: {
-        literacy: 0,
-        creativity: 0,
-        maths: 0,
-        emotions: 0,
-        body: 0,
-        family: 0
-      },
-      streak: 0,
-      badges: []
-    };
-    setUser({
-      ...user,
-      children: [...(user.children || []), newChild]
-    });
-  };
-
-  const updateChildProgress = (childId: string, hub: string, progress: number) => {
-    if (!user || user.role !== 'parent') return;
-    const updatedUser = {
-      ...user,
-      children: user.children?.map(child =>
-        child.id === childId
-          ? {
-              ...child,
-              progress: {
-                ...child.progress,
-                [hub]: progress
-              }
-            }
-          : child
-      )
-    };
-    setUser(updatedUser);
-    localStorage.setItem('kodeit_user', JSON.stringify(updatedUser));
+    navigate('/login');
   };
 
   const value = {
@@ -200,10 +126,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     login,
     register,
     logout,
-    createChild,
-    updateChildProgress,
-    loading
+    loading,
+    error,
+    clearError,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {!loading && children}
+    </AuthContext.Provider>
+  );
 };

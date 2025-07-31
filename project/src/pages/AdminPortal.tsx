@@ -144,7 +144,7 @@ const AdminPortal: React.FC = () => {
   const [showAddContent, setShowAddContent] = useState(false);
   const [editContentId, setEditContentId] = useState<number | null>(null);
   const [editInitialValues, setEditInitialValues] = useState<any>(null);
-  const API_URL = 'http://localhost:3000/api/content';
+  const API_URL = 'https://prek-backend.bylinelms.com/api/content';
 
   useEffect(() => {
     fetchContent();
@@ -516,7 +516,7 @@ const AdminPortal: React.FC = () => {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <KodeitLogo size="md" />
           <div className="flex items-center space-x-4">
-            <span className="text-gray-700">Admin: {user.name}</span>
+            <span className="text-gray-700">Admin: {user.firstName}</span>
             <AnimatedButton
               variant="secondary"
               size="sm"

@@ -1,151 +1,161 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AudioProvider } from './contexts/AudioContext';
 import { ContentLibraryProvider, ContentLibraryDebug } from './contexts/ContentLibraryContext';
 import LandingPage from './pages/LandingPage';
-import AuthPage from './pages/AuthPage';
-import ParentDashboard from './pages/ParentDashboard';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import ChildDashboard from './pages/ChildDashboard';
-import TeacherPortal from './pages/TeacherPortal';
 import TeacherDashboard from './pages/TeacherDashboard';
+import AdminDashboard from './pages/AdminDashboard';
 import AdminPortal from './pages/AdminPortal';
 import LearningHub from './pages/LearningHub';
-import ARZone from './pages/ARZone';
-import LetterMatchingGame from './pages/LetterMatchingGame';
-import EducationalGame from './pages/EducationalGame';
-import ProtectedRoute from './components/ProtectedRoute';
-import ForestLetterHuntPage from './pages/forest-letter-hunt';
-import WordMatchGame from './components/WordMatchGame';
-import LetterPath from './components/LetterPath';
-
-
 import './index.css';
-import ColoringGame from './components/ColoringGame/ColoringGame';
+
+// A wrapper for routes that require authentication
+const PrivateRoute: React.FC<{ children: React.ReactNode, roles?: Array<'admin' | 'teacher' | 'student'> }> = ({ 
+  children, 
+  roles = ['admin', 'teacher', 'student'] 
+}) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return <div>Loading...</div>; // Or a loading spinner
+  }
+  
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+  
+  if (!roles.includes(user.role)) {
+    // You should create a simple "Unauthorized" page for a better user experience
+    return <Navigate to="/" />; 
+  }
+  
+  return <>{children}</>;
+};
+
+// A wrapper for public routes that should redirect if user is already authenticated
+const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return <div>Loading...</div>; // Or a loading spinner
+  }
+  
+  if (user) {
+    // Redirect based on user role
+    switch (user.role) {
+      case 'admin':
+        return <Navigate to="/admin/dashboard" />;
+      case 'teacher':
+        return <Navigate to="/teacher/dashboard" />;
+      default:
+        return <Navigate to="/student/dashboard" />;
+    }
+  }
+  
+  return <>{children}</>;
+};
+
+// Main App content component
+const AppRoutes = () => {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+      <ContentLibraryDebug />
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<LandingPage />} />
+        
+        {/* Auth Routes */}
+        <Route path="/login" element={
+          <PublicRoute>
+            <LoginPage />
+          </PublicRoute>
+        } />
+        
+        
+        {/* Admin Routes */}
+        <Route path="/admin/*" element={
+          <PrivateRoute roles={['admin']}>
+            <Routes>
+              <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="portal" element={<AdminPortal />} />
+              <Route path="/users/new" element={ <RegisterPage /> } />
+              <Route path="users" element={<div>User Management</div>} />
+              <Route path="content" element={<div>Content Management</div>} />
+            </Routes>
+          </PrivateRoute>
+        } />
+        
+        {/* Teacher Routes */}
+        <Route path="/teacher/*" element={
+          <PrivateRoute roles={['teacher']}>
+            <Routes>
+              <Route path="dashboard" element={<TeacherDashboard />} />
+              <Route path="classes" element={<div>My Classes</div>} />
+              <Route path="assignments" element={<div>Assignments</div>} />
+            </Routes>
+          </PrivateRoute>
+        } />
+        
+        {/* Student Routes */}
+        <Route path="/student/*" element={
+          <PrivateRoute roles={['student']}>
+            <Routes>
+              <Route path="dashboard" element={<ChildDashboard />} />
+              <Route path="activities" element={<LearningHub />} />
+              <Route path="progress" element={<div>My Progress</div>} />
+            </Routes>
+          </PrivateRoute>
+        } />
+        
+        {/* Legacy Routes (for backward compatibility) */}
+        <Route path="/auth" element={<Navigate to="/login" />} />
+        <Route path="/parent-dashboard" element={
+          <PrivateRoute roles={['admin', 'teacher']}>
+            <div>ParentDashboard</div>
+          </PrivateRoute>
+        } />
+        
+        <Route path="/child-dashboard/:childId" 
+          element={
+            <PrivateRoute roles={['teacher', 'admin']}>
+              <ChildDashboard />
+            </PrivateRoute>
+          } 
+        />
+        
+        {/* Game and Activity Routes */}
+        <Route path="/learning-hub" element={
+          <PrivateRoute>
+            <LearningHub />
+          </PrivateRoute>
+        } />
+        
+        {/* 404 Route */}
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </div>
+  );
+}
 
 function App() {
   console.log('App rendering...');
   
   return (
+    // Note: React.StrictMode is typically in main.tsx. If it's also there, you can remove it from here.
     <React.StrictMode>
-      <ContentLibraryProvider>
+      <Router>
         <AuthProvider>
-          <AudioProvider>
-            {/* Debug component to track context */}
-            <ContentLibraryDebug />
-            <Router>
-              <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
-                <Routes>
-                  <Route path="/" element={<LandingPage />} />
-                  <Route path="/auth" element={<AuthPage />} />
-                  <Route 
-                    path="/parent-dashboard" 
-                    element={
-                      <ProtectedRoute role="parent">
-                        <ParentDashboard />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/child-dashboard/:childId" 
-                    element={
-                      <ProtectedRoute role="parent">
-                        <ChildDashboard />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/learning/:hubType/:childId" 
-                    element={
-                      <ProtectedRoute role="parent">
-                        <LearningHub />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/ar-zone/:childId" 
-                    element={
-                      <ProtectedRoute role="parent">
-                        <ARZone />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/letter-matching/:childId" 
-                    element={
-                      <ProtectedRoute role="parent">
-                        <LetterMatchingGame />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/educational-game/:childId" 
-                    element={
-                      <ProtectedRoute role="parent">
-                        <EducationalGame />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/forest-letter-hunt/:childId" 
-                    element={
-                      <ProtectedRoute role="parent">
-                        <ForestLetterHuntPage />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/word-match/:childId"
-                    element={
-                      <ProtectedRoute role="parent">
-                        <WordMatchGame />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route 
-                    path="/letter-path/:childId"
-                    element={
-                      <ProtectedRoute role="parent">
-                        <LetterPath />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route 
-                    path="/teacher" 
-                    element={
-                      <ProtectedRoute role="teacher">
-                        <TeacherPortal />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/teacher-dashboard" 
-                    element={
-                      <ProtectedRoute role="teacher">
-                        <TeacherDashboard />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/admin" 
-                    element={
-                      <ProtectedRoute role="admin">
-                        <AdminPortal />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/coloring-game" 
-                    element={
-                        <ColoringGame />
-                    } 
-                  />
-                </Routes>
-              </div>
-            </Router>
-          </AudioProvider>
+          <ContentLibraryProvider>
+            <AudioProvider>
+              <AppRoutes />
+            </AudioProvider>
+          </ContentLibraryProvider>
         </AuthProvider>
-      </ContentLibraryProvider>
+      </Router>
     </React.StrictMode>
   );
 }
