@@ -1,4 +1,4 @@
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState, Suspense, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { BookOpen, Palette, Calculator, Heart, User, Users, Camera, ArrowLeft } from 'lucide-react';
@@ -8,42 +8,92 @@ import KodeitLogo from '../components/KodeitLogo';
 import AnimatedButton from '../components/AnimatedButton';
 import AudioButton from '../components/AudioButton';
 import ProgressWheel from '../components/ProgressWheel';
-import { useContentLibrary } from '../contexts/ContentLibraryContext';
-import EducationalGame from './EducationalGame';
+import AvatarSelector from '../components/AvatarSelector';
 import { useProgressService } from '../services/progressService';
+import api from '../services/api';
 
 const KnowMeActivity = React.lazy(() => import('./KnowMeActivity'));
 
 const ChildDashboard: React.FC = () => {
+  // Hooks at the top level - no conditional returns before these
   const { childId } = useParams<{ childId: string }>();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { speak } = useAudio();
   const navigate = useNavigate();
-  const { contentLibrary } = useContentLibrary();
   const { updateProgress, completeCard, updateStreakAndBadges } = useProgressService();
+  
+  // State declarations
   const [htmlModalUrl, setHtmlModalUrl] = useState<string | null>(null);
   const [showKnowMe, setShowKnowMe] = useState(false);
   const [updateTrigger, setUpdateTrigger] = useState(0);
+  const [showAvatarSelector, setShowAvatarSelector] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [needsAvatar, setNeedsAvatar] = useState(false);
 
-  const child = user?.children?.find(c => c.id === childId);
-
-  useEffect(() => {
-    if (child) {
-      speak(`Hi ${child.name}! Ready for some fun learning today? Let's explore together!`);
+  // For student users, the user object is the child
+  // For parent users, we would look up the child by ID
+  const isStudent = user?.role === 'student';
+  const child = isStudent ? user : user?.children?.find(c => c.id.toString() === childId);
+  
+  
+  // Memoized callbacks
+  const handleAvatarSelect = useCallback(async (avatarUrl: string) => {
+    try {
+      if (!user) return;
+      
+      // Update the user's avatar in the backend
+      await api.put('/users/update-avatar', { avatar: avatarUrl });
+      
+      // Update the local user state
+      updateUser({ ...user, avatar: avatarUrl });
+      setShowAvatarSelector(false);
+      speak(`Welcome to your learning journey!`);
+    } catch (error) {
+      console.error('Error updating avatar:', error);
+      // Handle error (could show a toast or alert)
     }
-  }, [child, speak]);
+  }, [user, updateUser, speak]);
 
-  // Refresh user data when updateTrigger changes
+  // Effects
+  useEffect(() => {
+    if (user) {
+      const shouldShowAvatarSelector = user.role === 'student' && !user.avatar;
+      setNeedsAvatar(shouldShowAvatarSelector);
+      
+      if (shouldShowAvatarSelector) {
+        setShowAvatarSelector(true);
+      }
+      
+      // Use first_name if name is not available
+      const displayName = child?.first_name || child?.username || 'there';
+      speak(`Hi ${displayName}! Ready for some fun learning today? Let's explore together!`);
+    }
+    
+    setIsLoading(false);
+  }, [user, child, speak]);
+
   useEffect(() => {
     if (updateTrigger > 0) {
-      // Force refresh of user data from localStorage
       const savedUser = localStorage.getItem('kodeit_user');
       if (savedUser) {
-        // This will trigger a re-render with updated data
         window.location.reload();
       }
     }
   }, [updateTrigger]);
+  
+  // Loading state
+  if (isLoading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+  
+  // Avatar selection state
+  if (needsAvatar && showAvatarSelector) {
+    return <AvatarSelector onSelect={handleAvatarSelect} />;
+  }
 
   const learningHubs = [
     {
@@ -163,12 +213,15 @@ const ChildDashboard: React.FC = () => {
 
   // Helper to ensure progress is always a valid number
   const getProgressValue = (id: string) => {
-    const val = child.progress[id as keyof typeof child.progress];
+    if (!child?.progress) return 0;
+    const val = child.progress[id];
     return typeof val === 'number' && !isNaN(val) ? val : 0;
   };
 
   const getOverallProgress = () => {
-    const progressValues = Object.values(child.progress) as number[];
+    if (!child?.progress) return 0;
+    const progressValues = Object.values(child.progress);
+    if (progressValues.length === 0) return 0;
     return progressValues.reduce((sum, val) => sum + val, 0) / progressValues.length;
   };
 
@@ -196,7 +249,7 @@ const ChildDashboard: React.FC = () => {
           <div className="flex items-center space-x-4">
             <div className="text-right">
               <p className="text-sm text-gray-600">Welcome back,</p>
-              <p className="font-bold text-gray-800">{child.name}!</p>
+              <p className="font-bold text-gray-800">{child.first_name}!</p>
             </div>
             <div className="w-12 h-12">
               <img src={child.avatar} alt="Profile" className="w-full h-full rounded-full object-cover" />
@@ -219,7 +272,7 @@ const ChildDashboard: React.FC = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-4xl md:text-5xl font-bold text-gray-800 mb-4"
           >
-            Hi {child.name}! 
+            Hi {child.first_name}! 
             <img src="/start.png" alt="wave" className="inline-block w-12 h-12 ml-2" />
           </motion.h1>
           <motion.p
@@ -275,17 +328,20 @@ const ChildDashboard: React.FC = () => {
                 animate={updateTrigger > 0 ? { scale: [1, 1.2, 1], color: ['#ca8a04', '#eab308', '#ca8a04'] } : {}}
                 transition={{ duration: 0.5 }}
               >
-                {child.badges.length}
+                {child.badges?.length || 0}
               </motion.div>
               <p className="text-gray-600">LetterPath Badges</p>
               <div className="flex justify-center gap-1 mt-2">
-                {['B1', 'B2', 'B3', 'B4', 'B5'].map((badge) => (
-                  <div key={badge} className={`w-6 h-6 rounded-full ${child.badges.includes(badge) ? 'bg-green-500' : 'bg-gray-300'}`}>
-                    {child.badges.includes(badge) && (
-                      <img src={`/badges/${badge}.png`} alt={badge} className="w-full h-full object-contain" />
-                    )}
-                  </div>
-                ))}
+                {['B1', 'B2', 'B3', 'B4', 'B5'].map((badge) => {
+                  const hasBadge = child.badges?.includes(badge) || false;
+                  return (
+                    <div key={badge} className={`w-6 h-6 rounded-full ${hasBadge ? 'bg-green-500' : 'bg-gray-300'}`}>
+                      {hasBadge && (
+                        <img src={`/badges/${badge}.png`} alt={badge} className="w-full h-full object-contain" />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -311,7 +367,7 @@ const ChildDashboard: React.FC = () => {
                 }`}
                 onClick={() => {
                   // Complete the card when clicked
-                  completeCard(child.id, hub.id);
+                  completeCard(child.id.toString(), hub.id);
                   
                   // Force re-render to update streaks and badges
                   setUpdateTrigger(prev => prev + 1);

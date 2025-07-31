@@ -209,19 +209,56 @@ exports.updateUser = async (req, res) => {
 // @route   DELETE /api/users/:id
 // @access  Private/Admin
 exports.deleteUser = async (req, res) => {
-  const userId = req.params.id;
-  
   try {
-    // Don't allow deleting the default admin user
-    if (userId === 1) {
-      return res.status(400).json({ message: 'Cannot delete default admin user' });
+    const userId = req.params.id;
+    
+    // Check if user exists
+    const [users] = await db.query('SELECT * FROM users WHERE id = ?', [userId]);
+    if (users.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
     }
 
+    // Delete user
     await db.query('DELETE FROM users WHERE id = ?', [userId]);
-    
-    res.json({ success: true });
+
+    res.json({ success: true, message: 'User deleted successfully' });
   } catch (error) {
     console.error('Error deleting user:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// @desc    Update user's avatar
+// @route   PUT /api/users/update-avatar
+// @access  Private
+exports.updateAvatar = async (req, res) => {
+  try {
+    const { avatar } = req.body;
+    const userId = req.user.id;
+
+    // Update user's avatar in the database
+    await db.query(
+      'UPDATE users SET avatar = ? WHERE id = ?',
+      [avatar, userId]
+    );
+
+    // Get the updated user data
+    const [users] = await db.query(
+      'SELECT id, username, email, role, first_name as firstName, last_name as lastName, avatar FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Avatar updated successfully',
+      user: users[0]
+    });
+  } catch (error) {
+    console.error('Error updating avatar:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

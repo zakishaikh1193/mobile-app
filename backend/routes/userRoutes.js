@@ -45,4 +45,16 @@ router.get('/profile', auth, userController.getUserProfile);
 // @access  Private/Admin
 router.get('/', [auth, adminAuth], userController.getUsers);
 
+// @route   PUT /api/users/update-avatar
+// @desc    Update user's avatar
+// @access  Private
+router.put(
+  '/update-avatar',
+  auth,
+  [
+    check('avatar', 'Avatar URL is required').not().isEmpty()
+  ],
+  userController.updateAvatar
+);
+
 module.exports = router;

@@ -1,107 +1,182 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Container, TextField, Button, Typography, Box, Paper, Alert } from '@mui/material';
+import { useAudio } from '../contexts/AudioContext';
+import AudioButton from '../components/AudioButton';
+import OptimizedImage from '../components/OptimizedImage';
 
 const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
-  const navigate = useNavigate();
+  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
 
+  const { login } = useAuth();
+  const { speak } = useAudio();
+  const navigate = useNavigate();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Effect for handling background music
+  useEffect(() => {
+    const audio = new Audio('/music.mp3');
+    audio.loop = true;
+    audio.volume = 0.3;
+    audioRef.current = audio;
+
+    const playPromise = audioRef.current.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(error => {
+        console.log("Background music autoplay was prevented by the browser.");
+      });
+    }
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  // Function to toggle mute/unmute
+  const toggleMute = () => {
+    if (audioRef.current) {
+      const currentlyMuted = !audioRef.current.muted;
+      audioRef.current.muted = currentlyMuted;
+      setIsMuted(currentlyMuted);
+    }
+  };
+
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      await login(email, password);
-      // Navigation is handled in the AuthContext after successful login
+      await login(formData.email, formData.password);
+      speak("Welcome back!");
     } catch (error: any) {
-      setError(error.message || 'Failed to log in');
+      const errorMessage = error.message || 'Failed to log in';
+      setError(errorMessage);
+      speak(errorMessage);
       setLoading(false);
     }
   };
 
+  // Handle input changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
-          <Typography component="h1" variant="h5" align="center" gutterBottom>
-            Sign in
-          </Typography>
-          
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Email Address"
+    <div className="relative min-h-screen font-sans overflow-hidden flex items-start justify-center p-4 pt-28">
+      {/* Background Image Layer with OptimizedImage */}
+      <div className="absolute inset-0 w-full h-full z-0">
+        <OptimizedImage
+          src="/loginbackground.webp"
+          alt="Background"
+          isBackground
+          className="w-full h-full object-cover"
+          containerClassName="absolute inset-0 w-full h-full"
+        >
+          <div className="absolute inset-0 w-full h-full bg-white/1 backdrop-blur-sm"></div>
+        </OptimizedImage>
+      </div>
+
+      {/* Container for top buttons */}
+      <div className="absolute top-4 right-4 z-50 flex items-center space-x-3">
+        <button
+          onClick={toggleMute}
+          className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md focus:outline-none p-2.5"
+          aria-label={isMuted ? "Unmute background music" : "Mute background music"}
+        >
+          <OptimizedImage
+            src={isMuted ? '/unmute.png' : '/mute.png'}
+            alt={isMuted ? 'Unmute' : 'Mute'}
+            className="w-full h-full object-contain"
+            lazy={false}
+          />
+        </button>
+        <AudioButton />
+      </div>
+
+      {/* Back Button */}
+      <div className="absolute top-4 left-4 z-10">
+        <button onClick={() => navigate(-1)} className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+      </div>
+      
+      {/* Main Content Container */}
+      <div className="relative z-10 flex flex-col items-center justify-center w-full">
+        <img 
+          src="/KODEIT_Logo_2.png" 
+          alt="KodeIT Logo" 
+          className="h-16 w-auto mb-6"
+        />
+        <div className="text-center text-white mb-8">
+          <h1 className="text-4xl font-bold" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Welcome back!</h1>
+          <p className="text-lg mt-2 font-medium" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.5)' }}>Login to continue your adventure.</p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-5">
+          <div className="bg-white/80 backdrop-blur-sm rounded-full shadow-md">
+            <input
+              type="email"
               name="email"
-              autoComplete="email"
-              autoFocus
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <TextField
-              margin="normal"
+              value={formData.email}
+              onChange={handleInputChange}
+              placeholder="Email Address"
               required
-              fullWidth
-              name="password"
-              label="Password"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-6 py-4 bg-transparent rounded-full text-lg focus:outline-none"
             />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-              disabled={loading}
+          </div>
+          <div className="relative bg-white/80 backdrop-blur-sm rounded-full shadow-md flex items-center">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              name="password"
+              value={formData.password}
+              onChange={handleInputChange}
+              placeholder="Password"
+              required
+              className="w-full px-6 py-4 bg-transparent rounded-full text-lg focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-6 text-gray-600 hover:text-gray-900"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
-            </Button>
-            <Box sx={{ textAlign: 'center' }}>
-              <Link to="/forgot-password" style={{ textDecoration: 'none' }}>
-                <Typography variant="body2" color="primary">
-                  Forgot password?
-                </Typography>
-              </Link>
-            </Box>
-          </Box>
-        </Paper>
-        
-        <Box sx={{ mt: 3, textAlign: 'center' }}>
-          <Typography variant="body2" color="text.secondary">
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          {error && <p className="bg-red-500/80 text-white text-sm text-center rounded-full py-1 px-3">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-[#00A9E0] text-white font-bold text-xl py-4 rounded-full shadow-lg hover:bg-[#0095c7] transition-all duration-300 mt-4"
+          >
+            {loading ? 'Logging in...' : 'LOGIN'}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <Link to="/forgot-password" className="text-white font-semibold hover:text-gray-200 transition-colors" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.7)' }}>
+            Forgot Password?
+          </Link>
+          <p className="text-white mt-4" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.7)' }}>
             Don't have an account?{' '}
-            <Link to="/register" style={{ textDecoration: 'none' }}>
-              <Typography component="span" color="primary">
-                Sign up
-              </Typography>
+            <Link to="/register" className="font-bold hover:underline">
+              Sign up
             </Link>
-          </Typography>
-        </Box>
-      </Box>
-    </Container>
+          </p>
+        </div>
+      </div>
+    </div>
   );
 };
 

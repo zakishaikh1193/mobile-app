@@ -11,6 +11,14 @@ import TeacherDashboard from './pages/TeacherDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminPortal from './pages/AdminPortal';
 import LearningHub from './pages/LearningHub';
+import ParentDashboard from './pages/ParentDashboard';
+import TeacherPortal from './pages/TeacherPortal';
+import LetterPath from './components/LetterPath';
+import LetterMatchingGame from './pages/LetterMatchingGame';
+import ForestLetterHunt from './pages/forest-letter-hunt';
+import EducationalGame from './pages/EducationalGame';
+import WordMatchGame from './components/WordMatchGame';
+import KnowMeActivity from './pages/KnowMeActivity';
 import './index.css';
 
 // A wrapper for routes that require authentication
@@ -45,7 +53,12 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
   
   if (user) {
-    // Redirect based on user role
+    // Redirect student users to the LetterPath component
+    if (user.role === 'student') {
+      return <Navigate to="/student/letter-path" replace />;
+    }
+    
+    // Redirect based on user role for other user types
     switch (user.role) {
       case 'admin':
         return <Navigate to="/admin/dashboard" />;
@@ -93,7 +106,7 @@ const AppRoutes = () => {
         <Route path="/teacher/*" element={
           <PrivateRoute roles={['teacher']}>
             <Routes>
-              <Route path="dashboard" element={<TeacherDashboard />} />
+              <Route path="dashboard" element={<TeacherPortal />} />
               <Route path="classes" element={<div>My Classes</div>} />
               <Route path="assignments" element={<div>Assignments</div>} />
             </Routes>
@@ -105,8 +118,10 @@ const AppRoutes = () => {
           <PrivateRoute roles={['student']}>
             <Routes>
               <Route path="dashboard" element={<ChildDashboard />} />
+              <Route path="letter-path" element={<LetterPath />} />
               <Route path="activities" element={<LearningHub />} />
               <Route path="progress" element={<div>My Progress</div>} />
+              <Route index element={<Navigate to="letter-path" replace />} />
             </Routes>
           </PrivateRoute>
         } />
@@ -133,6 +148,33 @@ const AppRoutes = () => {
             <LearningHub />
           </PrivateRoute>
         } />
+        
+        {/* Game Routes */}
+        <Route path="/letter-matching/:childId" element={
+          <PrivateRoute roles={['student']}>
+            <LetterMatchingGame />
+          </PrivateRoute>
+        } />
+        <Route path="/forest-letter-hunt/:childId" element={
+          <PrivateRoute roles={['student']}>
+            <ForestLetterHunt />
+          </PrivateRoute>
+        } />
+        <Route path="/educational-game/:childId" element={
+          <PrivateRoute roles={['student']}>
+            <EducationalGame />
+          </PrivateRoute>
+        } />
+        <Route path="/word-match/:childId" element={
+          <PrivateRoute roles={['student']}>
+            <WordMatchGame />
+          </PrivateRoute>
+        } />
+        {/* <Route path="/know-me" element={
+          <PrivateRoute roles={['student']}>
+            <KnowMeActivity />
+          </PrivateRoute>
+        } /> */}
         
         {/* 404 Route */}
         <Route path="*" element={<Navigate to="/" />} />
