@@ -1,63 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, XCircle, Clock, User } from 'lucide-react';
-
-interface TeacherNotification {
-  id: number;
-  childId: string;
-  childName: string;
-  level: number;
-  status: 'pending' | 'approved' | 'rejected';
-  message: string;
-  timestamp: string;
-  type: string;
-}
+import { CheckCircle, XCircle, Clock, User, Users, BarChart3, Award } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { useTeacherService, Child, TeacherNotification } from '../services/teacherService';
 
 const TeacherDashboard: React.FC = () => {
+  const { user } = useAuth();
+  const teacherService = useTeacherService();
   const [notifications, setNotifications] = useState<TeacherNotification[]>([]);
+  const [allChildren, setAllChildren] = useState<Child[]>([]);
 
   useEffect(() => {
-    // Load notifications from localStorage
-    const savedNotifications = JSON.parse(localStorage.getItem('teacherNotifications') || '[]');
-    setNotifications(savedNotifications);
+    loadRealData();
   }, []);
 
-  const handleApprove = (notificationId: number) => {
-    const updatedNotifications = notifications.map(notification => 
-      notification.id === notificationId 
-        ? { ...notification, status: 'approved' as const }
-        : notification
-    );
-    
-    setNotifications(updatedNotifications);
-    localStorage.setItem('teacherNotifications', JSON.stringify(updatedNotifications));
-    
-    // Unlock the level for the child
-    const notification = notifications.find(n => n.id === notificationId);
-    if (notification) {
-      unlockLevelForChild(notification.childId, notification.level);
+  const loadRealData = () => {
+    try {
+      // Load all children using the service
+      const children = teacherService.getAllChildren();
+      setAllChildren(children);
+
+      // Load notifications from localStorage
+      const savedNotifications = teacherService.getNotifications();
+      setNotifications(savedNotifications);
+    } catch (error) {
+      console.error('Error loading teacher dashboard data:', error);
     }
+  };
+
+  const handleApprove = (notificationId: number) => {
+    const updatedNotifications = teacherService.updateNotificationStatus(notificationId, 'approved');
+    setNotifications(updatedNotifications);
   };
 
   const handleReject = (notificationId: number) => {
-    const updatedNotifications = notifications.map(notification => 
-      notification.id === notificationId 
-        ? { ...notification, status: 'rejected' as const }
-        : notification
-    );
-    
+    const updatedNotifications = teacherService.updateNotificationStatus(notificationId, 'rejected');
     setNotifications(updatedNotifications);
-    localStorage.setItem('teacherNotifications', JSON.stringify(updatedNotifications));
-  };
-
-  const unlockLevelForChild = (childId: string, level: number) => {
-    // Mock function to unlock level for child
-    const letterPathProgress = JSON.parse(localStorage.getItem('letterPathProgress') || '[]');
-    if (!letterPathProgress.includes(level)) {
-      const newProgress = [...letterPathProgress, level];
-      localStorage.setItem('letterPathProgress', JSON.stringify(newProgress));
-      console.log(`🔓 Level ${level} unlocked for child ${childId}`);
-    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -82,22 +60,93 @@ const TeacherDashboard: React.FC = () => {
     }
   };
 
+  const getOverallProgress = (child: Child) => {
+    return teacherService.getOverallProgress(child);
+  };
+
+  const getClassAverage = () => {
+    return teacherService.getClassAverage();
+  };
+
+  const getTotalBadges = () => {
+    return teacherService.getTotalBadges();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
           Teacher Dashboard
         </h1>
         
+        {/* Class Statistics */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
+            <Users className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-gray-800">{allChildren.length}</div>
+            <p className="text-gray-600">Total Students</p>
+          </div>
+          
+          <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
+            <BarChart3 className="h-8 w-8 text-green-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-gray-800">{Math.round(getClassAverage())}%</div>
+            <p className="text-gray-600">Class Average</p>
+          </div>
+          
+          <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
+            <Award className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-gray-800">{getTotalBadges()}</div>
+            <p className="text-gray-600">Total Badges</p>
+          </div>
+        </div>
+
+        {/* Student Progress Overview */}
+        {allChildren.length > 0 && (
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 className="text-xl font-semibold text-gray-700 mb-4">
+              Student Progress Overview
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {allChildren.map((child) => (
+                <div key={child.id} className="border rounded-lg p-4 bg-gray-50">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <div className="text-2xl">{child.avatar}</div>
+                    <div>
+                      <h3 className="font-semibold text-gray-800">{child.name}</h3>
+                      <p className="text-sm text-gray-600">Age: {child.age}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Overall Progress</span>
+                      <span className="font-bold">{Math.round(getOverallProgress(child))}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full"
+                        style={{ width: `${getOverallProgress(child)}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-600">
+                      <span>🔥 {child.streak} days</span>
+                      <span>🏆 {child.badges.length} badges</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
         <div className="bg-white rounded-lg shadow-lg p-6">
           <h2 className="text-xl font-semibold text-gray-700 mb-4">
-            Level Completion Notifications
+            Lesson Completion Notifications
           </h2>
           
           {notifications.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <User className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p>No notifications yet. Students will appear here when they complete levels.</p>
+              <p>No notifications yet. Students will appear here when they complete Lessons.</p>
             </div>
           ) : (
             <div className="space-y-4">

@@ -1,4 +1,4 @@
-export interface LevelData {
+export interface LessonData {
   id: string;
   number: number;
   title: string;
@@ -13,7 +13,7 @@ export interface LevelData {
   learningObjectives: string[];
   skills: string[];
   estimatedDuration: number; // in minutes
-  prerequisites: string[]; // level IDs that must be completed first
+  prerequisites: string[]; // Lesson IDs that must be completed first
   rewards: {
     badges: string[];
     points: number;
@@ -26,11 +26,11 @@ export interface LevelData {
   };
 }
 
-export const defaultLevels: Omit<LevelData, 'childId' | 'stars' | 'isCompleted' | 'isLocked'>[] = [
+export const defaultLessons: Omit<LessonData, 'childId' | 'stars' | 'isCompleted' | 'isLocked'>[] = [
   {
     id: 'L1',
     number: 1,
-    title: 'Counting Fun',
+    title: 'Lesson 1: Counting Fun',
     description: 'Learn to count from 1 to 10 with colorful objects!',
     zone: 'forest',
     gameType: 'math',
@@ -57,7 +57,7 @@ export const defaultLevels: Omit<LevelData, 'childId' | 'stars' | 'isCompleted' 
   {
     id: 'L2',
     number: 2,
-    title: 'Number Patterns',
+    title: 'Lesson 2: Number Patterns',
     description: 'Learn to recognize and complete number patterns!',
     zone: 'forest',
     gameType: 'math',
@@ -84,7 +84,7 @@ export const defaultLevels: Omit<LevelData, 'childId' | 'stars' | 'isCompleted' 
   {
     id: 'L3',
     number: 3,
-    title: 'Shape Explorer',
+    title: 'Lesson 3: Shape Explorer',
     description: 'Learn about circles, squares, and triangles!',
     zone: 'forest',
     gameType: 'puzzle',
@@ -111,7 +111,7 @@ export const defaultLevels: Omit<LevelData, 'childId' | 'stars' | 'isCompleted' 
   {
     id: 'L4',
     number: 4,
-    title: 'Snowy Numbers',
+    title: 'Lesson 4: Snowy Numbers',
     description: 'Practice addition in a winter wonderland!',
     zone: 'snow',
     gameType: 'math',
@@ -138,7 +138,7 @@ export const defaultLevels: Omit<LevelData, 'childId' | 'stars' | 'isCompleted' 
   {
     id: 'L5',
     number: 5,
-    title: 'Ice Logic',
+    title: 'Lesson 5: Ice Logic',
     description: 'Solve puzzles on the frozen lake!',
     zone: 'snow',
     gameType: 'logic',
@@ -165,7 +165,7 @@ export const defaultLevels: Omit<LevelData, 'childId' | 'stars' | 'isCompleted' 
   {
     id: 'L6',
     number: 6,
-    title: 'River Crossing',
+    title: 'Lesson 6: River Crossing',
     description: 'Help animals cross the river safely!',
     zone: 'river',
     gameType: 'puzzle',
@@ -192,7 +192,7 @@ export const defaultLevels: Omit<LevelData, 'childId' | 'stars' | 'isCompleted' 
   {
     id: 'L7',
     number: 7,
-    title: 'Desert Math',
+    title: 'Lesson 7: Desert Math',
     description: 'Count camels and solve desert equations!',
     zone: 'desert',
     gameType: 'math',
@@ -219,7 +219,7 @@ export const defaultLevels: Omit<LevelData, 'childId' | 'stars' | 'isCompleted' 
   {
     id: 'L8',
     number: 8,
-    title: 'Pyramid Puzzle',
+    title: 'Lesson 8: Pyramid Puzzle',
     description: 'Build the ancient pyramid with logic!',
     zone: 'desert',
     gameType: 'logic',
@@ -246,7 +246,7 @@ export const defaultLevels: Omit<LevelData, 'childId' | 'stars' | 'isCompleted' 
   {
     id: 'L9',
     number: 9,
-    title: 'Castle Challenge',
+    title: 'Lesson 9: Castle Challenge',
     description: 'Navigate through the magical castle!',
     zone: 'castle',
     gameType: 'quiz',
@@ -273,7 +273,7 @@ export const defaultLevels: Omit<LevelData, 'childId' | 'stars' | 'isCompleted' 
   {
     id: 'L10',
     number: 10,
-    title: 'Final Adventure',
+    title: 'Lesson 10: Final Adventure',
     description: 'The ultimate learning challenge awaits!',
     zone: 'castle',
     gameType: 'puzzle',
@@ -393,30 +393,30 @@ export const gameTypes = {
   }
 };
 
-// Helper function to generate level data for a specific child
-export const generateChildLevels = (childId: string, completedLevels: string[] = []): LevelData[] => {
-  return defaultLevels.map(level => ({
-    ...level,
+// Helper function to generate Lesson data for a specific child
+export const generateChildLessons = (childId: string, completedLessons: string[] = []): LessonData[] => {
+  return defaultLessons.map(Lesson => ({
+    ...Lesson,
     childId,
-    stars: completedLevels.includes(level.id) ? Math.floor(Math.random() * 3) + 1 : 0,
-    isCompleted: completedLevels.includes(level.id),
-    isLocked: level.prerequisites.some(prereq => !completedLevels.includes(prereq))
+    stars: completedLessons.includes(Lesson.id) ? Math.floor(Math.random() * 3) + 1 : 0,
+    isCompleted: completedLessons.includes(Lesson.id),
+    isLocked: Lesson.prerequisites.some(prereq => !completedLessons.includes(prereq))
   }));
 };
 
-// Helper function to get level by ID
-export const getLevelById = (levelId: string, childId: string, completedLevels: string[] = []): LevelData | null => {
-  const childLevels = generateChildLevels(childId, completedLevels);
-  return childLevels.find(level => level.id === levelId) || null;
+// Helper function to get Lesson by ID
+export const getLessonById = (LessonId: string, childId: string, completedLessons: string[] = []): LessonData | null => {
+  const childLessons = generateChildLessons(childId, completedLessons);
+  return childLessons.find(Lesson => Lesson.id === LessonId) || null;
 };
 
-// Helper function to get next available level
-export const getNextAvailableLevel = (childId: string, completedLevels: string[] = []): LevelData | null => {
-  const childLevels = generateChildLevels(childId, completedLevels);
-  return childLevels.find(level => !level.isLocked && !level.isCompleted) || null;
+// Helper function to get next available Lesson
+export const getNextAvailableLesson = (childId: string, completedLessons: string[] = []): LessonData | null => {
+  const childLessons = generateChildLessons(childId, completedLessons);
+  return childLessons.find(Lesson => !Lesson.isLocked && !Lesson.isCompleted) || null;
 };
 
 // Helper function to calculate progress
-export const calculateProgress = (completedLevels: string[]): number => {
-  return Math.round((completedLevels.length / defaultLevels.length) * 100);
+export const calculateProgress = (completedLessons: string[]): number => {
+  return Math.round((completedLessons.length / defaultLessons.length) * 100);
 }; 

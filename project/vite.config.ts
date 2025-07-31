@@ -31,7 +31,7 @@ export default defineConfig(({ mode }) => ({
       // PNG settings
       png: {
         quality: 85,
-        compressionLevel: 9,
+        compressionLesson: 9,
       },
       
       // Cache optimized images

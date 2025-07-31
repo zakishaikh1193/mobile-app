@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { LogOut, Users, BarChart3, MessageSquare, Calendar, Award } from 'lucide-react';
+import { LogOut, Users, BarChart3, MessageSquare, Calendar, Award, Lock, Unlock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTeacherService, Child, TeacherNotification } from '../services/teacherService';
 import KodeitLogo from '../components/KodeitLogo';
 import AnimatedButton from '../components/AnimatedButton';
 import AudioButton from '../components/AudioButton';
@@ -10,78 +10,83 @@ import ProgressWheel from '../components/ProgressWheel';
 
 const TeacherPortal: React.FC = () => {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const teacherService = useTeacherService();
+  const [selectedStudent, setSelectedStudent] = useState<Child | null>(null);
+  const [allChildren, setAllChildren] = useState<Child[]>([]);
+  const [notifications, setNotifications] = useState<TeacherNotification[]>([]);
+  const [lastActiveData, setLastActiveData] = useState<{[key: string]: string}>({});
+  const [timeSpentData, setTimeSpentData] = useState<{[key: string]: number}>({});
 
-  // Mock student data - in a real app, this would come from an API
-  const students = [
-    {
-      id: 'student1',
-      name: 'Emma Johnson',
-      age: 5,
-      avatar: '👧',
-      progress: {
-        literacy: 85,
-        creativity: 92,
-        maths: 78,
-        emotions: 88,
-        body: 75,
-        family: 95
-      },
-      streak: 12,
-      badges: ['first_letter', 'color_master', 'family_tree', 'emotion_expert'],
-      lastActive: '2024-01-15',
-      timeSpent: 145, // minutes this week
-      parent: 'Sarah Johnson'
-    },
-    {
-      id: 'student2',
-      name: 'Liam Smith',
-      age: 6,
-      avatar: '👦',
-      progress: {
-        literacy: 72,
-        creativity: 68,
-        maths: 85,
-        emotions: 70,
-        body: 82,
-        family: 77
-      },
-      streak: 8,
-      badges: ['number_ninja', 'shape_master', 'body_expert'],
-      lastActive: '2024-01-14',
-      timeSpent: 98,
-      parent: 'Michael Smith'
-    },
-    {
-      id: 'student3',
-      name: 'Sophia Davis',
-      age: 4,
-      avatar: '👧',
-      progress: {
-        literacy: 65,
-        creativity: 88,
-        maths: 55,
-        emotions: 92,
-        body: 68,
-        family: 85
-      },
-      streak: 15,
-      badges: ['creative_star', 'emotion_expert', 'family_tree'],
-      lastActive: '2024-01-15',
-      timeSpent: 167,
-      parent: 'Jennifer Davis'
+  // Load real data from localStorage
+  useEffect(() => {
+    loadRealData();
+  }, []);
+
+  const loadRealData = () => {
+    try {
+      // Load all children using the service
+      const children = teacherService.getAllChildren();
+      setAllChildren(children);
+
+      // Load teacher notifications
+      const savedNotifications = teacherService.getNotifications();
+      setNotifications(savedNotifications);
+
+      // Load last active data
+      const lastActive = teacherService.getLastActiveData();
+      setLastActiveData(lastActive);
+
+      // Load time spent data
+      const timeSpent = teacherService.getTimeSpentData();
+      setTimeSpentData(timeSpent);
+
+    } catch (error) {
+      console.error('Error loading teacher data:', error);
     }
-  ];
+  };
 
-  const getOverallProgress = (student: any) => {
-    const progressValues = Object.values(student.progress) as number[];
-    return progressValues.reduce((sum, val) => sum + val, 0) / progressValues.length;
+  const getOverallProgress = (child: Child) => {
+    return teacherService.getOverallProgress(child);
   };
 
   const getClassAverage = () => {
-    const allProgress = students.map(student => getOverallProgress(student));
-    return allProgress.reduce((sum, val) => sum + val, 0) / allProgress.length;
+    return teacherService.getClassAverage();
+  };
+
+  const getActiveToday = () => {
+    return teacherService.getActiveToday();
+  };
+
+  const getTotalBadges = () => {
+    return teacherService.getTotalBadges();
+  };
+
+  const handleApproveLesson = (childId: string, lessonNumber: number) => {
+    // Find the notification for this child and lesson
+    const notification = notifications.find(n => 
+      n.childId === childId && n.Lesson === lessonNumber && n.status === 'pending'
+    );
+    
+    if (notification) {
+      const updatedNotifications = teacherService.updateNotificationStatus(notification.id, 'approved');
+      setNotifications(updatedNotifications);
+    }
+  };
+
+  const handleRejectLesson = (childId: string, lessonNumber: number) => {
+    // Find the notification for this child and lesson
+    const notification = notifications.find(n => 
+      n.childId === childId && n.Lesson === lessonNumber && n.status === 'pending'
+    );
+    
+    if (notification) {
+      const updatedNotifications = teacherService.updateNotificationStatus(notification.id, 'rejected');
+      setNotifications(updatedNotifications);
+    }
+  };
+
+  const getPendingNotifications = () => {
+    return notifications.filter(n => n.status === 'pending');
   };
 
   if (!user) return null;
@@ -123,7 +128,7 @@ const TeacherPortal: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
               <Users className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-gray-800">{students.length}</div>
+              <div className="text-2xl font-bold text-gray-800">{allChildren.length}</div>
               <p className="text-gray-600">Total Students</p>
             </div>
             
@@ -135,17 +140,13 @@ const TeacherPortal: React.FC = () => {
             
             <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
               <Calendar className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-gray-800">
-                {students.filter(s => s.lastActive === '2024-01-15').length}
-              </div>
+              <div className="text-2xl font-bold text-gray-800">{getActiveToday()}</div>
               <p className="text-gray-600">Active Today</p>
             </div>
             
             <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
               <Award className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-gray-800">
-                {students.reduce((sum, s) => sum + s.badges.length, 0)}
-              </div>
+              <div className="text-2xl font-bold text-gray-800">{getTotalBadges()}</div>
               <p className="text-gray-600">Total Badges</p>
             </div>
           </div>
@@ -162,57 +163,66 @@ const TeacherPortal: React.FC = () => {
             >
               <h2 className="text-2xl font-bold text-gray-800 mb-6">My Students</h2>
               
-              <div className="space-y-4">
-                {students.map((student, index) => (
-                  <motion.div
-                    key={student.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.4, delay: index * 0.1 }}
-                    className={`p-4 rounded-2xl border-2 cursor-pointer transition-all duration-300 ${
-                      selectedStudent?.id === student.id
-                        ? 'border-purple-500 bg-purple-50'
-                        : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
-                    }`}
-                    onClick={() => setSelectedStudent(student)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className="text-3xl">{student.avatar}</div>
-                        <div>
-                          <h3 className="font-bold text-gray-800">{student.name}</h3>
-                          <p className="text-sm text-gray-600">Age: {student.age} • Parent: {student.parent}</p>
-                          <p className="text-xs text-gray-500">Last active: {student.lastActive}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-4">
-                        <div className="text-center">
-                          <ProgressWheel progress={getOverallProgress(student)} size={60}>
-                            <span className="text-xs font-bold text-purple-600">
-                              {Math.round(getOverallProgress(student))}%
-                            </span>
-                          </ProgressWheel>
+              {allChildren.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <p>No students registered yet. Students will appear here when parents create accounts.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {allChildren.map((child, index) => (
+                    <motion.div
+                      key={child.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.4, delay: index * 0.1 }}
+                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all duration-300 ${
+                        selectedStudent?.id === child.id
+                          ? 'border-purple-500 bg-purple-50'
+                          : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
+                      }`}
+                      onClick={() => setSelectedStudent(child)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div className="text-3xl">{child.avatar}</div>
+                          <div>
+                            <h3 className="font-bold text-gray-800">{child.name}</h3>
+                            <p className="text-sm text-gray-600">Age: {child.age} • {child.gender}</p>
+                            <p className="text-xs text-gray-500">
+                              Last active: {lastActiveData[child.id] || 'Unknown'}
+                            </p>
+                          </div>
                         </div>
                         
-                        <div className="text-right text-sm">
-                          <div className="flex items-center space-x-1 text-orange-600">
-                            <span>🔥</span>
-                            <span>{student.streak}</span>
+                        <div className="flex items-center space-x-4">
+                          <div className="text-center">
+                            <ProgressWheel progress={getOverallProgress(child)} size={60}>
+                              <span className="text-xs font-bold text-purple-600">
+                                {Math.round(getOverallProgress(child))}%
+                              </span>
+                            </ProgressWheel>
                           </div>
-                          <div className="flex items-center space-x-1 text-yellow-600">
-                            <span>🏆</span>
-                            <span>{student.badges.length}</span>
-                          </div>
-                          <div className="text-gray-600">
-                            {student.timeSpent}min/week
+                          
+                          <div className="text-right text-sm">
+                            <div className="flex items-center space-x-1 text-orange-600">
+                              <span>🔥</span>
+                              <span>{child.streak}</span>
+                            </div>
+                            <div className="flex items-center space-x-1 text-yellow-600">
+                              <span>🏆</span>
+                              <span>{child.badges.length}</span>
+                            </div>
+                            <div className="text-gray-600">
+                              {timeSpentData[child.id] || 0}min/week
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </motion.div>
           </div>
 
@@ -261,9 +271,24 @@ const TeacherPortal: React.FC = () => {
                         key={index}
                         className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full text-center"
                       >
-                        🏆 {badge.replace('_', ' ')}
+                        🏆 {badge}
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                {/* Lesson Access Control */}
+                <div className="mb-6">
+                  <h4 className="font-bold text-gray-800 mb-3">Lesson Access</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-2 bg-green-50 rounded-lg">
+                      <span className="text-sm">Lesson 1</span>
+                      <Unlock className="w-4 h-4 text-green-600" />
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                      <span className="text-sm">Lesson 2</span>
+                      <Lock className="w-4 h-4 text-gray-600" />
+                    </div>
                   </div>
                 </div>
 
@@ -299,6 +324,47 @@ const TeacherPortal: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Pending Notifications */}
+        {getPendingNotifications().length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="mt-8 bg-white rounded-3xl p-6 shadow-lg"
+          >
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">Pending Approvals</h2>
+            <div className="space-y-4">
+              {getPendingNotifications().map((notification) => (
+                <div key={notification.id} className="border rounded-lg p-4 bg-yellow-50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-gray-800">{notification.childName}</h3>
+                      <p className="text-sm text-gray-600">{notification.message}</p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(notification.timestamp).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleApproveLesson(notification.childId, notification.Lesson)}
+                        className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => handleRejectLesson(notification.childId, notification.Lesson)}
+                        className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* Quick Actions */}
         <motion.div

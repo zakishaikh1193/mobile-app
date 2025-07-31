@@ -18,6 +18,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import ForestLetterHuntPage from './pages/forest-letter-hunt';
 import WordMatchGame from './components/WordMatchGame';
 import LetterPath from './components/LetterPath';
+import KnowMeActivity from './pages/KnowMeActivity';
 
 
 import './index.css';
@@ -99,6 +100,14 @@ function App() {
                     element={
                       <ProtectedRoute role="parent">
                         <WordMatchGame />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route 
+                    path="/know-me/:childId"
+                    element={
+                      <ProtectedRoute role="parent">
+                        <KnowMeActivity />
                       </ProtectedRoute>
                     }
                   />

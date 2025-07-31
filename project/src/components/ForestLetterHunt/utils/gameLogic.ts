@@ -1,4 +1,4 @@
-export interface LevelTheme {
+export interface LessonTheme {
   name: string;
   colors: {
     bush: string;
@@ -7,8 +7,8 @@ export interface LevelTheme {
   emoji: string;
 }
 
-export const getLevelTheme = (level: number): LevelTheme => {
-  const themes: LevelTheme[] = [
+export const getLessonTheme = (Lesson: number): LessonTheme => {
+  const themes: LessonTheme[] = [
     {
       name: 'Enchanted Forest',
       colors: {
@@ -43,14 +43,14 @@ export const getLevelTheme = (level: number): LevelTheme => {
     }
   ];
 
-  const themeIndex = Math.floor((level - 1) / 5) % themes.length;
+  const themeIndex = Math.floor((Lesson - 1) / 5) % themes.length;
   return themes[themeIndex];
 };
 
 export const getRandomLetters = (difficulty: 'easy' | 'medium' | 'hard', letterCase: 'uppercase' | 'lowercase' | 'mixed'): string[] => {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   
-  let numBushes = 5; // Always 5 letters per level
+  let numBushes = 5; // Always 5 letters per Lesson
 
   const selectedLetters: string[] = [];
   
@@ -107,12 +107,12 @@ export const getPhonicsPrompt = (letter: string): string => {
   return phonicsMap[letter.toUpperCase()] || `Find the letter ${letter.toUpperCase()}`;
 };
 
-export const getSightWords = (level: number): string[] => {
+export const getSightWords = (Lesson: number): string[] => {
   const easyWords = ['CAT', 'DOG', 'SUN', 'BIG', 'RED'];
   const mediumWords = ['TREE', 'BOOK', 'FISH', 'BIRD', 'FROG'];
   const hardWords = ['HOUSE', 'WATER', 'HAPPY', 'LIGHT', 'DANCE'];
 
-  if (level <= 5) return easyWords;
-  if (level <= 10) return mediumWords;
+  if (Lesson <= 5) return easyWords;
+  if (Lesson <= 10) return mediumWords;
   return hardWords;
 }; 

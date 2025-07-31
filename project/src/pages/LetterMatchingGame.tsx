@@ -93,8 +93,8 @@ const getResponsiveSizes = (containerWidth: number, containerHeight: number) => 
 };
 
 // --- Main Component ---
-const ALL_LEVELS = [
-  // Level 1: A-E
+const ALL_LessonS = [
+  // Lesson 1: A-E
   [
     { char: 'A', id: 'A', name: 'Apple', emoji: '🍎' },
     { char: 'B', id: 'B', name: 'Butterfly', emoji: '🦋' },
@@ -102,7 +102,7 @@ const ALL_LEVELS = [
     { char: 'D', id: 'D', name: 'Dragon', emoji: '🐉' },
     { char: 'E', id: 'E', name: 'Elephant', emoji: '🐘' },
   ],
-  // Level 2: F-J
+  // Lesson 2: F-J
   [
     { char: 'F', id: 'F', name: 'Fireworks', emoji: '🎆' },
     { char: 'G', id: 'G', name: 'Galaxy', emoji: '🌌' },
@@ -110,7 +110,7 @@ const ALL_LEVELS = [
     { char: 'I', id: 'I', name: 'Island', emoji: '🏝️' },
     { char: 'J', id: 'J', name: 'Jellyfish', emoji: '🪼' },
   ],
-  // Level 3: K-O
+  // Lesson 3: K-O
   [
     { char: 'K', id: 'K', name: 'Kite', emoji: '🪁' },
     { char: 'L', id: 'L', name: 'Lion', emoji: '🦁' },
@@ -118,7 +118,7 @@ const ALL_LEVELS = [
     { char: 'N', id: 'N', name: 'Nest', emoji: '🪺' },
     { char: 'O', id: 'O', name: 'Octopus', emoji: '🐙' },
   ],
-  // Level 4: P-T
+  // Lesson 4: P-T
   [
     { char: 'P', id: 'P', name: 'Panda', emoji: '🐼' },
     { char: 'Q', id: 'Q', name: 'Queen', emoji: '👸' },
@@ -126,7 +126,7 @@ const ALL_LEVELS = [
     { char: 'S', id: 'S', name: 'Sun', emoji: '☀️' },
     { char: 'T', id: 'T', name: 'Tiger', emoji: '🐯' },
   ],
-  // Level 5: U-Y
+  // Lesson 5: U-Y
   [
     { char: 'U', id: 'U', name: 'Umbrella', emoji: '☂️' },
     { char: 'V', id: 'V', name: 'Violin', emoji: '🎻' },
@@ -134,7 +134,7 @@ const ALL_LEVELS = [
     { char: 'X', id: 'X', name: 'Xylophone', emoji: '🎶' },
     { char: 'Y', id: 'Y', name: 'Yacht', emoji: '🛥️' },
   ],
-  // Level 6: Z + fun extras
+  // Lesson 6: Z + fun extras
   [
     { char: 'Z', id: 'Z', name: 'Zebra', emoji: '🦓' },
     { char: 'A1', id: 'A1', name: 'Airplane', emoji: '✈️' },
@@ -148,7 +148,7 @@ const LetterMatchingGame: React.FC = () => {
   const navigate = useNavigate();
   const { childId } = useParams<{ childId: string }>();
   const { playSound, speak } = useAudio();
-  const [level, setLevel] = useState(0); // 0-based index
+  const [Lesson, setLesson] = useState(0); // 0-based index
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [completed, setCompleted] = useState(false);
@@ -165,19 +165,19 @@ const LetterMatchingGame: React.FC = () => {
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const [hintLetter, setHintLetter] = useState<string | null>(null);
 
-  // --- Letters and Pictures for current level ---
-  const currentSet = ALL_LEVELS[level] || [];
-  // Shuffle order for each level
+  // --- Letters and Pictures for current Lesson ---
+  const currentSet = ALL_LessonS[Lesson] || [];
+  // Shuffle order for each Lesson
   const [shuffledLetters, setShuffledLetters] = useState<Letter[]>([]);
   const [shuffledPictures, setShuffledPictures] = useState<Picture[]>([]);
   useEffect(() => {
     setShuffledLetters(shuffle(currentSet.map(l => ({ char: l.char, id: l.id }))));
     setShuffledPictures(shuffle(currentSet.map(l => ({ name: l.name, emoji: l.emoji, id: l.id }))));
-  }, [level]);
+  }, [Lesson]);
   const LETTERS = shuffledLetters;
   const PICTURES = shuffledPictures;
   const totalPairs = currentSet.length;
-  const isLastLevel = level === ALL_LEVELS.length - 1;
+  const isLastLesson = Lesson === ALL_LessonS.length - 1;
   const setIsValid = LETTERS.length === PICTURES.length;
 
   // --- Add refs for each card ---
@@ -235,7 +235,7 @@ const LetterMatchingGame: React.FC = () => {
         pictures: picturePositions.map((pos) => ({ ...pos, x: pos.x + width * 0.6 })),
       });
     }
-  }, [gameAreaRef.current, level, setIsValid, containerSize, cardSize, picSize, padding]);
+  }, [gameAreaRef.current, Lesson, setIsValid, containerSize, cardSize, picSize, padding]);
 
   // --- Handle Matching ---
   const handleLetterClick = (id: string) => {
@@ -270,9 +270,9 @@ const LetterMatchingGame: React.FC = () => {
         // If this was the last match in the set
         if (newMatches.length === totalPairs) {
           setTimeout(() => {
-            if (isLastLevel) {
+            if (isLastLesson) {
               playSound('celebration');
-              speak('Congratulations! You finished all levels!');
+              speak('Congratulations! You finished all Lessons!');
               setCompleted(true);
               setShowCelebration(true);
               setShowSummary(false);
@@ -324,7 +324,7 @@ const LetterMatchingGame: React.FC = () => {
   // --- Next Set ---
   const handleNextSet = () => {
     playSound('success');
-    setLevel(l => l + 1);
+    setLesson(l => l + 1);
     setMatches([]);
     setSelectedLetter(null);
     setAttempts(0);
@@ -341,7 +341,7 @@ const LetterMatchingGame: React.FC = () => {
   // --- Play Again (whole game) ---
   const handlePlayAgainGame = () => {
     playSound('celebration');
-    setLevel(0);
+    setLesson(0);
     setMatches([]);
     setCompleted(false);
     setShowCelebration(false);
@@ -362,9 +362,9 @@ const LetterMatchingGame: React.FC = () => {
     const newAchievements: string[] = [];
     if (accuracy === 100 && matches.length === totalPairs) newAchievements.push('Perfect Accuracy!');
     if (maxStreak >= totalPairs) newAchievements.push('Streak Master!');
-    if (isLastLevel && completed) newAchievements.push('Alphabet Champion!');
+    if (isLastLesson && completed) newAchievements.push('Alphabet Champion!');
     setAchievements(newAchievements);
-  }, [accuracy, matches.length, maxStreak, completed, isLastLevel, totalPairs]);
+  }, [accuracy, matches.length, maxStreak, completed, isLastLesson, totalPairs]);
 
   // --- Handle Help (Hint) ---
   const handleHelp = () => {
@@ -387,7 +387,7 @@ const LetterMatchingGame: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100">
         <div className="bg-white rounded-3xl shadow-xl p-10 text-center">
           <h2 className="text-2xl font-bold text-red-600 mb-4">Error: Mismatched Letters and Images</h2>
-          <p className="text-lg text-gray-700 mb-4">This set has {LETTERS.length} letters and {PICTURES.length} images. Please fix the data for this level.</p>
+          <p className="text-lg text-gray-700 mb-4">This set has {LETTERS.length} letters and {PICTURES.length} images. Please fix the data for this Lesson.</p>
           <AnimatedButton onClick={handlePlayAgainGame}>Restart Game</AnimatedButton>
         </div>
       </div>
@@ -412,7 +412,7 @@ const LetterMatchingGame: React.FC = () => {
         </motion.h1>
         
         <div className="flex gap-2 mb-4 items-center">
-          <span className="text-base font-bold text-purple-600 bg-white/70 rounded-full px-4 py-1 shadow">Level {level + 1} / {ALL_LEVELS.length}</span>
+          <span className="text-base font-bold text-purple-600 bg-white/70 rounded-full px-4 py-1 shadow">Lesson {Lesson + 1} / {ALL_LessonS.length}</span>
           <span className="text-base font-bold text-blue-600 bg-white/70 rounded-full px-4 py-1 shadow">Matched {matches.length}/{totalPairs}</span>
           <AnimatedButton variant="fun" size="sm" onClick={handleHelp} disabled={matches.length === totalPairs}>
             Help
@@ -434,8 +434,8 @@ const LetterMatchingGame: React.FC = () => {
         </motion.div>
         <motion.div layout className="glass-card flex flex-col items-center px-4 py-2">
           <Crown className="text-purple-500 mb-1" />
-          <motion.span layout className="font-bold text-purple-700" animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 0.5 }}>L{level + 1}</motion.span>
-          <span className="text-xs text-gray-500">Level</span>
+          <motion.span layout className="font-bold text-purple-700" animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 0.5 }}>L{Lesson + 1}</motion.span>
+          <span className="text-xs text-gray-500">Lesson</span>
         </motion.div>
         <motion.div layout className="glass-card flex flex-col items-center px-4 py-2">
           <Trophy className="text-yellow-500 mb-1" />
@@ -554,11 +554,11 @@ const LetterMatchingGame: React.FC = () => {
           Smart Recommendations
           <span className="text-xs font-normal mt-2">(Coming soon: Personalized tips and next steps!)</span>
         </div>
-        <div className="glass-card w-64 h-24 flex flex-col items-center justify-center text-pink-700 font-bold">Next Adventure<br /><span className="text-xs font-normal">{level < ALL_LEVELS.length - 1 ? `Complete this level to unlock: Letters ${ALL_LEVELS[level + 1].map(l => l.char).join('-')} Challenge!` : 'You finished all levels!'}</span></div>
+        <div className="glass-card w-64 h-24 flex flex-col items-center justify-center text-pink-700 font-bold">Next Adventure<br /><span className="text-xs font-normal">{Lesson < ALL_LessonS.length - 1 ? `Complete this Lesson to unlock: Letters ${ALL_LessonS[Lesson + 1].map(l => l.char).join('-')} Challenge!` : 'You finished all Lessons!'}</span></div>
       </div>
       {/* Summary Overlay (after each set except last) */}
       <AnimatePresence>
-        {showSummary && !isLastLevel && (
+        {showSummary && !isLastLesson && (
           <motion.div className="fixed inset-0 bg-black/40 z-50 flex flex-col items-center justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <motion.div className="bg-white/90 rounded-3xl p-10 shadow-2xl flex flex-col items-center" initial={{ scale: 0.8 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200 }}>
               <h2 className="text-3xl font-extrabold text-purple-600 mb-4">Great Job!</h2>
@@ -579,7 +579,7 @@ const LetterMatchingGame: React.FC = () => {
       </AnimatePresence>
       {/* Celebration Overlay (after last set) */}
       <AnimatePresence>
-        {showCelebration && isLastLevel && (
+        {showCelebration && isLastLesson && (
           <motion.div className="fixed inset-0 bg-black/40 z-50 flex flex-col items-center justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <motion.div className="bg-white/90 rounded-3xl p-10 shadow-2xl flex flex-col items-center" initial={{ scale: 0.8 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200 }}>
               <h2 className="text-3xl font-extrabold text-purple-600 mb-4">Congratulations!</h2>

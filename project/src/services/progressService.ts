@@ -24,18 +24,18 @@ export const useProgressService = () => {
         const updatedProgress = { ...child.progress, [hubId]: newProgress };
         const overallProgress = Object.values(updatedProgress).reduce((sum: number, val: any) => sum + val, 0) / Object.values(updatedProgress).length;
         
-        // If overall progress reaches 100%, unlock Level 2
+        // If overall progress reaches 100%, unlock Lesson 2
         if (overallProgress >= 100) {
           const letterPathProgress = JSON.parse(localStorage.getItem('letterPathProgress') || '[]');
           if (!letterPathProgress.includes(2)) {
             const newProgress = [...letterPathProgress, 2];
             localStorage.setItem('letterPathProgress', JSON.stringify(newProgress));
-            console.log('🎉 Level 2 unlocked! Complete all learning hubs to unlock Level 2');
+            console.log('🎉 Lesson 2 unlocked! Complete all learning hubs to unlock Lesson 2');
             
             // Show notification to user
             if (typeof window !== 'undefined' && 'Notification' in window) {
-              new Notification('Level Up!', {
-                body: 'Congratulations! You\'ve completed all learning hubs and unlocked Level 2!',
+              new Notification('Lesson Up!', {
+                body: 'Congratulations! You\'ve completed all learning hubs and unlocked Lesson 2!',
                 icon: '/badges/B2.png'
               });
             }
@@ -52,11 +52,11 @@ export const useProgressService = () => {
     // Update day streak and badges
     updateStreakAndBadges(childId, hubId);
     
-    // Check if all activities are completed for Level 1
-    checkLevel1Completion(childId);
+    // Check if all activities are completed for Lesson 1
+    checkLesson1Completion(childId);
   };
 
-  const checkLevel1Completion = (childId: string) => {
+  const checkLesson1Completion = (childId: string) => {
     // Get current user data
     const savedUser = localStorage.getItem('kodeit_user');
     if (savedUser) {
@@ -73,8 +73,8 @@ export const useProgressService = () => {
           
           // Show notification to child
           if (typeof window !== 'undefined' && 'Notification' in window) {
-            new Notification('Level 1 Complete!', {
-              body: `Congratulations! You've completed all Level 1 activities. Waiting for teacher review to unlock Level 2.`,
+            new Notification('Lesson 1 Complete!', {
+              body: `Congratulations! You've completed all Lesson 1 activities. Waiting for teacher review to unlock Lesson 2.`,
               icon: '/badges/B1.png'
             });
           }
@@ -90,11 +90,11 @@ export const useProgressService = () => {
       id: Date.now(),
       childId: childId,
       childName: childName,
-      level: 1,
+      Lesson: 1,
       status: 'pending',
-      message: `${childName} has completed all Level 1 activities. Please review and unlock Level 2.`,
+      message: `${childName} has completed all Lesson 1 activities. Please review and unlock Lesson 2.`,
       timestamp: new Date().toISOString(),
-      type: 'level_completion'
+      type: 'Lesson_completion'
     };
     
     teacherNotifications.push(newNotification);

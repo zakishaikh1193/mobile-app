@@ -2,25 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Star, Lock, Trophy, ArrowLeft, Target, Zap, Heart } from 'lucide-react';
-import { generateChildLevels, LevelData, zoneThemes, gameTypes } from '../data/levelData';
+import { generateChildLessons, LessonData, zoneThemes, gameTypes } from '../data/LessonData';
 
-interface LevelProgressionMapProps {
+interface LessonProgressionMapProps {
   childId: string;
-  onLevelSelect: (levelId: string) => void;
+  onLessonSelect: (LessonId: string) => void;
   onBack: () => void;
 }
 
-const LevelProgressionMap: React.FC<LevelProgressionMapProps> = ({
+const LessonProgressionMap: React.FC<LessonProgressionMapProps> = ({
   childId,
-  onLevelSelect,
+  onLessonSelect,
   onBack
 }) => {
   const navigate = useNavigate();
-  const [selectedLevel, setSelectedLevel] = useState<LevelData | null>(null);
+  const [selectedLesson, setSelectedLesson] = useState<LessonData | null>(null);
   const [showTooltip, setShowTooltip] = useState<string | null>(null);
 
-  // Generate level data for this child - in real app, this would come from your backend
-  const levels: LevelData[] = generateChildLevels(childId, ['L1']); // Only L1 is completed, all others locked
+  // Generate Lesson data for this child - in real app, this would come from your backend
+  const Lessons: LessonData[] = generateChildLessons(childId, ['L1']); // Only L1 is completed, all others locked
 
   const zoneColors = {
     forest: zoneThemes.forest.color,
@@ -49,16 +49,16 @@ const LevelProgressionMap: React.FC<LevelProgressionMapProps> = ({
     story: <Trophy className="w-4 h-4" />
   };
 
-  const handleLevelClick = (level: LevelData) => {
-    if (level.isLocked) return;
+  const handleLessonClick = (Lesson: LessonData) => {
+    if (Lesson.isLocked) return;
     
-    setSelectedLevel(level);
+    setSelectedLesson(Lesson);
     
     // Only L1 navigates to child dashboard, others navigate to specific activities
-    if (level.id === 'L1') {
-      navigate(`/child-dashboard/${childId}?level=${level.id}`);
+    if (Lesson.id === 'L1') {
+      navigate(`/child-dashboard/${childId}?Lesson=${Lesson.id}`);
     } else {
-      // For other levels, navigate to specific learning hubs based on game type
+      // For other Lessons, navigate to specific learning hubs based on game type
       const gameTypeRoutes = {
         'math': 'maths',
         'logic': 'logic',
@@ -70,16 +70,16 @@ const LevelProgressionMap: React.FC<LevelProgressionMapProps> = ({
         'story': 'story'
       };
       
-      const route = gameTypeRoutes[level.gameType] || 'educational-game';
-      navigate(`/${route}/${childId}?level=${level.id}`);
+      const route = gameTypeRoutes[Lesson.gameType] || 'educational-game';
+      navigate(`/${route}/${childId}?Lesson=${Lesson.id}`);
     }
     
-    onLevelSelect(level.id);
+    onLessonSelect(Lesson.id);
   };
 
   const getProgressPercentage = () => {
-    const completedLevels = levels.filter(level => level.isCompleted).length;
-    return Math.round((completedLevels / levels.length) * 100);
+    const completedLessons = Lessons.filter(Lesson => Lesson.isCompleted).length;
+    return Math.round((completedLessons / Lessons.length) * 100);
   };
 
   const renderStars = (stars: number) => {
@@ -103,22 +103,22 @@ const LevelProgressionMap: React.FC<LevelProgressionMapProps> = ({
     );
   };
 
-  const renderLevelNode = (level: LevelData, index: number) => {
-    const isCompleted = level.isCompleted;
-    const isLocked = level.isLocked;
-    const zoneColor = zoneColors[level.zone];
+  const renderLessonNode = (Lesson: LessonData, index: number) => {
+    const isCompleted = Lesson.isCompleted;
+    const isLocked = Lesson.isLocked;
+    const zoneColor = zoneColors[Lesson.zone];
 
     return (
       <motion.div
-        key={level.id}
+        key={Lesson.id}
         className="relative"
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: index * 0.1 }}
       >
-        {/* Level Node */}
+        {/* Lesson Node */}
         <motion.button
-          onClick={() => handleLevelClick(level)}
+          onClick={() => handleLessonClick(Lesson)}
           className={`relative group w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-2xl shadow-lg border-4 transition-all duration-300 ${
             isLocked
               ? 'bg-gray-400 border-gray-500 cursor-not-allowed'
@@ -128,7 +128,7 @@ const LevelProgressionMap: React.FC<LevelProgressionMapProps> = ({
           }`}
           whileHover={!isLocked ? { scale: 1.1, y: -5 } : {}}
           whileTap={!isLocked ? { scale: 0.95 } : {}}
-          onMouseEnter={() => setShowTooltip(level.id)}
+          onMouseEnter={() => setShowTooltip(Lesson.id)}
           onMouseLeave={() => setShowTooltip(null)}
         >
           {/* Background pattern */}
@@ -136,14 +136,14 @@ const LevelProgressionMap: React.FC<LevelProgressionMapProps> = ({
             <div className="w-full h-full bg-gradient-to-br from-white/30 to-transparent rounded-xl" />
           </div>
 
-          {/* Level number */}
+          {/* Lesson number */}
           <div className="relative z-10 flex flex-col items-center justify-center h-full">
             {isLocked ? (
               <Lock className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
             ) : (
               <>
                 <div className="text-white font-bold text-lg sm:text-xl md:text-2xl">
-                  {level.number}
+                  {Lesson.number}
                 </div>
                 {isCompleted && (
                   <div className="absolute -top-1 -right-1">
@@ -157,11 +157,11 @@ const LevelProgressionMap: React.FC<LevelProgressionMapProps> = ({
           {/* Stars */}
           {!isLocked && (
             <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-              {renderStars(level.stars)}
+              {renderStars(Lesson.stars)}
             </div>
           )}
 
-          {/* Floating particles for completed levels */}
+          {/* Floating particles for completed Lessons */}
           {isCompleted && (
             <div className="absolute inset-0 pointer-events-none">
               {[...Array(3)].map((_, i) => (
@@ -192,7 +192,7 @@ const LevelProgressionMap: React.FC<LevelProgressionMapProps> = ({
 
         {/* Tooltip */}
         <AnimatePresence>
-          {showTooltip === level.id && (
+          {showTooltip === Lesson.id && (
             <motion.div
               initial={{ opacity: 0, y: 10, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -201,22 +201,22 @@ const LevelProgressionMap: React.FC<LevelProgressionMapProps> = ({
             >
               <div className="text-center">
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <span className="text-2xl">{zoneEmojis[level.zone]}</span>
-                  <h3 className="font-bold text-gray-800 text-lg">{level.title}</h3>
+                  <span className="text-2xl">{zoneEmojis[Lesson.zone]}</span>
+                  <h3 className="font-bold text-gray-800 text-lg">{Lesson.title}</h3>
                 </div>
-                <p className="text-gray-600 text-sm mb-3">{level.description}</p>
+                <p className="text-gray-600 text-sm mb-3">{Lesson.description}</p>
                 <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
-                  {gameTypeIcons[level.gameType]}
-                  <span className="capitalize">{level.gameType}</span>
+                  {gameTypeIcons[Lesson.gameType]}
+                  <span className="capitalize">{Lesson.gameType}</span>
                   <span>•</span>
-                  <span className="capitalize">{level.difficulty}</span>
+                  <span className="capitalize">{Lesson.difficulty}</span>
                 </div>
                 <div className="mt-2 text-xs text-blue-600 font-semibold">
-                  {level.id === 'L1' ? 'Go to Dashboard' : 'Start Activity'}
+                  {Lesson.id === 'L1' ? 'Go to Dashboard' : 'Start Activity'}
                 </div>
                 {!isLocked && (
                   <div className="mt-2">
-                    {renderStars(level.stars)}
+                    {renderStars(Lesson.stars)}
                   </div>
                 )}
               </div>
@@ -304,11 +304,11 @@ const LevelProgressionMap: React.FC<LevelProgressionMapProps> = ({
             </motion.span>
           </h1>
           <p className="text-lg sm:text-xl text-gray-600">
-            Complete levels to unlock new adventures!
+            Complete Lessons to unlock new adventures!
           </p>
         </motion.div>
 
-        {/* Level grid with winding path */}
+        {/* Lesson grid with winding path */}
         <div className="relative">
           {/* Winding path background */}
           <svg
@@ -342,11 +342,11 @@ const LevelProgressionMap: React.FC<LevelProgressionMapProps> = ({
             </defs>
           </svg>
 
-          {/* Level nodes */}
+          {/* Lesson nodes */}
           <div className="relative grid grid-cols-5 gap-8 sm:gap-12 md:gap-16 lg:gap-20 max-w-6xl mx-auto">
-            {levels.map((level, index) => (
-              <div key={level.id} className="flex justify-center">
-                {renderLevelNode(level, index)}
+            {Lessons.map((Lesson, index) => (
+              <div key={Lesson.id} className="flex justify-center">
+                {renderLessonNode(Lesson, index)}
               </div>
             ))}
           </div>
@@ -367,9 +367,9 @@ const LevelProgressionMap: React.FC<LevelProgressionMapProps> = ({
         </div>
       </main>
 
-      {/* Level selection modal */}
+      {/* Lesson selection modal */}
       <AnimatePresence>
-        {selectedLevel && (
+        {selectedLesson && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -378,49 +378,49 @@ const LevelProgressionMap: React.FC<LevelProgressionMapProps> = ({
               className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl"
             >
               <div className="text-center">
-                <div className="text-4xl mb-4">{zoneEmojis[selectedLevel.zone]}</div>
+                <div className="text-4xl mb-4">{zoneEmojis[selectedLesson.zone]}</div>
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                  {selectedLevel.title}
+                  {selectedLesson.title}
                 </h2>
-                <p className="text-gray-600 mb-6">{selectedLevel.description}</p>
+                <p className="text-gray-600 mb-6">{selectedLesson.description}</p>
                 
                 <div className="flex items-center justify-center gap-4 mb-6">
                   <div className="flex items-center gap-2">
-                    {gameTypeIcons[selectedLevel.gameType]}
-                    <span className="capitalize text-sm">{selectedLevel.gameType}</span>
+                    {gameTypeIcons[selectedLesson.gameType]}
+                    <span className="capitalize text-sm">{selectedLesson.gameType}</span>
                   </div>
                   <div className="w-px h-6 bg-gray-300" />
-                  <div className="capitalize text-sm">{selectedLevel.difficulty}</div>
+                  <div className="capitalize text-sm">{selectedLesson.difficulty}</div>
                 </div>
 
-                {selectedLevel.isCompleted && (
+                {selectedLesson.isCompleted && (
                   <div className="mb-6">
                     <div className="text-sm text-gray-500 mb-2">Stars earned:</div>
-                    {renderStars(selectedLevel.stars)}
+                    {renderStars(selectedLesson.stars)}
                   </div>
                 )}
 
                 <div className="flex gap-4">
                   <button
-                    onClick={() => setSelectedLevel(null)}
+                    onClick={() => setSelectedLesson(null)}
                     className="flex-1 bg-gray-300 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-400 transition-colors"
                   >
                     Cancel
                   </button>
                                      <button
                      onClick={() => {
-                       setSelectedLevel(null);
-                       handleLevelClick(selectedLevel);
+                       setSelectedLesson(null);
+                       handleLessonClick(selectedLesson);
                      }}
                      className={`flex-1 py-3 rounded-xl font-semibold text-white transition-colors ${
-                       selectedLevel.isCompleted
+                       selectedLesson.isCompleted
                          ? 'bg-green-500 hover:bg-green-600'
-                         : `bg-gradient-to-r ${zoneColors[selectedLevel.zone]} hover:brightness-110`
+                         : `bg-gradient-to-r ${zoneColors[selectedLesson.zone]} hover:brightness-110`
                      }`}
                    >
-                     {selectedLevel.isCompleted 
+                     {selectedLesson.isCompleted 
                        ? 'Replay' 
-                       : selectedLevel.id === 'L1' 
+                       : selectedLesson.id === 'L1' 
                          ? 'Go to Dashboard' 
                          : 'Start Activity'
                      }
@@ -435,4 +435,4 @@ const LevelProgressionMap: React.FC<LevelProgressionMapProps> = ({
   );
 };
 
-export default LevelProgressionMap; 
+export default LessonProgressionMap; 

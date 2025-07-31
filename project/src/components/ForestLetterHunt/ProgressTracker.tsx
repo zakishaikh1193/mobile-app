@@ -37,14 +37,14 @@ const ProgressTracker: React.FC<ProgressTrackerProps> = ({ progress, onClose }) 
         </div>
 
         <div className="space-y-6">
-          {/* Level and Stars */}
+          {/* Lesson and Stars */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl text-center">
               <div className="text-3xl font-bold text-blue-700 mb-1">
-                {progress.level}
+                {progress.Lesson}
               </div>
               <div className="text-sm text-blue-600 font-medium">
-                Current Level
+                Current Lesson
               </div>
             </div>
             <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-4 rounded-xl text-center">
@@ -119,9 +119,9 @@ const ProgressTracker: React.FC<ProgressTrackerProps> = ({ progress, onClose }) 
               <span className="font-semibold text-gray-700">Achievements</span>
             </div>
             <div className="space-y-2">
-              {progress.level >= 5 && (
+              {progress.Lesson >= 5 && (
                 <div className="flex items-center gap-2 text-sm text-orange-700">
-                  🏆 <span>Explorer - Reached level 5!</span>
+                  🏆 <span>Explorer - Reached Lesson 5!</span>
                 </div>
               )}
               {progress.totalStars >= 50 && (

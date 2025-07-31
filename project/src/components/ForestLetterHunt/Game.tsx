@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getRandomLetters, getPhonicsPrompt, getLevelTheme } from './utils/gameLogic';
+import { getRandomLetters, getPhonicsPrompt, getLessonTheme } from './utils/gameLogic';
 import { useAudio } from './useAudio';
 import { Star, Trophy, Heart } from 'lucide-react';
 import Bush from './Bush';
@@ -12,7 +12,7 @@ export interface GameSettings {
 }
 
 export interface GameProgress {
-  level: number;
+  Lesson: number;
   totalStars: number;
   lettersLearned: string[];
   accuracy: number;
@@ -40,16 +40,16 @@ const Game: React.FC<GameProps> = ({ settings, progress, onProgressUpdate }) => 
   const [currentTargetIndex, setCurrentTargetIndex] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<{ index: number; type: 'correct' | 'incorrect' | null } | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
-  const [gamePhase, setGamePhase] = useState<'playing' | 'levelComplete'>('playing');
+  const [gamePhase, setGamePhase] = useState<'playing' | 'LessonComplete'>('playing');
   const [lives, setLives] = useState(3);
   const [totalGuesses, setTotalGuesses] = useState(0);
   const [correctGuesses, setCorrectGuesses] = useState(0);
 
   const { playSound, speak } = useAudio(settings.audioEnabled);
-  const levelTheme = getLevelTheme(progress.level);
+  const LessonTheme = getLessonTheme(progress.Lesson);
 
-  // Start a new level
-  const startLevel = useCallback(() => {
+  // Start a new Lesson
+  const startLesson = useCallback(() => {
     const letters = getRandomLetters(settings.difficulty, settings.letterCase);
     setBushLetters(letters);
     setFoundIndexes([]);
@@ -73,8 +73,8 @@ const Game: React.FC<GameProps> = ({ settings, progress, onProgressUpdate }) => 
   }, [settings, speak]);
 
   useEffect(() => {
-    startLevel();
-  }, [startLevel]);
+    startLesson();
+  }, [startLesson]);
 
   // Helper: get available (not found) indexes
   const getAvailableIndexes = () => bushLetters.map((_, i) => i).filter(i => !foundIndexes.includes(i));
@@ -93,25 +93,25 @@ const Game: React.FC<GameProps> = ({ settings, progress, onProgressUpdate }) => 
       setFoundIndexes(newFound);
       setTimeout(() => {
         setFeedback(null);
-        // If all found, level complete
+        // If all found, Lesson complete
         if (newFound.length === bushLetters.length) {
           setShowCelebration(true);
-          setGamePhase('levelComplete');
+          setGamePhase('LessonComplete');
           // Update progress
           const newProgress = {
             ...progress,
-            level: progress.level + 1,
+            Lesson: progress.Lesson + 1,
             totalStars: progress.totalStars + 3,
             lettersLearned: [...new Set([...progress.lettersLearned, ...bushLetters])],
             accuracy: Math.round(((correctGuesses + 1) / (totalGuesses + 1)) * 100),
             gamesPlayed: progress.gamesPlayed + 1
           };
           onProgressUpdate(newProgress);
-          speak('Level complete! Amazing work!');
+          speak('Lesson complete! Amazing work!');
           setTimeout(() => {
             setShowCelebration(false);
             setGamePhase('playing');
-            startLevel();
+            startLesson();
           }, 3000);
         } else {
           // Shuffle remaining
@@ -150,7 +150,7 @@ const Game: React.FC<GameProps> = ({ settings, progress, onProgressUpdate }) => 
       setTimeout(() => setFeedback(null), 1000);
       setLives(prev => prev - 1);
       if (lives <= 1) {
-        setTimeout(() => startLevel(), 1200);
+        setTimeout(() => startLesson(), 1200);
       }
     }
   };
@@ -182,13 +182,13 @@ const Game: React.FC<GameProps> = ({ settings, progress, onProgressUpdate }) => 
   const walkStart = bushPositions[0];
   const walkEnd = bushPositions[4];
 
-  // Only animate on first render of the level
+  // Only animate on first render of the Lesson
   const [walk, setWalk] = useState(true);
   useEffect(() => {
     setWalk(true);
     const timeout = setTimeout(() => setWalk(false), 2500); // 2.5s walk duration
     return () => clearTimeout(timeout);
-  }, [progress.level]);
+  }, [progress.Lesson]);
 
   // Monkey position: at the current target bush (or first bush if null)
   const monkeyIndex = currentTargetIndex !== null ? currentTargetIndex : 0;
@@ -200,7 +200,7 @@ const Game: React.FC<GameProps> = ({ settings, progress, onProgressUpdate }) => 
       <div className="flex flex-wrap justify-between items-center mb-6 bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg">
         <div className="flex items-center gap-4">
           <div className="text-lg font-bold text-green-800">
-            Level {progress.level} • {levelTheme.name}
+            Lesson {progress.Lesson} • {LessonTheme.name}
           </div>
           <div className="flex gap-1">
             {Array.from({ length: lives }).map((_, i) => (
@@ -221,7 +221,7 @@ const Game: React.FC<GameProps> = ({ settings, progress, onProgressUpdate }) => 
       {/* Current Challenge */}
       <div className="text-center mb-8">
         <div 
-          className={`text-2xl md:text-3xl lg:text-4xl font-bold mb-4 p-6 rounded-xl shadow-lg ${levelTheme.colors.prompt}`}
+          className={`text-2xl md:text-3xl lg:text-4xl font-bold mb-4 p-6 rounded-xl shadow-lg ${LessonTheme.colors.prompt}`}
         >
           {getCurrentPrompt()}
         </div>
@@ -271,7 +271,7 @@ const Game: React.FC<GameProps> = ({ settings, progress, onProgressUpdate }) => 
           <div className="bg-gradient-to-br from-yellow-300 to-orange-300 p-8 rounded-3xl shadow-2xl text-center animate-bounce">
             <Trophy className="mx-auto text-yellow-700 mb-4" size={64} />
             <h2 className="text-4xl font-bold text-yellow-800 mb-2">
-              Level Complete!
+              Lesson Complete!
             </h2>
             <p className="text-xl text-yellow-700 mb-4">
               You earned 3 stars! 🌟🌟🌟

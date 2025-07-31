@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, Star, Home, ArrowLeft } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
 import GameMenu from '../components/Knowme/GameMenu';
 import MyBodySection from '../components/Knowme/MyBodySection';
 import MyLikesSection from '../components/Knowme/MyLikesSection';
 import ParticleBackground from '../components/Knowme/ParticleBackground';
 
 interface KnowMeActivityProps {
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 const KnowMeActivity: React.FC<KnowMeActivityProps> = ({ onClose }) => {
+  console.log('KnowMeActivity component rendered!');
+  const navigate = useNavigate();
+  const { childId } = useParams<{ childId: string }>();
   const [currentSection, setCurrentSection] = useState<'menu' | 'body' | 'likes'>('menu');
   const [stars, setStars] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -30,6 +34,14 @@ const KnowMeActivity: React.FC<KnowMeActivityProps> = ({ onClose }) => {
     if (!completedActivities.includes(activityId)) {
       setCompletedActivities(prev => [...prev, activityId]);
       addStars(1);
+    }
+  };
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      navigate(`/child-dashboard/${childId}`);
     }
   };
 
@@ -113,7 +125,7 @@ const KnowMeActivity: React.FC<KnowMeActivityProps> = ({ onClose }) => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={onClose}
+              onClick={handleClose}
               className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white p-2 sm:p-2.5 rounded-xl shadow-lg transition-all duration-300 touch-manipulation min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center"
             >
               <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />

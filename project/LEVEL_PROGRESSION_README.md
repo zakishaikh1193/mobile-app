@@ -1,6 +1,6 @@
-# 🎮 Level Progression System
+# 🎮 Lesson Progression System
 
-A 2D Candy Crush-style level progression map for children's learning applications.
+A 2D Candy Crush-style Lesson progression map for children's learning applications.
 
 ## 🎨 Features
 
@@ -10,15 +10,15 @@ A 2D Candy Crush-style level progression map for children's learning application
 - **Themed Zones**: Forest 🌳, Snow ❄️, River 🌊, Desert 🏜️, Castle 🏰
 - **Interactive Elements**: Bridges, signposts, trees, rocks, and rivers
 
-### Level System
-- **10 Levels**: L1 to L10 with progressive difficulty
+### Lesson System
+- **10 Lessons**: L1 to L10 with progressive difficulty
 - **Star Rating**: 1-3 stars based on performance
-- **Locked/Unlocked**: Levels unlock as previous ones are completed
+- **Locked/Unlocked**: Lessons unlock as previous ones are completed
 - **Zone Progression**: Each zone has unique themes and challenges
 
 ### Interactive Features
-- **Hover Tooltips**: Detailed level information on hover
-- **Click to Play**: Navigate to child dashboard with level context
+- **Hover Tooltips**: Detailed Lesson information on hover
+- **Click to Play**: Navigate to child dashboard with Lesson context
 - **Progress Tracking**: Visual progress bar showing completion percentage
 - **Animations**: Smooth transitions and particle effects
 
@@ -26,18 +26,18 @@ A 2D Candy Crush-style level progression map for children's learning application
 
 ### 1. Parent Login Flow
 ```
-Parent Login → Parent Dashboard → Click Child → Level Selection Page → Choose Level → Child Dashboard
+Parent Login → Parent Dashboard → Click Child → Lesson Selection Page → Choose Lesson → Child Dashboard
 ```
 
-### 2. Level Selection
+### 2. Lesson Selection
 - After parent login, click on a child's avatar
-- This takes you to the level progression map
-- Click on any unlocked level to start playing
-- Levels are automatically locked/unlocked based on completion
+- This takes you to the Lesson progression map
+- Click on any unlocked Lesson to start playing
+- Lessons are automatically locked/unlocked based on completion
 
 ### 3. Navigation
 - **Back Button**: Returns to parent dashboard
-- **Level Click**: Navigates to child dashboard with level context
+- **Lesson Click**: Navigates to child dashboard with Lesson context
 - **Progress Bar**: Shows overall completion percentage
 
 ## 📁 File Structure
@@ -45,15 +45,15 @@ Parent Login → Parent Dashboard → Click Child → Level Selection Page → C
 ```
 src/
 ├── components/
-│   └── LevelProgressionMap.tsx     # Main level map component
+│   └── LessonProgressionMap.tsx     # Main Lesson map component
 ├── pages/
-│   └── LevelSelectionPage.tsx      # Page that displays the level map
+│   └── LessonSelectionPage.tsx      # Page that displays the Lesson map
 ├── data/
-│   └── levelData.ts               # Level definitions and metadata
+│   └── LessonData.ts               # Lesson definitions and metadata
 └── App.tsx                        # Updated with new route
 ```
 
-## 🎯 Level Types
+## 🎯 Lesson Types
 
 ### Game Types
 - **Math** 🔢: Numbers, counting, calculations
@@ -65,31 +65,31 @@ src/
 - **Matching** 🔗: Find pairs and patterns
 - **Story** 📚: Reading and comprehension
 
-### Difficulty Levels
+### Difficulty Lessons
 - **Easy**: Basic concepts, simple interactions
 - **Medium**: More complex tasks, multi-step processes
 - **Hard**: Advanced challenges, comprehensive skills
 
 ## 📊 Data Structure
 
-### Level Metadata
+### Lesson Metadata
 ```typescript
-interface LevelData {
-  id: string;                    // Level ID (e.g., "L1")
-  number: number;                // Level number
-  title: string;                 // Level title
-  description: string;           // Level description
+interface LessonData {
+  id: string;                    // Lesson ID (e.g., "L1")
+  number: number;                // Lesson number
+  title: string;                 // Lesson title
+  description: string;           // Lesson description
   stars: number;                 // Stars earned (0-3)
   isCompleted: boolean;          // Completion status
   isLocked: boolean;             // Lock status
   zone: string;                  // Themed zone
   gameType: string;              // Type of game
-  difficulty: string;            // Difficulty level
+  difficulty: string;            // Difficulty Lesson
   childId: string;               // Associated child
   learningObjectives: string[];  // Learning goals
   skills: string[];              // Skills developed
   estimatedDuration: number;     // Time in minutes
-  prerequisites: string[];       // Required completed levels
+  prerequisites: string[];       // Required completed Lessons
   rewards: {                     // Rewards for completion
     badges: string[];
     points: number;
@@ -105,20 +105,20 @@ interface LevelData {
 
 ## 🔧 Customization
 
-### Adding New Levels
-1. Update `defaultLevels` array in `levelData.ts`
-2. Add new level metadata with all required fields
-3. Set appropriate prerequisites for level progression
+### Adding New Lessons
+1. Update `defaultLessons` array in `LessonData.ts`
+2. Add new Lesson metadata with all required fields
+3. Set appropriate prerequisites for Lesson progression
 
 ### Modifying Zones
-1. Update `zoneThemes` object in `levelData.ts`
+1. Update `zoneThemes` object in `LessonData.ts`
 2. Add new zone with color, emoji, background, and music
-3. Update level assignments to use new zones
+3. Update Lesson assignments to use new zones
 
 ### Changing Game Types
-1. Update `gameTypes` object in `levelData.ts`
+1. Update `gameTypes` object in `LessonData.ts`
 2. Add new game type with name, description, icon, and color
-3. Update `gameTypeIcons` in `LevelProgressionMap.tsx`
+3. Update `gameTypeIcons` in `LessonProgressionMap.tsx`
 
 ## 🎨 Styling
 
@@ -131,34 +131,34 @@ interface LevelData {
 
 ### Animations
 - **Framer Motion**: Smooth transitions and hover effects
-- **Particle Effects**: Floating particles for completed levels
+- **Particle Effects**: Floating particles for completed Lessons
 - **Path Animation**: Animated winding path with gradient colors
-- **Level Unlocking**: Scale and glow effects for new levels
+- **Lesson Unlocking**: Scale and glow effects for new Lessons
 
 ## 🔗 Integration
 
 ### With Child Dashboard
-- Level context is passed via URL parameters
-- Child dashboard can access selected level information
-- Progress updates can be saved back to the level system
+- Lesson context is passed via URL parameters
+- Child dashboard can access selected Lesson information
+- Progress updates can be saved back to the Lesson system
 
 ### With Backend
-- Level data can be fetched from API instead of hardcoded
+- Lesson data can be fetched from API instead of hardcoded
 - Progress can be synced with user accounts
-- Analytics can track level completion and performance
+- Analytics can track Lesson completion and performance
 
 ## 📱 Mobile Support
 
 ### Touch Interactions
-- Tap to select levels
+- Tap to select Lessons
 - Swipe to navigate (future enhancement)
 - Responsive design for all screen sizes
 - Touch-friendly button sizes (minimum 44px)
 
 ### Performance
 - Optimized animations for mobile devices
-- Lazy loading of level content
-- Efficient rendering of large level maps
+- Lazy loading of Lesson content
+- Efficient rendering of large Lesson maps
 
 ## 🎯 Future Enhancements
 
@@ -173,7 +173,7 @@ interface LevelData {
 ### Technical Improvements
 - **Backend Integration**: Real progress tracking
 - **Analytics**: Detailed learning analytics
-- **A/B Testing**: Different level layouts
+- **A/B Testing**: Different Lesson layouts
 - **Accessibility**: Screen reader support
 - **Internationalization**: Multiple languages
 
@@ -186,22 +186,22 @@ interface LevelData {
 
 2. **Import Components**
    ```typescript
-   import LevelProgressionMap from './components/LevelProgressionMap';
-   import { generateChildLevels } from './data/levelData';
+   import LessonProgressionMap from './components/LessonProgressionMap';
+   import { generateChildLessons } from './data/LessonData';
    ```
 
 3. **Use in Your App**
    ```typescript
-   <LevelProgressionMap
+   <LessonProgressionMap
      childId="child123"
-     onLevelSelect={(levelId) => console.log('Selected:', levelId)}
+     onLessonSelect={(LessonId) => console.log('Selected:', LessonId)}
      onBack={() => navigate('/parent-dashboard')}
    />
    ```
 
-4. **Customize Levels**
+4. **Customize Lessons**
    ```typescript
-   const levels = generateChildLevels(childId, completedLevels);
+   const Lessons = generateChildLessons(childId, completedLessons);
    ```
 
 ## 📝 Notes
@@ -216,7 +216,7 @@ interface LevelData {
 ## 🤝 Contributing
 
 When adding new features:
-1. Update the data structures in `levelData.ts`
+1. Update the data structures in `LessonData.ts`
 2. Add corresponding UI components
 3. Update the documentation
 4. Test on mobile devices

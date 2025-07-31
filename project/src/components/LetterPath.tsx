@@ -12,7 +12,7 @@ const BADGES = [
   '/badges/B5.png',
 ];
 
-const LEVELS = 5;
+const LessonS = 5;
 
 const getProgress = () => {
   try {
@@ -31,7 +31,7 @@ const LetterPath: React.FC = () => {
   const { childId } = useParams<{ childId: string }>();
   const { user, updateChildProgress } = useAuth();
   const [progress, setProgressState] = useState<number[]>(getProgress());
-  const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
+  const [selectedLesson, setSelectedLesson] = useState<number | null>(null);
   const [restartTrigger, setRestartTrigger] = useState(0);
   const [isDesktop, setIsDesktop] = useState(false);
 
@@ -63,15 +63,15 @@ const LetterPath: React.FC = () => {
     return progressValues.reduce((sum, val) => sum + val, 0) / progressValues.length;
   };
 
-  // Check if level should be unlocked based on progress
-  const shouldUnlockLevel = (level: number) => {
-    if (level === 1) return true; // Level 1 is always unlocked
-    // All other levels require teacher approval - mock system
-    return false; // Only Level 1 is accessible
+  // Check if Lesson should be unlocked based on progress
+  const shouldUnlockLesson = (Lesson: number) => {
+    if (Lesson === 1) return true; // Lesson 1 is always unlocked
+    // All other Lessons require teacher approval - mock system
+    return false; // Only Lesson 1 is accessible
   };
 
-  // Level data with details
-  const levelData = [
+  // Lesson data with details
+  const LessonData = [
     {
       id: 1,
       title: 'All About Me and My Family',
@@ -152,13 +152,13 @@ const LetterPath: React.FC = () => {
     setProgress(progress);
   }, [progress]);
 
-  const handleStart = (level: number) => {
-    if (level === 1) {
-      // Navigate to children's dashboard for level 1
+  const handleStart = (Lesson: number) => {
+    if (Lesson === 1) {
+      // Navigate to children's dashboard for Lesson 1
       navigate(`/child-dashboard/${childId}`);
     } else {
-      // For other levels, stay in standalone mode
-      console.log(`Starting level ${level} - standalone mode`);
+      // For other Lessons, stay in standalone mode
+      console.log(`Starting Lesson ${Lesson} - standalone mode`);
     }
   };
 
@@ -166,7 +166,7 @@ const LetterPath: React.FC = () => {
     navigate('/parent-dashboard');
   };
 
-  const handleRestart = (level: number) => {
+  const handleRestart = (Lesson: number) => {
     // Show confirmation dialog
     const confirmed = window.confirm(
       'Are you sure you want to restart everything?\n\n' +
@@ -174,7 +174,7 @@ const LetterPath: React.FC = () => {
       '• All learning progress to 0%\n' +
       '• Day streak to 0\n' +
       '• All earned badges\n' +
-      '• Level progress\n' +
+      '• Lesson progress\n' +
       '• Teacher notifications\n\n' +
       'This action cannot be undone!'
     );
@@ -262,7 +262,7 @@ const LetterPath: React.FC = () => {
       setRestartTrigger(prev => prev + 1);
       
       // Close modal if open
-      setSelectedLevel(null);
+      setSelectedLesson(null);
       
       // Force page reload to ensure all components update
       setTimeout(() => {
@@ -271,23 +271,23 @@ const LetterPath: React.FC = () => {
     }
   };
 
-  const handleLevelClick = (level: number) => {
-    setSelectedLevel(level);
+  const handleLessonClick = (Lesson: number) => {
+    setSelectedLesson(Lesson);
   };
 
-  const handleStartLevel = (level: number) => {
-    setSelectedLevel(null);
-    if (level === 1) {
-      // Navigate to children's dashboard for level 1
+  const handleStartLesson = (Lesson: number) => {
+    setSelectedLesson(null);
+    if (Lesson === 1) {
+      // Navigate to children's dashboard for Lesson 1
       navigate(`/child-dashboard/${childId}`);
     } else {
-      // For other levels, stay in standalone mode
-      console.log(`Starting level ${level} from popup - standalone mode`);
+      // For other Lessons, stay in standalone mode
+      console.log(`Starting Lesson ${Lesson} from popup - standalone mode`);
     }
   };
 
   const handleCloseModal = () => {
-    setSelectedLevel(null);
+    setSelectedLesson(null);
   };
 
 
@@ -307,7 +307,7 @@ const LetterPath: React.FC = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-100 to-blue-200 px-2 sm:px-4 md:px-8 py-4 sm:py-8">
       {/* Blurred BG.png image as the only background */}
       <img
-        src="/words/BG.png"
+        src="/words/BG.jpg"
         alt="Background"
         className="fixed inset-0 w-full h-full object-cover z-0 opacity-60"
         style={{ minHeight: '100vh', minWidth: '100vw', objectFit: 'cover', zIndex: 0 }}
@@ -324,58 +324,58 @@ const LetterPath: React.FC = () => {
       <h1 className="text-3xl font-extrabold text-center text-green-600 mb-8 mt-2 tracking-tight" style={{ fontFamily: 'Comic Sans MS, Comic Sans, cursive' }}></h1>
       <div className="relative w-full h-[600px] md:h-[400px] flex items-center justify-center px-2 sm:px-4 md:px-8">
         
-        {/* Curved Level Layout */}
+        {/* Curved Lesson Layout */}
         <div className="relative w-full h-full">
-          {[...Array(LEVELS)].map((_, idx) => {
-            const level = idx + 1;
-            const isUnlocked = shouldUnlockLevel(level);
-            // Only Level 1 can be completed, and only when all activities are 100%
-            const isCompleted = level === 1 && getOverallProgress() >= 100;
+          {[...Array(LessonS)].map((_, idx) => {
+            const Lesson = idx + 1;
+            const isUnlocked = shouldUnlockLesson(Lesson);
+            // Only Lesson 1 can be completed, and only when all activities are 100%
+            const isCompleted = Lesson === 1 && getOverallProgress() >= 100;
             const badgeSrc = BADGES[idx];
             const overallProgress = getOverallProgress();
             
-            // Curved positioning for levels - horizontal desktop, V-shape mobile
-            const getLevelPosition = (index: number) => {
+            // Curved positioning for Lessons - horizontal desktop, V-shape mobile
+            const getLessonPosition = (index: number) => {
               if (isDesktop) {
                 // Desktop: horizontal straight line
                 const positions = [
-                  { x: 10, y: 50 },   // Level 1: Left
-                  { x: 30, y: 50 },   // Level 2: Left-center
-                  { x: 50, y: 50 },   // Level 3: Center
-                  { x: 70, y: 50 },   // Level 4: Right-center
-                  { x: 90, y: 50 }    // Level 5: Right
+                  { x: 10, y: 50 },   // Lesson 1: Left
+                  { x: 30, y: 50 },   // Lesson 2: Left-center
+                  { x: 50, y: 50 },   // Lesson 3: Center
+                  { x: 70, y: 50 },   // Lesson 4: Right-center
+                  { x: 90, y: 50 }    // Lesson 5: Right
                 ];
                 return { left: `${positions[index].x}%`, top: `${positions[index].y}%` };
               } else {
                 // Mobile & iPad: vertical inverted V-shape
                 const positions = [
-                  { x: 65, y: -12 },   // Level 1: Top center
-                  { x: 25, y: 22 },   // Level 2: Mid-left
-                  { x: 70, y: 62 },   // Level 3: Mid-right
-                  { x: 30, y: 102 },   // Level 4: Bottom-left
-                  { x: 70, y: 142 }    // Level 5: Bottom-right
+                  { x: 65, y: -12 },   // Lesson 1: Top center
+                  { x: 25, y: 22 },   // Lesson 2: Mid-left
+                  { x: 70, y: 62 },   // Lesson 3: Mid-right
+                  { x: 30, y: 102 },   // Lesson 4: Bottom-left
+                  { x: 70, y: 142 }    // Lesson 5: Bottom-right
                 ];
                 return { left: `${positions[index].x}%`, top: `${positions[index].y}%` };
               }
             };
             
-            const position = getLevelPosition(idx);
+            const position = getLessonPosition(idx);
             
             return (
               <div 
-                key={level} 
+                key={Lesson} 
                 className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20"
                 style={position}
               >
               <div className="mb-2 flex flex-col items-center">
                 <motion.button
-                  onClick={() => handleLevelClick(level)}
+                  onClick={() => handleLessonClick(Lesson)}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="cursor-pointer relative"
                 >
-                  {/* Progress Circle for Level 1 */}
-                  {level === 1 && (
+                  {/* Progress Circle for Lesson 1 */}
+                  {Lesson === 1 && (
                     <div className="absolute -inset-2 flex items-center justify-center z-10 bg-blue-100 rounded-full">
                       <svg className="w-24 sm:w-26 md:w-28 h-24 sm:h-26 md:h-28 transform -rotate-90" viewBox="0 0 100 100">
                         {/* Background circle */}
@@ -411,23 +411,23 @@ const LetterPath: React.FC = () => {
                   
                   <img
                     src={badgeSrc}
-                    alt={`Level ${level} Badge`}
+                    alt={`Lesson ${Lesson} Badge`}
                     className={`w-16 sm:w-20 md:w-24 h-16 sm:h-20 md:h-24 rounded-full shadow-lg border-4 transition-all duration-300 z-20 relative ${isCompleted ? 'border-green-500 scale-110 animate-bounce' : isUnlocked ? 'border-yellow-400 grayscale' : 'border-gray-300 grayscale opacity-60'} ${isCompleted ? '' : 'hover:scale-105'}`}
                     style={{ filter: isCompleted ? 'none' : 'grayscale(100%)', background: '#fff' }}
                   />
                 </motion.button>
-                <span className="text-base sm:text-lg md:text-xl font-bold text-gray-700 mt-2">Level {level}</span>
+                <span className="text-base sm:text-lg md:text-xl font-bold text-gray-700 mt-2">Lesson {Lesson}</span>
               </div>
               <div className="flex flex-row gap-2 items-center justify-center mt-1">
                 {isCompleted ? (
                   <>
-                    <div className="text-green-600 font-bold">✓ Level 1 Complete!</div>
+                    <div className="text-green-600 font-bold">✓ Lesson 1 Complete!</div>
                   </>
                 ) : isUnlocked ? (
                   <>
                     <button
                       className="px-6 py-2 rounded-full bg-green-500 text-white font-bold shadow hover:bg-green-600 active:scale-95 transition"
-                      onClick={() => handleStart(level)}
+                      onClick={() => handleStart(Lesson)}
                     >
                       Start
                     </button>
@@ -445,9 +445,9 @@ const LetterPath: React.FC = () => {
         </div>
       </div>
 
-      {/* Level Details Popup Modal */}
+      {/* Lesson Details Popup Modal */}
       <AnimatePresence>
-        {selectedLevel && (
+        {selectedLesson && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -462,21 +462,21 @@ const LetterPath: React.FC = () => {
               className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              {selectedLevel && (
+              {selectedLesson && (
                 <div className="p-6">
                   {/* Header */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <img
-                        src={BADGES[selectedLevel - 1]}
-                        alt={`Level ${selectedLevel} Badge`}
+                        src={BADGES[selectedLesson - 1]}
+                        alt={`Lesson ${selectedLesson} Badge`}
                         className="w-12 h-12 rounded-full border-2 border-yellow-400"
                       />
                       <div>
                         <h2 className="text-xl font-bold text-gray-800">
-                          {levelData[selectedLevel - 1].title}
+                          {LessonData[selectedLesson - 1].title}
                         </h2>
-                        <p className="text-sm text-gray-600">Level {selectedLevel}</p>
+                        <p className="text-sm text-gray-600">Lesson {selectedLesson}</p>
                       </div>
                     </div>
                     <button
@@ -489,23 +489,23 @@ const LetterPath: React.FC = () => {
 
                   {/* Description */}
                   <p className="text-gray-700 mb-4">
-                    {levelData[selectedLevel - 1].description}
+                    {LessonData[selectedLesson - 1].description}
                   </p>
 
                   {/* Difficulty and Time */}
                   <div className="flex items-center gap-4 mb-4">
                     <div className="flex items-center gap-2">
                       <div className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        levelData[selectedLevel - 1].difficulty === 'Easy' ? 'bg-green-100 text-green-700' :
-                        levelData[selectedLevel - 1].difficulty === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
+                        LessonData[selectedLesson - 1].difficulty === 'Easy' ? 'bg-green-100 text-green-700' :
+                        LessonData[selectedLesson - 1].difficulty === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
                         'bg-red-100 text-red-700'
                       }`}>
-                        {levelData[selectedLevel - 1].difficulty}
+                        {LessonData[selectedLesson - 1].difficulty}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <span>Time:</span>
-                      <span>{levelData[selectedLevel - 1].estimatedTime} min</span>
+                      <span>{LessonData[selectedLesson - 1].estimatedTime} min</span>
                     </div>
                   </div>
 
@@ -513,7 +513,7 @@ const LetterPath: React.FC = () => {
                   <div className="mb-4">
                     <h3 className="font-semibold text-gray-800 mb-2">Learning Objectives:</h3>
                     <ul className="space-y-1">
-                      {levelData[selectedLevel - 1].objectives.map((objective, index) => (
+                      {LessonData[selectedLesson - 1].objectives.map((objective, index) => (
                         <li key={index} className="flex items-start gap-2 text-sm text-gray-700">
                           <span className="text-green-500 mt-1">•</span>
                           <span>{objective}</span>
@@ -526,7 +526,7 @@ const LetterPath: React.FC = () => {
                   <div className="mb-4">
                     <h3 className="font-semibold text-gray-800 mb-2">Skills You'll Learn:</h3>
                     <div className="flex flex-wrap gap-2">
-                      {levelData[selectedLevel - 1].skills.map((skill, index) => (
+                      {LessonData[selectedLesson - 1].skills.map((skill, index) => (
                         <span
                           key={index}
                           className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium"
@@ -544,17 +544,17 @@ const LetterPath: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <Star className="w-5 h-5 text-yellow-500 fill-current" />
                         <span className="text-sm text-gray-700">
-                          {levelData[selectedLevel - 1].rewards.stars} Stars
+                          {LessonData[selectedLesson - 1].rewards.stars} Stars
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-700">
-                          {levelData[selectedLevel - 1].rewards.points} Points ({Math.floor(levelData[selectedLevel - 1].rewards.points / 6)} per activity)
+                          {LessonData[selectedLesson - 1].rewards.points} Points ({Math.floor(LessonData[selectedLesson - 1].rewards.points / 6)} per activity)
                         </span>
                       </div>
                     </div>
                     <div className="mt-2">
-                      {levelData[selectedLevel - 1].rewards.badges.map((badge, index) => (
+                      {LessonData[selectedLesson - 1].rewards.badges.map((badge, index) => (
                         <span
                           key={index}
                           className="inline-block px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium mr-2"
@@ -567,15 +567,15 @@ const LetterPath: React.FC = () => {
 
                   {/* Action Buttons */}
                   <div className="flex gap-3">
-                    {selectedLevel === 1 ? (
+                    {selectedLesson === 1 ? (
                       <motion.button
-                        onClick={() => handleStartLevel(selectedLevel)}
+                        onClick={() => handleStartLesson(selectedLesson)}
                         className="flex-1 flex items-center justify-center gap-2 bg-green-500 text-white py-3 px-4 rounded-xl font-semibold hover:bg-green-600 transition-colors"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
                         <Play className="w-4 h-4" />
-                        Start Level
+                        Start Lesson
                       </motion.button>
                     ) : (
                       <div className="flex-1 flex items-center justify-center gap-2 bg-gray-300 text-gray-500 py-3 px-4 rounded-xl font-semibold">
@@ -584,10 +584,10 @@ const LetterPath: React.FC = () => {
                       </div>
                     )}
                     
-                    {(selectedLevel === 1 && getOverallProgress() >= 100) && (
+                    {(selectedLesson === 1 && getOverallProgress() >= 100) && (
                       <motion.button
                         onClick={() => {
-                          handleRestart(selectedLevel);
+                          handleRestart(selectedLesson);
                           handleCloseModal();
                         }}
                         className="flex items-center justify-center gap-2 bg-yellow-500 text-white py-3 px-4 rounded-xl font-semibold hover:bg-yellow-600 transition-colors"

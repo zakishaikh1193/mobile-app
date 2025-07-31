@@ -1,4 +1,4 @@
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { BookOpen, Palette, Calculator, Heart, User, Users, Camera, ArrowLeft } from 'lucide-react';
@@ -8,21 +8,16 @@ import KodeitLogo from '../components/KodeitLogo';
 import AnimatedButton from '../components/AnimatedButton';
 import AudioButton from '../components/AudioButton';
 import ProgressWheel from '../components/ProgressWheel';
-import { useContentLibrary } from '../contexts/ContentLibraryContext';
 import EducationalGame from './EducationalGame';
 import { useProgressService } from '../services/progressService';
-
-const KnowMeActivity = React.lazy(() => import('./KnowMeActivity'));
 
 const ChildDashboard: React.FC = () => {
   const { childId } = useParams<{ childId: string }>();
   const { user } = useAuth();
   const { speak } = useAudio();
   const navigate = useNavigate();
-  const { contentLibrary } = useContentLibrary();
   const { updateProgress, completeCard, updateStreakAndBadges } = useProgressService();
   const [htmlModalUrl, setHtmlModalUrl] = useState<string | null>(null);
-  const [showKnowMe, setShowKnowMe] = useState(false);
   const [updateTrigger, setUpdateTrigger] = useState(0);
 
   const child = user?.children?.find(c => c.id === childId);
@@ -323,7 +318,8 @@ const ChildDashboard: React.FC = () => {
                   } else if (hub.id === 'educational-game') {
                     navigate(`/educational-game/${child.id}`);
                   } else if (hub.id === 'know-me') {
-                    setShowKnowMe(true);
+                    console.log('Know Me button clicked!');
+                    navigate(`/know-me/${child.id}`);
                   } else if (hub.id === 'word-match') {
                     navigate(`/word-match/${child.id}`);
                   } else if (hub.id === 'tap-translation') {
@@ -406,22 +402,6 @@ const ChildDashboard: React.FC = () => {
           </AnimatedButton>
         </motion.div>
       </div>
-
-      {/* Know Me Activity Modal/Page */}
-      {showKnowMe && (
-        <div className="fixed inset-0 z-50 bg-white">
-          <Suspense fallback={
-            <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading Know Me Activity...</p>
-              </div>
-            </div>
-          }>
-            <KnowMeActivity onClose={() => setShowKnowMe(false)} />
-          </Suspense>
-        </div>
-      )}
     </div>
   );
 };

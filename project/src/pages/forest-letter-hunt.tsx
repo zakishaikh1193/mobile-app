@@ -17,7 +17,7 @@ export interface GameSettings {
 }
 
 export interface GameProgress {
-  level: number;
+  Lesson: number;
   totalStars: number;
   lettersLearned: string[];
   accuracy: number;
@@ -36,7 +36,7 @@ const ForestLetterHuntPage: React.FC = () => {
     letterCase: 'uppercase'
   });
   const [progress, setProgress] = useState<GameProgress>({
-    level: 1,
+    Lesson: 1,
     totalStars: 0,
     lettersLearned: [],
     accuracy: 100,
@@ -129,7 +129,7 @@ const ForestLetterHuntPage: React.FC = () => {
         <Settings
           soundEnabled={settings.audioEnabled}
           onToggleSound={() => setSettings(s => ({ ...s, audioEnabled: !s.audioEnabled }))}
-          onResetProgress={() => setProgress({ level: 1, totalStars: 0, lettersLearned: [], accuracy: 100, gamesPlayed: 0 })}
+          onResetProgress={() => setProgress({ Lesson: 1, totalStars: 0, lettersLearned: [], accuracy: 100, gamesPlayed: 0 })}
           onBackToMenu={() => setShowSettings(false)}
         />
       )}
