@@ -157,8 +157,14 @@ const ParentDashboard = () => {
 
   const handleSwitchToChild = async (childId: string, childName: string) => {
     try {
-      await switchToChild(childId);
-      speak(`Welcome ${childName}! Let's start learning!`);
+      const success = await switchToChild(childId);
+      if (success) {
+        speak(`Welcome ${childName}! Let's start learning!`);
+        // Navigate to the LetterPath component for the selected child
+        navigate(`/letter-path/${childId}`, { replace: true });
+      } else {
+        console.error('Failed to switch to child');
+      }
     } catch (error) {
       console.error('Error switching to child:', error);
     }

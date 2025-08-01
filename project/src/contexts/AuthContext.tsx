@@ -69,8 +69,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (userData: RegisterData) => Promise<void>;
   createChild: (childData: CreateChildData) => Promise<void>;
-  switchToChild: (childId: string) => Promise<void>;
-  switchBackToParent: () => Promise<void>;
+  switchToChild: (childId: string) => Promise<boolean>;
+  switchBackToParent: () => Promise<boolean>;
   updateUser: (userData: Partial<User>) => void;
   updateChildProgress: (childId: string, hubId: string, progressValue: number) => void;
   logout: () => void;
@@ -258,8 +258,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const switchToChild = async (childId: string): Promise<void> => {
-    if (!user || user.role !== 'parent') return;
+  const switchToChild = async (childId: string): Promise<boolean> => {
+    if (!user || user.role !== 'parent') return false;
     
     setLoading(true);
     try {
@@ -267,58 +267,77 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const response = await authAPI.switchToChild(Number(childId));
       console.log('Switch response:', response);
       
+      if (!response || !response.token || !response.user) {
+        throw new Error('Invalid response from server');
+      }
+      
       // Store current parent user data and token
       setParentUser(user);
       const currentToken = localStorage.getItem('token');
       setParentToken(currentToken);
       
-      // Update token and set child as current user - DON'T use handleAuthSuccess
+      // Update token and set child as current user
       localStorage.setItem('token', response.token);
-      setUser(response.user);
+      
+      // Update the user state with the new child user data
+      setUser({
+        ...response.user,
+        isChild: true,
+        parentId: user.id,
+        parentContext: true
+      });
+      
       console.log('Child user set:', response.user);
       
-      // Set loading to false BEFORE navigation to avoid PrivateRoute issues
-      setLoading(false);
-      
-      // Navigate to LetterPath with childId
-      navigate(`/letter-path/${childId}`);
+      // Return success status instead of navigating here
+      return true;
       
     } catch (error: any) {
       console.error('Switch to child error:', error);
       setError(error.response?.data?.message || 'Failed to switch to child');
       setLoading(false);
-      throw error;
+      return false;
+    } finally {
+      setLoading(false);
     }
   };
 
-  const switchBackToParent = async (): Promise<void> => {
+  const switchBackToParent = async (): Promise<boolean> => {
     if (!parentUser || !parentToken) {
       console.error('No parent user or token stored');
-      return;
+      return false;
     }
     
     setLoading(true);
     try {
       console.log('Switching back to parent:', parentUser);
-      // Restore parent user and token
-      setUser(parentUser);
-      localStorage.setItem('token', parentToken);
       
-      // Clear parent storage
+      // Ensure parentToken is a string before using it
+      const tokenToUse = parentToken || '';
+      localStorage.setItem('token', tokenToUse);
+      
+      // Update user state with parent data
+      setUser({
+        ...parentUser,
+        isChild: false,
+        parentContext: false
+      });
+      
+      // Clear parent data from state
       setParentUser(null);
       setParentToken(null);
       
-      // Navigate back to parent dashboard
+      console.log('Successfully switched back to parent user');
+      
+      // Navigate to parent dashboard
       navigate('/parent/dashboard');
       
-    } catch (error: any) {
+      return true;
+      
+    } catch (error) {
       console.error('Error switching back to parent:', error);
-      // Fallback: clear everything and go to login
-      localStorage.removeItem('token');
-      setUser(null);
-      setParentUser(null);
-      setParentToken(null);
-      navigate('/login');
+      setError('Failed to switch back to parent account');
+      return false;
     } finally {
       setLoading(false);
     }
