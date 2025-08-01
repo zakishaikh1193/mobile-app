@@ -5,6 +5,7 @@ const contentRoutes = require('./routes/contentRoutes');
 const activityRoutes = require('./routes/activityRoutes');
 const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const childRoutes = require('./routes/childRoutes');
 const { errorHandler } = require('./middleware/error');
 const pool = require('./models/db');
 require('dotenv').config();
@@ -23,6 +24,7 @@ app.use('/uploads', express.static('uploads'));
 // API Routes
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/children', childRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/activities', activityRoutes);
 

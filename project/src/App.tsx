@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AudioProvider } from './contexts/AudioContext';
+import './index.css';
 import { ContentLibraryProvider, ContentLibraryDebug } from './contexts/ContentLibraryContext';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
@@ -15,16 +16,14 @@ import ParentDashboard from './pages/ParentDashboard';
 import TeacherPortal from './pages/TeacherPortal';
 import LetterPath from './components/LetterPath';
 import LetterMatchingGame from './pages/LetterMatchingGame';
-import ForestLetterHunt from './pages/forest-letter-hunt';
 import EducationalGame from './pages/EducationalGame';
 import WordMatchGame from './components/WordMatchGame';
-import KnowMeActivity from './pages/KnowMeActivity';
-import './index.css';
+import ForestLetterHuntGame from './components/ForestLetterHunt/Game';
 
 // A wrapper for routes that require authentication
-const PrivateRoute: React.FC<{ children: React.ReactNode, roles?: Array<'admin' | 'teacher' | 'student'> }> = ({ 
+const PrivateRoute: React.FC<{ children: React.ReactNode, roles?: Array<'admin' | 'teacher' | 'parent' | 'student'> }> = ({ 
   children, 
-  roles = ['admin', 'teacher', 'student'] 
+  roles = ['admin', 'teacher', 'parent', 'student'] 
 }) => {
   const { user, loading } = useAuth();
   
@@ -32,11 +31,19 @@ const PrivateRoute: React.FC<{ children: React.ReactNode, roles?: Array<'admin' 
     return <div>Loading...</div>; // Or a loading spinner
   }
   
-  if (!user) {
+  // Check if there's a token in localStorage (user switching scenario)
+  const token = localStorage.getItem('token');
+  
+  if (!user && !token) {
     return <Navigate to="/login" />;
   }
   
-  if (!roles.includes(user.role)) {
+  // If we have a token but no user yet, show loading (switching scenario)
+  if (!user && token) {
+    return <div>Loading...</div>;
+  }
+  
+  if (user && !roles.includes(user.role)) {
     // You should create a simple "Unauthorized" page for a better user experience
     return <Navigate to="/" />; 
   }
@@ -52,20 +59,42 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return <div>Loading...</div>; // Or a loading spinner
   }
   
+  // Redirect authenticated users appropriately
   if (user) {
-    // Redirect student users to the LetterPath component
-    if (user.role === 'student') {
-      return <Navigate to="/student/letter-path" replace />;
+    const currentPath = window.location.pathname;
+    
+    // Always redirect from login/register pages
+    if (currentPath === '/login' || currentPath === '/register') {
+      switch (user.role) {
+        case 'admin':
+          return <Navigate to="/admin/dashboard" />;
+        case 'teacher':
+          return <Navigate to="/teacher/dashboard" />;
+        case 'parent':
+          return <Navigate to="/parent/dashboard" />;
+        case 'student':
+          // Let students navigate freely, don't force redirect
+          return <>{children}</>;
+        default:
+          return <>{children}</>;
+      }
     }
     
-    // Redirect based on user role for other user types
-    switch (user.role) {
-      case 'admin':
-        return <Navigate to="/admin/dashboard" />;
-      case 'teacher':
-        return <Navigate to="/teacher/dashboard" />;
-      default:
-        return <Navigate to="/student/dashboard" />;
+    // Redirect from root path only for non-students
+    if (currentPath === '/') {
+      switch (user.role) {
+        case 'admin':
+          return <Navigate to="/admin/dashboard" />;
+        case 'teacher':
+          return <Navigate to="/teacher/dashboard" />;
+        case 'parent':
+          return <Navigate to="/parent/dashboard" />;
+        case 'student':
+          // Students can stay on landing page or navigate freely
+          return <>{children}</>;
+        default:
+          return <>{children}</>;
+      }
     }
   }
   
@@ -79,7 +108,11 @@ const AppRoutes = () => {
       <ContentLibraryDebug />
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={
+          <PublicRoute>
+            <LandingPage />
+          </PublicRoute>
+        } />
         
         {/* Auth Routes */}
         <Route path="/login" element={
@@ -95,7 +128,7 @@ const AppRoutes = () => {
             <Routes>
               <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="portal" element={<AdminPortal />} />
-              <Route path="/users/new" element={ <RegisterPage /> } />
+              <Route path="users/new" element={<RegisterPage />} />
               <Route path="users" element={<div>User Management</div>} />
               <Route path="content" element={<div>Content Management</div>} />
             </Routes>
@@ -113,6 +146,22 @@ const AppRoutes = () => {
           </PrivateRoute>
         } />
         
+        {/* Parent Routes */}
+        <Route path="/parent/*" element={
+          <PrivateRoute roles={['parent']}>
+            <Routes>
+              <Route path="dashboard" element={<ParentDashboard />} />
+            </Routes>
+          </PrivateRoute>
+        } />
+        
+        {/* Letter Path Routes */}
+        <Route path="/letter-path/:childId" element={
+          <PrivateRoute>
+            <LetterPath />
+          </PrivateRoute>
+        } />
+        
         {/* Student Routes */}
         <Route path="/student/*" element={
           <PrivateRoute roles={['student']}>
@@ -121,7 +170,6 @@ const AppRoutes = () => {
               <Route path="letter-path" element={<LetterPath />} />
               <Route path="activities" element={<LearningHub />} />
               <Route path="progress" element={<div>My Progress</div>} />
-              <Route index element={<Navigate to="letter-path" replace />} />
             </Routes>
           </PrivateRoute>
         } />
@@ -149,32 +197,47 @@ const AppRoutes = () => {
           </PrivateRoute>
         } />
         
-        {/* Game Routes */}
         <Route path="/letter-matching/:childId" element={
-          <PrivateRoute roles={['student']}>
+          <PrivateRoute>
             <LetterMatchingGame />
           </PrivateRoute>
         } />
-        <Route path="/forest-letter-hunt/:childId" element={
-          <PrivateRoute roles={['student']}>
-            <ForestLetterHunt />
+        
+        {/* <Route path="/forest-letter-hunt/:childId" element={
+          <PrivateRoute>
+            <ForestLetterHuntGame />
           </PrivateRoute>
-        } />
+        } /> */}
+        
         <Route path="/educational-game/:childId" element={
-          <PrivateRoute roles={['student']}>
+          <PrivateRoute>
             <EducationalGame />
           </PrivateRoute>
         } />
+        
         <Route path="/word-match/:childId" element={
-          <PrivateRoute roles={['student']}>
+          <PrivateRoute>
             <WordMatchGame />
           </PrivateRoute>
         } />
-        {/* <Route path="/know-me" element={
-          <PrivateRoute roles={['student']}>
-            <KnowMeActivity />
+        
+        <Route path="/tap-translation" element={
+          <PrivateRoute>
+            <div>Tap Translation Game - Coming Soon!</div>
           </PrivateRoute>
-        } /> */}
+        } />
+        
+        <Route path="/ar-zone/:childId" element={
+          <PrivateRoute>
+            <div>AR Zone - Coming Soon!</div>
+          </PrivateRoute>
+        } />
+        
+        <Route path="/learning/:hubId/:childId" element={
+          <PrivateRoute>
+            <LearningHub />
+          </PrivateRoute>
+        } />
         
         {/* 404 Route */}
         <Route path="*" element={<Navigate to="/" />} />

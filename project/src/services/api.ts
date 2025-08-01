@@ -31,7 +31,13 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Clear token and redirect to login if token is invalid/expired
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      
+      // Don't automatically redirect if we're in an admin flow or API call
+      // Let the component handle the error appropriately
+      const currentPath = window.location.pathname;
+      if (!currentPath.startsWith('/admin/')) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
@@ -50,9 +56,10 @@ export const authAPI = {
     username: string;
     email: string;
     password: string;
-    role: 'admin' | 'teacher' | 'student';
+    role: 'admin' | 'teacher' | 'parent' | 'student';
     firstName: string;
     lastName: string;
+    max_children?: number;
   }) => {
     const response = await api.post('/users/register', userData);
     return response.data;
@@ -85,6 +92,47 @@ export const authAPI = {
   // Delete user (Admin only)
   deleteUser: async (userId: number) => {
     const response = await api.delete(`/users/${userId}`);
+    return response.data;
+  },
+
+  // Create child profile (Parent only)
+  createChild: async (childData: {
+    firstName: string;
+    username: string;
+    age: number;
+    gender: 'boy' | 'girl';
+    avatar?: string;
+  }) => {
+    const response = await api.post('/children', childData);
+    return response.data;
+  },
+
+  // Get children for parent
+  getChildren: async () => {
+    const response = await api.get('/children');
+    return response.data;
+  },
+
+  // Switch to child context (Parent only)
+  switchToChild: async (childId: number) => {
+    const response = await api.post(`/children/${childId}/switch`);
+    return response.data;
+  },
+
+  // Update child progress
+  updateChildProgress: async (childId: number, progressData: {
+    activityType: string;
+    activityId: string;
+    progressValue: number;
+    completed?: boolean;
+  }) => {
+    const response = await api.put(`/children/${childId}/progress`, progressData);
+    return response.data;
+  },
+
+  // Delete child (Parent only)
+  deleteChild: async (childId: number) => {
+    const response = await api.delete(`/children/${childId}`);
     return response.data;
   },
 };

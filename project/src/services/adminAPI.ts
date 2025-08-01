@@ -6,9 +6,10 @@ export const adminAPI = {
     username: string;
     email: string;
     password: string;
-    role: 'admin' | 'teacher' | 'student';
+    role: 'admin' | 'teacher' | 'parent' | 'student';
     firstName: string;
     lastName: string;
+    maxChildren?: number;
   }) => {
     const response = await api.post('/admin/users', userData);
     return response.data;
@@ -31,4 +32,5 @@ export const adminAPI = {
     const response = await api.delete(`/admin/users/${userId}`);
     return response.data;
   },
+
 };

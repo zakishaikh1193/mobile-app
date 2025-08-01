@@ -56,6 +56,17 @@ export const useProgressService = () => {
     checkLevel1Completion(childId);
   };
 
+  const completeActivity = (childId: string, hubId: string, progressValue: number = 100) => {
+    // This method should be called when an activity is actually completed
+    updateProgress(childId, hubId, progressValue);
+    
+    // Update day streak and badges only when activity is completed
+    if (progressValue >= 100) {
+      updateStreakAndBadges(childId, hubId);
+      checkLevel1Completion(childId);
+    }
+  };
+
   const checkLevel1Completion = (childId: string) => {
     // Get current user data
     const savedUser = localStorage.getItem('kodeit_user');
@@ -164,5 +175,5 @@ export const useProgressService = () => {
     }
   };
 
-  return { updateProgress, completeCard, updateStreakAndBadges, sendTeacherNotification };
+  return { updateProgress, completeCard, completeActivity, updateStreakAndBadges, sendTeacherNotification };
 }; 

@@ -104,8 +104,8 @@ const AdminDashboard: React.FC = () => {
 
       <Grid container spacing={3}>
         {dashboardItems.map((item, index) => (
-          
-            <Card 
+          <Grid item xs={12} sm={6} md={4} key={index}>
+            <Card
               variant="outlined" 
               sx={{ 
                 height: '100%',
@@ -139,7 +139,7 @@ const AdminDashboard: React.FC = () => {
                 </Button>
               </CardActions>
             </Card>
-          
+          </Grid>
         ))}
       </Grid>
 

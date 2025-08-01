@@ -1,7 +1,7 @@
 import React, { useEffect, useState, Suspense, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
-import { BookOpen, Palette, Calculator, Heart, User, Users, Camera, ArrowLeft } from 'lucide-react';
+import { BookOpen, Palette, Calculator, Heart, User, Users, Camera, ArrowLeft, Home } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAudio } from '../contexts/AudioContext';
 import KodeitLogo from '../components/KodeitLogo';
@@ -14,16 +14,16 @@ import api from '../services/api';
 
 const KnowMeActivity = React.lazy(() => import('./KnowMeActivity'));
 
-const ChildDashboard: React.FC = () => {
+const ChildDashboard = () => {
   // Hooks at the top level - no conditional returns before these
-  const { childId } = useParams<{ childId: string }>();
-  const { user, updateUser } = useAuth();
+  const { childId } = useParams();
+  const { user, updateUser, switchBackToParent } = useAuth();
   const { speak } = useAudio();
   const navigate = useNavigate();
   const { updateProgress, completeCard, updateStreakAndBadges } = useProgressService();
   
   // State declarations
-  const [htmlModalUrl, setHtmlModalUrl] = useState<string | null>(null);
+  const [htmlModalUrl, setHtmlModalUrl] = useState(null);
   const [showKnowMe, setShowKnowMe] = useState(false);
   const [updateTrigger, setUpdateTrigger] = useState(0);
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
@@ -37,7 +37,7 @@ const ChildDashboard: React.FC = () => {
   
   
   // Memoized callbacks
-  const handleAvatarSelect = useCallback(async (avatarUrl: string) => {
+  const handleAvatarSelect = useCallback(async (avatarUrl) => {
     try {
       if (!user) return;
       
@@ -53,6 +53,15 @@ const ChildDashboard: React.FC = () => {
       // Handle error (could show a toast or alert)
     }
   }, [user, updateUser, speak]);
+
+  const handleBackToParent = useCallback(async () => {
+    try {
+      await switchBackToParent();
+      speak('Welcome back!');
+    } catch (error) {
+      console.error('Error switching back to parent:', error);
+    }
+  }, [switchBackToParent, speak]);
 
   // Effects
   useEffect(() => {
@@ -235,15 +244,27 @@ const ChildDashboard: React.FC = () => {
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-4">
-            <AnimatedButton
-              variant="secondary"
-              size="sm"
-              onClick={() => navigate(`/letter-path/${childId}`)}
-              className="flex items-center space-x-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Back</span>
-            </AnimatedButton>
+            {user?.parentContext ? (
+              <AnimatedButton
+                variant="secondary"
+                size="sm"
+                onClick={handleBackToParent}
+                className="flex items-center space-x-2"
+              >
+                <Home className="h-4 w-4" />
+                <span>Back to Parent</span>
+              </AnimatedButton>
+            ) : (
+              <AnimatedButton
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate(`/letter-path/${childId}`)}
+                className="flex items-center space-x-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back to Letter Path</span>
+              </AnimatedButton>
+            )}
             <KodeitLogo size="md" />
           </div>
           <div className="flex items-center space-x-4">
@@ -366,12 +387,7 @@ const ChildDashboard: React.FC = () => {
                   getProgressValue(hub.id) >= 100 ? 'ring-4 ring-green-500 ring-opacity-50' : ''
                 }`}
                 onClick={() => {
-                  // Complete the card when clicked
-                  completeCard(child.id.toString(), hub.id);
-                  
-                  // Force re-render to update streaks and badges
-                  setUpdateTrigger(prev => prev + 1);
-                  
+                  // Navigate to the activity without auto-completing
                   if (hub.id === 'literacy') {
                     navigate(`/letter-matching/${child.id}`);
                   } else if (hub.id === 'forest-letter-hunt') {
