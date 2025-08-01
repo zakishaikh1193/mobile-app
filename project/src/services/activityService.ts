@@ -15,8 +15,8 @@ export interface Activity {
     updated_at: string;
   }
   
-  // CHANGE: Make sure your VITE_API_URL is the base backend URL, e.g., http://localhost:3000
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
   const API_ENDPOINT = `${API_BASE_URL}/api/activities`;
   
   class ActivityService {

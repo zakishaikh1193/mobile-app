@@ -155,7 +155,7 @@ const LetterPath: React.FC = () => {
   const handleStart = (level: number) => {
     if (level === 1) {
       // Navigate to children's dashboard for level 1
-      navigate(`/child-dashboard/${childId}`);
+      navigate(`/student/dashboard`);
     } else {
       // For other levels, stay in standalone mode
       console.log(`Starting level ${level} - standalone mode`);

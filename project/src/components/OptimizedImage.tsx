@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 
 // Function to generate a tiny blurred image as a placeholder
@@ -78,23 +78,52 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
     };
   }, [lazy]);
 
-  // Load the actual image when in view
+  // Load the actual image when in view or src changes
   useEffect(() => {
     if (!isInView) return;
-
-    const img = new window.Image();
-    img.src = src;
     
-    img.onload = () => {
+    let isMounted = true;
+    const img = new window.Image();
+    
+    const handleLoad = () => {
+      if (!isMounted) return;
       setImageSrc(src);
       setIsLoaded(true);
     };
 
-    img.onerror = () => {
+    const handleError = () => {
+      if (!isMounted) return;
       console.error(`Failed to load image: ${src}`);
-      if (!placeholderSrc) setImageSrc('');
+      setImageSrc(placeholderSrc || '');
+      setIsLoaded(false);
+    };
+
+    // Set up event listeners before setting src
+    img.src = src;
+    const loadEvent = 'decode' in img ? 'decode' : 'load';
+    
+    if (loadEvent === 'decode' && typeof img.decode === 'function') {
+      img.decode()
+        .then(handleLoad)
+        .catch(handleError);
+    } else {
+      img.onload = handleLoad;
+      img.onerror = handleError;
+    }
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      img.onload = null;
+      img.onerror = null;
+      img.src = ''; // Cancel any in-progress requests
     };
   }, [src, isInView, placeholderSrc]);
+  
+  // Reset loaded state when src changes
+  useEffect(() => {
+    setIsLoaded(false);
+  }, [src]);
 
   // Generate blur placeholder if not provided
   const blurPlaceholder = useMemo(() => {
