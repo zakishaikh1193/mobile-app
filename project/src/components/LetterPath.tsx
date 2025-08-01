@@ -307,7 +307,7 @@ const LetterPath: React.FC = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-100 to-blue-200 px-2 sm:px-4 md:px-8 py-4 sm:py-8">
       {/* Blurred BG.png image as the only background */}
       <img
-        src="/words/BG.png"
+        src="/words/BG.webp"
         alt="Background"
         className="fixed inset-0 w-full h-full object-cover z-0 opacity-60"
         style={{ minHeight: '100vh', minWidth: '100vw', objectFit: 'cover', zIndex: 0 }}
