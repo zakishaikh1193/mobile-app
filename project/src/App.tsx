@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AudioProvider } from './contexts/AudioContext';
 import './index.css';
@@ -26,26 +26,38 @@ const PrivateRoute: React.FC<{ children: React.ReactNode, roles?: Array<'admin' 
   roles = ['admin', 'teacher', 'parent', 'student'] 
 }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
   
   if (loading) {
-    return <div>Loading...</div>; // Or a loading spinner
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+    </div>;
   }
   
-  // Check if there's a token in localStorage (user switching scenario)
+  // Check if there's a token in localStorage
   const token = localStorage.getItem('token');
   
-  if (!user && !token) {
-    return <Navigate to="/login" />;
+  // If no token, redirect to login
+  if (!token) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
   
-  // If we have a token but no user yet, show loading (switching scenario)
-  if (!user && token) {
-    return <div>Loading...</div>;
+  // If we have a token but no user yet, show loading (auth in progress)
+  if (!user) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+    </div>;
   }
   
+  // Check if user has the required role
   if (user && !roles.includes(user.role)) {
-    // You should create a simple "Unauthorized" page for a better user experience
-    return <Navigate to="/" />; 
+    // If user is a child in parent context, allow access to child routes
+    if (user.isChild && user.parentContext) {
+      return <>{children}</>;
+    }
+    // Otherwise, redirect to appropriate dashboard
+    const dashboardPath = `/${user.role}/dashboard`;
+    return <Navigate to={dashboardPath} state={{ from: location }} replace />;
   }
   
   return <>{children}</>;
