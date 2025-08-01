@@ -23,7 +23,7 @@ const ParentDashboard: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-      speak(`Welcome to your learning land, ${user.firstName}! Add your child Name and Start your fun learning.`);
+      speak(`Welcome to your learning land, ${user.first_name}! Add your child Name and Start your fun learning.`);
     }
   }, [user, speak]);
 
