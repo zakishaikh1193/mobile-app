@@ -19,26 +19,59 @@ const auth = async (req, res, next) => {
     // Verify token
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret');
+      console.log('Auth middleware - Decoded token:', decoded);
       
-      // Get user from the token
-      const userId = decoded.userId || decoded.id; // Support both userId and id for backward compatibility
-      const [users] = await db.query('SELECT * FROM users WHERE id = ?', [userId]);
-      
-      if (users.length === 0) {
-        return res.status(401).json({ message: 'User not found' });
-      }
+      // Check if this is a child token
+      if (decoded.isChild) {
+        console.log('Processing child token for childId:', decoded.id);
+        // Get child from the token
+        const childId = decoded.id;
+        const [children] = await db.query('SELECT * FROM children WHERE id = ?', [childId]);
+        
+        if (children.length === 0) {
+          return res.status(401).json({ message: 'Child not found' });
+        }
 
-      // Check if user is active
-      if (!users[0].is_active) {
-        return res.status(401).json({ message: 'User account is deactivated' });
-      }
+        // Check if child is active
+        if (!children[0].is_active) {
+          return res.status(401).json({ message: 'Child account is deactivated' });
+        }
 
-      // Remove password from user object
-      const { password, ...user } = users[0];
-      
-      // Add user to request object
-      req.user = user;
-      next();
+        // Remove password from child object and add child info
+        const { password, ...child } = children[0];
+        
+        // Add child to request object with consistent interface
+        req.user = {
+          ...child,
+          role: 'student',
+          isChild: true,
+          parentId: child.parent_id
+        };
+        next();
+      } else {
+        // Regular user authentication
+        const userId = decoded.id;
+        console.log('Auth middleware - Looking for user with ID:', userId);
+        const [users] = await db.query('SELECT * FROM users WHERE id = ?', [userId]);
+        console.log('Auth middleware - Found users:', users.length);
+        
+        if (users.length === 0) {
+          console.log('Auth middleware - No user found with ID:', userId);
+          return res.status(401).json({ message: 'User not found' });
+        }
+
+        // Check if user is active
+        if (!users[0].is_active) {
+          return res.status(401).json({ message: 'User account is deactivated' });
+        }
+
+        // Remove password from user object
+        const { password, ...user } = users[0];
+        
+        // Add user to request object
+        req.user = user;
+        next();
+      }
     } catch (error) {
       console.error('Token verification failed:', error);
       return res.status(401).json({ message: 'Token is not valid' });
@@ -81,6 +114,16 @@ const teacher = (req, res, next) => {
   next();
 };
 
+// Parent middleware
+const parent = (req, res, next) => {
+  if (req.user.role !== 'parent' && req.user.role !== 'admin') {
+    return res.status(403).json({
+      message: 'Parent or admin access required'
+    });
+  }
+  next();
+};
+
 // Student middleware
 const student = (req, res, next) => {
   if (req.user.role !== 'student' && req.user.role !== 'teacher' && req.user.role !== 'admin') {
@@ -96,5 +139,6 @@ module.exports = {
   authorize,
   admin,
   teacher,
+  parent,
   student
 };

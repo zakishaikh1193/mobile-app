@@ -29,7 +29,7 @@ const setProgress = (progress: number[]) => {
 const LetterPath: React.FC = () => {
   const navigate = useNavigate();
   const { childId } = useParams<{ childId: string }>();
-  const { user, updateChildProgress } = useAuth();
+  const { user, updateChildProgress, switchBackToParent } = useAuth();
   const [progress, setProgressState] = useState<number[]>(getProgress());
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
   const [restartTrigger, setRestartTrigger] = useState(0);
@@ -154,16 +154,22 @@ const LetterPath: React.FC = () => {
 
   const handleStart = (level: number) => {
     if (level === 1) {
-      // Navigate to children's dashboard for level 1
-      navigate(`/student/dashboard`);
+      // Navigate to student dashboard for level 1
+      navigate('/student/dashboard');
     } else {
       // For other levels, stay in standalone mode
       console.log(`Starting level ${level} - standalone mode`);
     }
   };
 
-  const handleBackToParent = () => {
-    navigate('/parent-dashboard');
+  const handleBackToParent = async () => {
+    try {
+      await switchBackToParent();
+    } catch (error) {
+      console.error('Error switching back to parent:', error);
+      // Fallback navigation
+      navigate('/parent/dashboard');
+    }
   };
 
   const handleRestart = (level: number) => {
@@ -278,8 +284,8 @@ const LetterPath: React.FC = () => {
   const handleStartLevel = (level: number) => {
     setSelectedLevel(null);
     if (level === 1) {
-      // Navigate to children's dashboard for level 1
-      navigate(`/child-dashboard/${childId}`);
+      // Navigate to student dashboard for level 1
+      navigate('/student/dashboard');
     } else {
       // For other levels, stay in standalone mode
       console.log(`Starting level ${level} from popup - standalone mode`);

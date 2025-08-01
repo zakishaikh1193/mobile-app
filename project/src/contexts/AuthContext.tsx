@@ -27,33 +27,50 @@ export interface User {
   id: string | number;
   username: string;
   email: string;
-  role: 'admin' | 'teacher' | 'student';
+  role: 'admin' | 'teacher' | 'parent' | 'student';
   first_name: string;
   last_name: string;
   isActive?: boolean;
   avatar?: string;
+  max_children?: number;
   children?: Child[];
   created_at: string;
   updated_at: string;
   progress?: Progress;
   streak?: number;
   badges?: string[];
+  isChild?: boolean;
+  parentId?: number;
+  parentContext?: boolean; // Flag to indicate parent is accessing child context
 }
 
 export interface RegisterData {
   username: string;
   email: string;
   password: string;
-  role: 'admin' | 'teacher' | 'student';
+  role: 'admin' | 'teacher' | 'parent' | 'student';
   firstName: string;
   lastName: string;
+  first_name?: string;
+  last_name?: string;
+  max_children?: number;
+}
+
+export interface CreateChildData {
+  firstName: string;
+  username: string;
+  age: number;
+  gender: 'boy' | 'girl';
+  avatar?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
   register: (userData: RegisterData) => Promise<void>;
-  createChild: (childData: Omit<Child, 'id' | 'progress'>) => Promise<void>;
+  createChild: (childData: CreateChildData) => Promise<void>;
+  switchToChild: (childId: string) => Promise<void>;
+  switchBackToParent: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
   updateChildProgress: (childId: string, hubId: string, progressValue: number) => void;
   logout: () => void;
@@ -76,6 +93,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [parentUser, setParentUser] = useState<User | null>(null); // Store parent data when switching to child
+  const [parentToken, setParentToken] = useState<string | null>(null); // Store parent token
   const navigate = useNavigate();
 
   const clearError = useCallback(() => setError(null), []);
@@ -87,6 +106,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       navigate('/admin/dashboard');
     } else if (userData.role === 'teacher') {
       navigate('/teacher/dashboard');
+    } else if (userData.role === 'parent') {
+      navigate('/parent/dashboard');
     } else {
       navigate('/student/dashboard');
     }
@@ -94,18 +115,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const loadUser = useCallback(async () => {
     const token = localStorage.getItem('token');
+    console.log('AuthContext - loadUser called, token:', token ? 'exists' : 'not found');
     if (!token) {
+      console.log('AuthContext - no token found, setting loading to false');
       setLoading(false);
       return;
     }
 
     try {
+      console.log('AuthContext - attempting to get profile with token');
       const userData = await authAPI.getProfile();
+      console.log('AuthContext - profile loaded successfully:', userData);
       setUser(userData);
     } catch (error) {
-      console.error('Error loading user:', error);
+      console.error('AuthContext - error loading user:', error);
       localStorage.removeItem('token');
     } finally {
+      console.log('AuthContext - loadUser finished, setting loading to false');
       setLoading(false);
     }
   }, []);
@@ -129,12 +155,39 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  // Helper type for the registration API payload
+  type RegisterAPIPayload = {
+    username: string;
+    email: string;
+    password: string;
+    role: 'admin' | 'teacher' | 'student' | 'parent';
+    firstName: string;
+    lastName: string;
+    max_children?: number;
+  };
+
   const register = async (userData: RegisterData): Promise<void> => {
     setLoading(true);
     setError(null);
     
     try {
-      const response = await authAPI.register(userData);
+      // Prepare the data to match the backend's expected format
+      const registrationData: RegisterAPIPayload = {
+        username: userData.username,
+        email: userData.email,
+        password: userData.password,
+        role: userData.role,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+      };
+
+      // Only include max_children for parent role
+      if (userData.role === 'parent') {
+        registrationData.max_children = userData.max_children || 3;
+      }
+      
+      // Type assertion needed because the API types aren't perfectly aligned with our frontend types
+      const response = await authAPI.register(registrationData as any);
       handleAuthSuccess(response.token, response.user);
     } catch (error: any) {
       setError(error.response?.data?.message || 'Registration failed. Please try again.');
@@ -156,38 +209,116 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const createChild = async (childData: Omit<Child, 'id' | 'progress'>): Promise<void> => {
+  // Type for the child creation API payload
+  type CreateChildAPIPayload = {
+    first_name: string;
+    username: string;
+    age: number;
+    gender: 'boy' | 'girl';
+    avatar?: string;
+    role: 'student';
+    password: string;
+    email: string;
+  };
+
+  const createChild = async (childData: {
+    firstName: string;
+    username: string;
+    age: number;
+    gender: 'boy' | 'girl';
+    avatar?: string;
+  }): Promise<void> => {
     if (!user) return;
     
     setLoading(true);
     try {
-      // In a real app, this would be an API call to your backend
-      // For now, we'll simulate it with a local update
-      const newChild: Child = {
-        id: `child-${Date.now()}`,
-        ...childData,
-        progress: {},
-        streak: 0,
-        badges: [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+      // Prepare the child data in the format expected by the backend
+      const childRequest: CreateChildAPIPayload = {
+        first_name: childData.firstName,
+        username: childData.username,
+        age: childData.age,
+        gender: childData.gender,
+        avatar: childData.avatar,
+        role: 'student',
+        password: 'defaultPassword123!', // Temporary password, should be changed
+        email: `${childData.username}@child.local`
       };
       
-      const updatedUser = {
-        ...user,
-        children: [...(user.children || []), newChild]
-      };
+      // Type assertion to handle the API call with our formatted data
+      await authAPI.createChild(childRequest as any);
       
-      setUser(updatedUser);
-      
-      // In a real app, you would save this to the backend:
-      // await api.post('/children', childData);
-      // Then reload the user data:
-      // await loadUser();
+      // Reload user data to get updated children list and max_children
+      await loadUser();
       
     } catch (error: any) {
       setError(error.response?.data?.message || 'Failed to create child profile');
       throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const switchToChild = async (childId: string): Promise<void> => {
+    if (!user || user.role !== 'parent') return;
+    
+    setLoading(true);
+    try {
+      console.log('Switching to child:', childId);
+      const response = await authAPI.switchToChild(Number(childId));
+      console.log('Switch response:', response);
+      
+      // Store current parent user data and token
+      setParentUser(user);
+      const currentToken = localStorage.getItem('token');
+      setParentToken(currentToken);
+      
+      // Update token and set child as current user - DON'T use handleAuthSuccess
+      localStorage.setItem('token', response.token);
+      setUser(response.user);
+      console.log('Child user set:', response.user);
+      
+      // Set loading to false BEFORE navigation to avoid PrivateRoute issues
+      setLoading(false);
+      
+      // Navigate to LetterPath with childId
+      navigate(`/letter-path/${childId}`);
+      
+    } catch (error: any) {
+      console.error('Switch to child error:', error);
+      setError(error.response?.data?.message || 'Failed to switch to child');
+      setLoading(false);
+      throw error;
+    }
+  };
+
+  const switchBackToParent = async (): Promise<void> => {
+    if (!parentUser || !parentToken) {
+      console.error('No parent user or token stored');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      console.log('Switching back to parent:', parentUser);
+      // Restore parent user and token
+      setUser(parentUser);
+      localStorage.setItem('token', parentToken);
+      
+      // Clear parent storage
+      setParentUser(null);
+      setParentToken(null);
+      
+      // Navigate back to parent dashboard
+      navigate('/parent/dashboard');
+      
+    } catch (error: any) {
+      console.error('Error switching back to parent:', error);
+      // Fallback: clear everything and go to login
+      localStorage.removeItem('token');
+      setUser(null);
+      setParentUser(null);
+      setParentToken(null);
+      navigate('/login');
     } finally {
       setLoading(false);
     }
@@ -245,6 +376,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     login,
     register,
     createChild,
+    switchToChild,
+    switchBackToParent,
     updateUser,
     updateChildProgress,
     logout,

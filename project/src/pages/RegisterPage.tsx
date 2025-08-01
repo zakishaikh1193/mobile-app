@@ -17,7 +17,7 @@ import {
   SelectChangeEvent
 } from '@mui/material';
 
-type Role = 'teacher' | 'student';
+type Role = 'admin' | 'teacher' | 'parent';
 
 const RegisterPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -27,26 +27,35 @@ const RegisterPage: React.FC = () => {
     confirmPassword: '',
     firstName: '',
     lastName: '',
-    role: 'student' as Role
+    role: 'admin' as Role
   });
   
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [isAdminFlow, setIsAdminFlow] = useState(false);
-  const { user, register } = useAuth();
+  const [maxChildren, setMaxChildren] = useState(3); // Default to 3 children for parents
+  const { user, register, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   // Check if we're in admin user creation flow
   useEffect(() => {
+    console.log('RegisterPage - Auth loading:', authLoading, 'User:', user);
+    
+    // Don't process until auth is loaded
+    if (authLoading) return;
+    
     const isAdmin = user?.role === 'admin';
+    console.log('RegisterPage - Is admin:', isAdmin);
     setIsAdminFlow(isAdmin);
     
-    // // If not admin and trying to access admin route, redirect
-    // if (location.pathname.startsWith('/admin/') && !isAdmin) {
-    //   navigate('/');
-    // }
-  }, [user, location.pathname, navigate]);
+    // If not admin and trying to access admin route, redirect
+    if (location.pathname.startsWith('/admin/') && !isAdmin && user) {
+      console.log('RegisterPage - Not an admin, redirecting to login');
+      navigate('/login');
+    }
+  }, [user, authLoading, location.pathname, navigate]);
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -63,6 +72,11 @@ const RegisterPage: React.FC = () => {
     }));
   };
 
+  const handleMaxChildrenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value) || 1;
+    setMaxChildren(Math.max(1, Math.min(10, value))); // Limit between 1 and 10
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -77,16 +91,28 @@ const RegisterPage: React.FC = () => {
     try {
       if (isAdminFlow) {
         // Use admin API to create user
-        await adminAPI.createUser({
+        const userData: any = {
           username: formData.username,
           email: formData.email,
           password: formData.password,
           role: formData.role,
           firstName: formData.firstName,
           lastName: formData.lastName
-        });
-        // Redirect to users list after successful creation
-        window.location.href = '/admin/users';
+        };
+
+        // Add max_children for parents
+        if (formData.role === 'parent') {
+          userData.maxChildren = maxChildren;
+          console.log('Parent max_children:', userData.maxChildren);
+        }
+
+        console.log('Creating user with data:', userData);
+        const result = await adminAPI.createUser(userData);
+        console.log('User created successfully:', result);
+        
+        // Show success message and redirect to admin dashboard
+        alert(`${formData.role} user created successfully!`);
+        navigate('/admin/dashboard');
       } else {
         // Regular user registration
         await register({
@@ -100,11 +126,52 @@ const RegisterPage: React.FC = () => {
         // Navigation is handled in the AuthContext after successful registration
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to create account';
+      console.error('Registration error:', error);
+      
+      // Handle different types of errors
+      let errorMessage = 'Failed to create account';
+      
+      if (error.response) {
+        // Server responded with error status
+        errorMessage = error.response.data?.message || `Server error: ${error.response.status}`;
+        console.error('Server error:', error.response.data);
+      } else if (error.request) {
+        // Request was made but no response received
+        errorMessage = 'No response from server. Please check your connection.';
+        console.error('No response:', error.request);
+      } else {
+        // Something else happened
+        errorMessage = error.message || 'Unknown error occurred';
+        console.error('Error:', error.message);
+      }
+      
       setError(errorMessage);
+    } finally {
       setLoading(false);
     }
   };
+
+  // Show loading spinner while auth is loading
+  if (authLoading) {
+    return (
+      <Container component="main" maxWidth="sm">
+        <Box
+          sx={{
+            marginTop: 8,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '50vh'
+          }}
+        >
+          <Typography variant="h6" gutterBottom>
+            Loading...
+          </Typography>
+        </Box>
+      </Container>
+    );
+  }
 
   return (
     <Container component="main" maxWidth="sm">
@@ -120,6 +187,14 @@ const RegisterPage: React.FC = () => {
           <Typography component="h1" variant="h5" align="center" gutterBottom>
             {isAdminFlow ? 'Create New User Account' : 'Create New Account'}
           </Typography>
+          
+          {/* Debug info in development */}
+          {process.env.NODE_ENV === 'development' && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Debug: isAdminFlow={String(isAdminFlow)}, userRole={user?.role || 'none'}, 
+              maxChildren={maxChildren}
+            </Alert>
+          )}
           
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -188,10 +263,27 @@ const RegisterPage: React.FC = () => {
                 label="Role"
                 onChange={handleRoleChange}
               >
-                <MenuItem value="student">Student</MenuItem>
+                <MenuItem value="admin">Admin</MenuItem>
+                <MenuItem value="parent">Parent</MenuItem>
                 <MenuItem value="teacher">Teacher</MenuItem>
               </Select>
             </FormControl>
+            
+            {isAdminFlow && formData.role === 'parent' && (
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                id="maxChildren"
+                label="Maximum Children Allowed"
+                name="maxChildren"
+                type="number"
+                inputProps={{ min: 1, max: 10 }}
+                value={maxChildren}
+                onChange={handleMaxChildrenChange}
+                helperText="Enter the maximum number of children this parent can create (1-10)"
+              />
+            )}
             
             <TextField
               margin="normal"

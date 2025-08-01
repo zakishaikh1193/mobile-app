@@ -38,10 +38,13 @@ exports.registerUser = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // Set default max_children based on role
+    const maxChildren = role === 'parent' ? 3 : 0;
+    
     // Create user
     const [result] = await db.query(
-      'INSERT INTO users (username, email, password, role, first_name, last_name) VALUES (?, ?, ?, ?, ?, ?)',
-      [username, email, hashedPassword, role, firstName, lastName]
+      'INSERT INTO users (username, email, password, role, first_name, last_name, max_children) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [username, email, hashedPassword, role, firstName, lastName, maxChildren]
     );
 
     const newUser = {
@@ -49,8 +52,11 @@ exports.registerUser = async (req, res) => {
       username,
       email,
       role,
-      firstName,
-      lastName
+      first_name: firstName,
+      last_name: lastName,
+      max_children: maxChildren,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
 
     // Generate token
@@ -102,8 +108,19 @@ exports.authUser = async (req, res) => {
     // Generate token
     const token = generateToken(user);
 
-    // Remove password from response
-    const { password: _, ...userData } = user;
+    // Remove password from response and ensure proper field mapping
+    const userData = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      avatar: user.avatar,
+      max_children: user.max_children,
+      created_at: user.created_at,
+      updated_at: user.updated_at
+    };
 
     res.json({
       success: true,
@@ -121,18 +138,31 @@ exports.authUser = async (req, res) => {
 // @access  Private
 exports.getUserProfile = async (req, res) => {
   try {
-    const [users] = await db.query(
-      'SELECT id, username, email, role, first_name, last_name, created_at FROM users WHERE id = ?',
+    const [user] = await db.query(
+      'SELECT id, username, email, role, first_name, last_name, avatar, max_children, created_at, updated_at FROM users WHERE id = ?',
       [req.user.id]
     );
 
-    if (users.length === 0) {
+    if (user.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json(users[0]);
+    const userData = {
+      id: user[0].id,
+      username: user[0].username,
+      email: user[0].email,
+      role: user[0].role,
+      first_name: user[0].first_name,
+      last_name: user[0].last_name,
+      avatar: user[0].avatar,
+      max_children: user[0].max_children,
+      created_at: user[0].created_at,
+      updated_at: user[0].updated_at
+    };
+
+    res.json(userData);
   } catch (error) {
-    console.error('Error getting user profile:', error);
+    console.error('Get profile error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -150,7 +180,7 @@ exports.updateUserProfile = async (req, res) => {
     );
 
     const [updatedUser] = await db.query(
-      'SELECT id, username, email, role, first_name, last_name, created_at FROM users WHERE id = ?',
+      'SELECT id, username, email, role, first_name as firstName, last_name as lastName, max_children as maxChildren FROM users WHERE id = ?',
       [req.user.id]
     );
 
@@ -167,7 +197,7 @@ exports.updateUserProfile = async (req, res) => {
 exports.getUsers = async (req, res) => {
   try {
     const [users] = await db.query(
-      'SELECT id, username, email, role, first_name, last_name, is_active, created_at FROM users'
+      'SELECT id, username, email, role, first_name as firstName, last_name as lastName, is_active, max_children as maxChildren, created_at FROM users'
     );
     res.json(users);
   } catch (error) {
@@ -180,27 +210,50 @@ exports.getUsers = async (req, res) => {
 // @route   PUT /api/users/:id
 // @access  Private/Admin
 exports.updateUser = async (req, res) => {
-  const { role, isActive } = req.body;
-  const userId = req.params.id;
-  
   try {
-    await db.query(
-      'UPDATE users SET role = ?, is_active = ? WHERE id = ?',
-      [role, isActive, userId]
-    );
-
-    const [updatedUser] = await db.query(
-      'SELECT id, username, email, role, first_name, last_name, is_active, created_at FROM users WHERE id = ?',
-      [userId]
-    );
-
-    if (updatedUser.length === 0) {
+    const { username, email, role, firstName, lastName, maxChildren } = req.body;
+    
+    // Check if user exists
+    const [user] = await db.query('SELECT * FROM users WHERE id = ?', [req.params.id]);
+    if (user.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json(updatedUser[0]);
+    // Check if email or username is already taken by another user
+    const [existingUser] = await db.query(
+      'SELECT * FROM users WHERE (email = ? OR username = ?) AND id != ?',
+      [email, username, req.params.id]
+    );
+
+    if (existingUser.length > 0) {
+      return res.status(400).json({ message: 'Email or username already in use' });
+    }
+
+    // Only update max_children if it's a number and not negative
+    const maxChildrenValue = typeof maxChildren === 'number' && maxChildren >= 0 
+      ? maxChildren 
+      : (role === 'parent' ? 3 : 0);
+
+    // Update user
+    await db.query(
+      'UPDATE users SET username = ?, email = ?, role = ?, first_name = ?, last_name = ?, max_children = ? WHERE id = ?',
+      [username, email, role, firstName, lastName, maxChildrenValue, req.params.id]
+    );
+
+    res.json({ 
+      message: 'User updated successfully',
+      user: {
+        id: req.params.id,
+        username,
+        email,
+        role,
+        firstName,
+        lastName,
+        maxChildren: maxChildrenValue
+      }
+    });
   } catch (error) {
-    console.error('Error updating user:', error);
+    console.error('Update user error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

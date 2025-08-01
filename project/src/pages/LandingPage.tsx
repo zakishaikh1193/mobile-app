@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, Variants } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import FloatingClouds from './FloatingClouds';
 import OptimizedImage from '../components/OptimizedImage';
 
@@ -40,6 +41,7 @@ const BubblyHeading: React.FC<{ text: string; className?: string; colorConfig: R
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const [sunAnimationState, setSunAnimationState] = useState('hidden');
   const [showSpeechBubble, setShowSpeechBubble] = useState(false);
   const [showHeading, setShowHeading] = useState(false);
@@ -55,6 +57,8 @@ const LandingPage: React.FC = () => {
       });
     }
   }, [isMuted]);
+
+  // Note: Redirect logic is now handled by PublicRoute in App.tsx
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
@@ -167,7 +171,7 @@ const LandingPage: React.FC = () => {
         <motion.img
   src="/start.png"
   alt="Start Button"
-  onClick={() => navigate('/auth')}
+  onClick={() => navigate('/login')}
   className="absolute top-[-185%] sm:top-[8%] md:top-[5%] w-[50%] sm:w-[20%] md:w-[16%] max-w-[180px] z-20 cursor-pointer"
   animate={{
     scale: [1, 1.1, 1],

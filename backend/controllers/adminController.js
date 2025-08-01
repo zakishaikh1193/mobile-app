@@ -11,7 +11,7 @@ exports.createUser = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { username, email, password, role, firstName, lastName } = req.body;
+  const { username, email, password, role, firstName, lastName, maxChildren } = req.body;
   
   try {
     // Check if user exists
@@ -28,11 +28,17 @@ exports.createUser = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // Determine max_children for parents
+    let maxChildrenValue = 0;
+    if (role === 'parent') {
+      maxChildrenValue = maxChildren || 3; // Default to 3 children for parents
+    }
+
     // Create user
-    const [result] = await db.query(
-      'INSERT INTO users (username, email, password, role, first_name, last_name) VALUES (?, ?, ?, ?, ?, ?)',
-      [username, email, hashedPassword, role, firstName, lastName]
-    );
+    const query = 'INSERT INTO users (username, email, password, role, first_name, last_name, max_children) VALUES (?, ?, ?, ?, ?, ?, ?)';
+    const values = [username, email, hashedPassword, role, firstName, lastName, maxChildrenValue];
+    
+    const [result] = await db.query(query, values);
 
     const newUser = {
       id: result.insertId,
@@ -46,12 +52,43 @@ exports.createUser = async (req, res) => {
       updatedAt: new Date()
     };
 
+    // Add max_children info for parents
+    if (role === 'parent') {
+      newUser.maxChildren = maxChildrenValue;
+    }
+
     res.status(201).json({
       success: true,
-      user: newUser
+      user: newUser,
+      message: role === 'parent' ? 
+        `Parent created successfully with ${maxChildrenValue} child license(s)` : 
+        'User created successfully'
     });
   } catch (error) {
     console.error('Error creating user:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// @desc    Get available license types
+// @route   GET /api/admin/license-types
+// @access  Private/Admin
+exports.getLicenseTypes = async (req, res) => {
+  try {
+    // Return default license types since we're using simplified licensing
+    const licenseTypes = [
+      { name: 'free', display_name: 'Free', max_children: 1, price: 0 },
+      { name: 'basic', display_name: 'Basic', max_children: 3, price: 9.99 },
+      { name: 'premium', display_name: 'Premium', max_children: 5, price: 19.99 },
+      { name: 'unlimited', display_name: 'Unlimited', max_children: 10, price: 29.99 }
+    ];
+
+    res.json({
+      success: true,
+      licenseTypes
+    });
+  } catch (error) {
+    console.error('Error fetching license types:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
