@@ -5,7 +5,7 @@
   "type": "commonjs",
   "scripts": {
     "start": "node app.js",
-    "dev": "NODE_ENV=development PORT=3000 nodemon app.js",
+    "dev": "cross-env NODE_ENV=development PORT=3000 nodemon app.js",
     "init-db": "node scripts/init-db.js"
   },
   "dependencies": {
@@ -20,6 +20,7 @@
     "mysql2": "^3.6.0"
   },
   "devDependencies": {
+    "cross-env": "^10.0.0",
     "nodemon": "^3.0.1"
   }
 }

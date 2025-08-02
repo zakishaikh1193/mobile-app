@@ -1,8 +1,4 @@
-// @ts-nocheck
-// Disabling TypeScript temporarily to ensure we can debug the React runtime issue
-
-// Force using the same React instance
-import * as React from 'react';
+import React, { createContext, useContext, useState, useMemo, ReactNode } from 'react';
 
 console.log('React version in ContentLibraryContext:', React.version);
 
@@ -13,32 +9,25 @@ const initialContent = [
 ];
 
 // Create context with a more reliable approach
-let ContentLibraryContext;
+const ContentLibraryContext = createContext({
+  contentLibrary: initialContent,
+  setContentLibrary: () => console.warn('setContentLibrary not initialized')
+});
 
-try {
-  ContentLibraryContext = React.createContext({
-    contentLibrary: initialContent,
-    setContentLibrary: () => console.warn('setContentLibrary not initialized')
-  });
-  
-  if (process.env.NODE_ENV !== 'production') {
-    ContentLibraryContext.displayName = 'ContentLibraryContext';
-  }
-} catch (error) {
-  console.error('Failed to create React context:', error);
-  throw error;
+if (process.env.NODE_ENV !== 'production') {
+  ContentLibraryContext.displayName = 'ContentLibraryContext';
 }
 
 // Create a simple provider component
-function ContentLibraryProvider({ children }) {
+const ContentLibraryProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   console.log('ContentLibraryProvider rendering...');
   
-  const [contentLibrary, setContentLibrary] = React.useState(initialContent);
+  const [contentLibrary, setContentLibrary] = useState(initialContent);
   
   // Memoize the context value to prevent unnecessary re-renders
-  const contextValue = React.useMemo(() => ({
+  const contextValue = useMemo(() => ({
     contentLibrary,
-    setContentLibrary: (action) => {
+    setContentLibrary: (action: any) => {
       console.log('Updating content library with action:', action);
       setContentLibrary(prev => {
         const nextValue = typeof action === 'function' ? action(prev) : action;
@@ -56,11 +45,11 @@ function ContentLibraryProvider({ children }) {
 }
 
 // Custom hook with additional debugging
-function useContentLibrary() {
+const useContentLibrary = () => {
   console.log('useContentLibrary called');
   
   // Try to get the context value
-  const context = React.useContext(ContentLibraryContext);
+  const context = useContext(ContentLibraryContext);
   
   // Log detailed debug information
   console.log('Context value in useContentLibrary:', {
@@ -79,10 +68,10 @@ function useContentLibrary() {
   }
 
   return context;
-}
+};
 
 // Add a debug component to help track context usage
-function ContentLibraryDebug() {
+const ContentLibraryDebug: React.FC = () => {
   const context = useContentLibrary();
   
   return (
@@ -90,7 +79,7 @@ function ContentLibraryDebug() {
       <pre>ContentLibrary Context: {JSON.stringify(context, null, 2)}</pre>
     </div>
   );
-}
+};
 
 // Export all necessary components
 export { 

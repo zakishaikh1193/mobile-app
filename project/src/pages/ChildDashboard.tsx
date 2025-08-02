@@ -1,7 +1,7 @@
 import React, { useEffect, useState, Suspense, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
-import { BookOpen, Palette, Calculator, Heart, User, Users, Camera, ArrowLeft, Home } from 'lucide-react';
+import { BookOpen, Palette, Calculator, Heart, User, Users, Camera, ArrowLeft, Home, QrCode, Eye } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAudio } from '../contexts/AudioContext';
 import KodeitLogo from '../components/KodeitLogo';
@@ -9,6 +9,8 @@ import AnimatedButton from '../components/AnimatedButton';
 import AudioButton from '../components/AudioButton';
 import ProgressWheel from '../components/ProgressWheel';
 import AvatarSelector from '../components/AvatarSelector';
+import QRScanner from '../components/QRScanner';
+import VRViewer from '../components/VRViewer';
 import { useProgressService } from '../services/progressService';
 import api from '../services/api';
 
@@ -29,6 +31,8 @@ const ChildDashboard = () => {
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [needsAvatar, setNeedsAvatar] = useState(false);
+  const [showQRScanner, setShowQRScanner] = useState(false);
+  const [showVRViewer, setShowVRViewer] = useState(false);
 
   // For student users, the user object is the child
   // For parent users, we would look up the child by ID
@@ -204,7 +208,25 @@ const ChildDashboard = () => {
       emoji: '🧒',
       image: '/kid1.png',
       cardDescription: 'Discover your amazing body and share your favorite things! Learn about body parts, their functions, and express your likes and dislikes through fun interactive games.'
-    }
+    },
+                {
+              id: 'qr-scanner',
+              title: 'QR Scanner & 3D Viewer',
+              icon: QrCode,
+              color: 'from-indigo-500 to-purple-500',
+              description: 'Scan QR codes and upload images to see 3D content',
+              emoji: '📱',
+              image: '/sunny-mascot.png'
+            },
+            {
+              id: 'vr-world',
+              title: 'VR 3D World',
+              icon: Eye,
+              color: 'from-purple-500 to-pink-500',
+              description: 'Explore immersive 3D virtual reality worlds',
+              emoji: '🥽',
+              image: '/sunny-mascot.png'
+            }
   ];
 
   if (!child) {
@@ -400,6 +422,10 @@ const ChildDashboard = () => {
                     navigate(`/word-match/${child.id}`);
                   } else if (hub.id === 'tap-translation') {
                     navigate('/tap-translation');
+                  } else if (hub.id === 'qr-scanner') {
+                    setShowQRScanner(true);
+                  } else if (hub.id === 'vr-world') {
+                    setShowVRViewer(true);
                   } else {
                     navigate(`/learning/${hub.id}/${child.id}`);
                   }
@@ -467,15 +493,37 @@ const ChildDashboard = () => {
           <p className="text-lg mb-6 opacity-90">
             Point your camera at the book pages to see them come to life in 3D!
           </p>
-          <AnimatedButton
-            variant="secondary"
-            size="lg"
-            onClick={() => navigate(`/ar-zone/${child.id}`)}
-            className="bg-white text-purple-600 hover:bg-gray-100"
-          >
-            <Camera className="h-5 w-5 mr-2" />
-            Open AR Camera
-          </AnimatedButton>
+          <div className="flex flex-col space-y-3">
+            <AnimatedButton
+              variant="secondary"
+              size="lg"
+              onClick={() => navigate(`/ar-zone/${child.id}`)}
+              className="bg-white text-purple-600 hover:bg-gray-100"
+            >
+              <Camera className="h-5 w-5 mr-2" />
+              Open AR Camera
+            </AnimatedButton>
+            
+            <AnimatedButton
+              variant="secondary"
+              size="md"
+              onClick={() => setShowQRScanner(true)}
+              className="bg-green-500 text-white hover:bg-green-600"
+            >
+              <QrCode className="h-4 w-4 mr-2" />
+              QR Scanner Direct
+            </AnimatedButton>
+            
+            <AnimatedButton
+              variant="secondary"
+              size="md"
+              onClick={() => setShowVRViewer(true)}
+              className="bg-purple-500 text-white hover:bg-purple-600"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              VR World Direct
+            </AnimatedButton>
+          </div>
         </motion.div>
       </div>
 
@@ -493,6 +541,22 @@ const ChildDashboard = () => {
             <KnowMeActivity onClose={() => setShowKnowMe(false)} />
           </Suspense>
         </div>
+      )}
+
+      {/* QR Scanner Modal */}
+      {showQRScanner && (
+        <QRScanner
+          onClose={() => setShowQRScanner(false)}
+          childId={childId || ''}
+        />
+      )}
+
+      {/* VR Viewer Modal */}
+      {showVRViewer && (
+        <VRViewer
+          onClose={() => setShowVRViewer(false)}
+          childId={childId || ''}
+        />
       )}
     </div>
   );

@@ -19,6 +19,7 @@ import LetterMatchingGame from './pages/LetterMatchingGame';
 import EducationalGame from './pages/EducationalGame';
 import WordMatchGame from './components/WordMatchGame';
 import ForestLetterHuntGame from './components/ForestLetterHunt/Game';
+import ARZone from './pages/ARZone';
 
 // A wrapper for routes that require authentication
 const PrivateRoute: React.FC<{ children: React.ReactNode, roles?: Array<'admin' | 'teacher' | 'parent' | 'student'> }> = ({ 
@@ -241,7 +242,7 @@ const AppRoutes = () => {
         
         <Route path="/ar-zone/:childId" element={
           <PrivateRoute>
-            <div>AR Zone - Coming Soon!</div>
+            <ARZone />
           </PrivateRoute>
         } />
         
@@ -262,18 +263,15 @@ function App() {
   console.log('App rendering...');
   
   return (
-    // Note: React.StrictMode is typically in main.tsx. If it's also there, you can remove it from here.
-    <React.StrictMode>
-      <Router>
-        <AuthProvider>
-          <ContentLibraryProvider>
-            <AudioProvider>
-              <AppRoutes />
-            </AudioProvider>
-          </ContentLibraryProvider>
-        </AuthProvider>
-      </Router>
-    </React.StrictMode>
+    <Router>
+      <AuthProvider>
+        <ContentLibraryProvider>
+          <AudioProvider>
+            <AppRoutes />
+          </AudioProvider>
+        </ContentLibraryProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 
