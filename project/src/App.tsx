@@ -19,6 +19,8 @@ import LetterMatchingGame from './pages/LetterMatchingGame';
 import EducationalGame from './pages/EducationalGame';
 import WordMatchGame from './components/WordMatchGame';
 import ForestLetterHuntGame from './components/ForestLetterHunt/Game';
+import StructuredLearning from './pages/StructuredLearning';
+import AdminChapterManagement from './pages/AdminChapterManagement';
 
 // A wrapper for routes that require authentication
 const PrivateRoute: React.FC<{ children: React.ReactNode, roles?: Array<'admin' | 'teacher' | 'parent' | 'student'> }> = ({ 
@@ -248,6 +250,17 @@ const AppRoutes = () => {
         <Route path="/learning/:hubId/:childId" element={
           <PrivateRoute>
             <LearningHub />
+          </PrivateRoute>
+        } />
+        
+        <Route path="/structured-learning/:childId" element={
+          <PrivateRoute>
+            <StructuredLearning />
+          </PrivateRoute>
+        } />
+        <Route path="/admin/chapters" element={
+          <PrivateRoute roles={['admin']}>
+            <AdminChapterManagement />
           </PrivateRoute>
         } />
         

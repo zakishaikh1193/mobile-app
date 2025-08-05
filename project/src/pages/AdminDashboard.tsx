@@ -21,7 +21,9 @@ import {
   School as SchoolIcon,
   Book as BookIcon,
   Assessment as AssessmentIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  MenuBook as ChapterIcon,
+  Timeline as TimelineIcon
 } from '@mui/icons-material';
 
 const AdminDashboard: React.FC = () => {
@@ -49,6 +51,18 @@ const AdminDashboard: React.FC = () => {
       description: 'Manage educational content and activities',
       icon: <BookIcon fontSize="large" color="primary" />,
       path: '/admin/content'
+    },
+    {
+      title: 'Chapter Management',
+      description: 'Release chapters and control content availability',
+      icon: <ChapterIcon fontSize="large" color="primary" />,
+      path: '/admin/chapters'
+    },
+    {
+      title: 'Learning Progress',
+      description: 'Monitor student progress and analytics',
+      icon: <TimelineIcon fontSize="large" color="primary" />,
+      path: '/admin/progress'
     },
     {
       title: 'School Management',
@@ -175,6 +189,13 @@ const AdminDashboard: React.FC = () => {
             onClick={() => navigate('/admin/portal')}
           >
             View Admin Dashboard
+          </Button>
+          <Button 
+            variant="contained" 
+            color="success"
+            onClick={() => navigate('/admin/chapters')}
+          >
+            Manage Chapters
           </Button>
         </Box>
       </Paper>
