@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -154,7 +154,7 @@ const AdminPortal: React.FC = () => {
 
   const fetchContent = async () => {
     try {
-      const res = await axios.get(API_URL);
+      const res = await api.get('/content');
       setContentLibrary(res.data);
     } catch (err) {
       console.error('Failed to fetch content:', err);
@@ -162,6 +162,39 @@ const AdminPortal: React.FC = () => {
   };
 
   const handleAddContent = async (content: any) => {
+    try {
+      const res = await api.post('/content', content);
+      setContentLibrary([...contentLibrary, res.data]);
+      return true;
+    } catch (err) {
+      console.error('Failed to add content:', err);
+      return false;
+    }
+  };
+
+  const handleUpdateContent = async (id: string, content: any) => {
+    try {
+      const res = await api.put(`/content/${id}`, content);
+      setContentLibrary(contentLibrary.map(item => item.id === id ? res.data : item));
+      return true;
+    } catch (err) {
+      console.error('Failed to update content:', err);
+      return false;
+    }
+  };
+
+  const handleDeleteContent = async (id: string) => {
+    try {
+      await api.delete(`/content/${id}`);
+      setContentLibrary(contentLibrary.filter(item => item.id !== id));
+      return true;
+    } catch (err) {
+      console.error('Failed to delete content:', err);
+      return false;
+    }
+  };
+
+  const handleAddContentForm = async (content: any) => {
     try {
       const formData = new FormData();
       formData.append('title', content.title);
@@ -172,7 +205,7 @@ const AdminPortal: React.FC = () => {
       if (content.thumbnail instanceof File) formData.append('thumbnail', content.thumbnail);
       if (editContentId !== null) {
         // Edit
-        await axios.put(`${API_URL}/${editContentId}`, content);
+        await api.put(`/content/${editContentId}`, formData);
         setEditContentId(null);
         setEditInitialValues(null);
       } else {
@@ -366,10 +399,20 @@ const AdminPortal: React.FC = () => {
             </div>
           </div>
           <div className="space-y-2">
-            <AnimatedButton variant="secondary" size="sm" className="w-full">
+            <AnimatedButton 
+              variant="secondary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/admin/grades')}
+            >
               View Grades
             </AnimatedButton>
-            <AnimatedButton variant="primary" size="sm" className="w-full">
+            <AnimatedButton 
+              variant="primary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/admin/grades')}
+            >
               Add Grade
             </AnimatedButton>
           </div>
@@ -387,10 +430,20 @@ const AdminPortal: React.FC = () => {
             </div>
           </div>
           <div className="space-y-2">
-            <AnimatedButton variant="secondary" size="sm" className="w-full">
+            <AnimatedButton 
+              variant="secondary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/admin/books')}
+            >
               View Books
             </AnimatedButton>
-            <AnimatedButton variant="primary" size="sm" className="w-full">
+            <AnimatedButton 
+              variant="primary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/admin/books')}
+            >
               Add Book
             </AnimatedButton>
           </div>
@@ -408,10 +461,20 @@ const AdminPortal: React.FC = () => {
             </div>
           </div>
           <div className="space-y-2">
-            <AnimatedButton variant="secondary" size="sm" className="w-full">
+            <AnimatedButton 
+              variant="secondary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/admin/lessons')}
+            >
               View Lessons
             </AnimatedButton>
-            <AnimatedButton variant="primary" size="sm" className="w-full">
+            <AnimatedButton 
+              variant="primary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/admin/lessons')}
+            >
               Add Lesson
             </AnimatedButton>
           </div>
@@ -429,10 +492,20 @@ const AdminPortal: React.FC = () => {
             </div>
           </div>
           <div className="space-y-2">
-            <AnimatedButton variant="secondary" size="sm" className="w-full">
+            <AnimatedButton 
+              variant="secondary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/admin/units')}
+            >
               View Units
             </AnimatedButton>
-            <AnimatedButton variant="primary" size="sm" className="w-full">
+            <AnimatedButton 
+              variant="primary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/admin/units')}
+            >
               Add Unit
             </AnimatedButton>
           </div>

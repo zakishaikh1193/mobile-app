@@ -10,6 +10,10 @@ import RegisterPage from './pages/RegisterPage';
 import ChildDashboard from './pages/ChildDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import AdminPortal from './pages/AdminPortal';
+import GradesManagement from './pages/admin/GradesManagement';
+import BooksManagement from './pages/admin/BooksManagement';
+import LessonsManagement from './pages/admin/LessonsManagement';
+import UnitsManagement from './pages/admin/UnitsManagement';
 import LearningHub from './pages/LearningHub';
 import ParentDashboard from './pages/ParentDashboard';
 import TeacherPortal from './pages/TeacherPortal';
@@ -139,9 +143,13 @@ const AppRoutes = () => {
         <Route path="/admin/*" element={
           <PrivateRoute roles={['admin']}>
             <Routes>
-              <Route path="dashboard" element={<AdminPortal />} />
-              <Route path="portal" element={<AdminPortal />} />
-              <Route path="users/new" element={<RegisterPage />} />
+                              <Route path="dashboard" element={<AdminPortal />} />
+                <Route path="portal" element={<AdminPortal />} />
+                <Route path="users/new" element={<RegisterPage />} />
+                <Route path="grades" element={<GradesManagement />} />
+                <Route path="books" element={<BooksManagement />} />
+                <Route path="lessons" element={<LessonsManagement />} />
+                <Route path="units" element={<UnitsManagement />} />
               <Route path="users" element={<div>User Management</div>} />
               <Route path="content" element={<div>Content Management</div>} />
             </Routes>

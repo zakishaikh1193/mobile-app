@@ -143,8 +143,8 @@ CREATE TABLE IF NOT EXISTS `child_progress` (
   `id` int NOT NULL AUTO_INCREMENT,
   `child_id` int NOT NULL,
   `activity_id` int NOT NULL,
-  `unit_id` int DEFAULT NULL,
   `lesson_id` int DEFAULT NULL,
+  `unit_id` int DEFAULT NULL,
   `book_id` int DEFAULT NULL,
   `grade_id` int DEFAULT NULL,
   `progress_value` int DEFAULT '0',
@@ -163,11 +163,11 @@ CREATE TABLE IF NOT EXISTS `child_progress` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_child_activity` (`child_id`,`activity_id`),
-  KEY `unit_id` (`unit_id`),
   KEY `lesson_id` (`lesson_id`),
+  KEY `unit_id` (`unit_id`),
   KEY `book_id` (`book_id`),
   KEY `assessed_by` (`assessed_by`),
-  KEY `idx_child_progress_hierarchy` (`grade_id`,`book_id`,`lesson_id`,`unit_id`),
+  KEY `idx_child_progress_hierarchy` (`grade_id`,`book_id`,`unit_id`,`lesson_id`),
   KEY `idx_child_progress_child` (`child_id`),
   KEY `idx_child_progress_activity` (`activity_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
@@ -199,7 +199,7 @@ CREATE TABLE IF NOT EXISTS `grades` (
 DROP TABLE IF EXISTS `lessons`;
 CREATE TABLE IF NOT EXISTS `lessons` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `book_id` int NOT NULL,
+  `unit_id` int NOT NULL,
   `title` varchar(255) NOT NULL,
   `description` text,
   `lesson_number` int NOT NULL,
@@ -210,10 +210,10 @@ CREATE TABLE IF NOT EXISTS `lessons` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_book_lesson` (`book_id`,`lesson_number`),
+  UNIQUE KEY `unique_unit_lesson` (`unit_id`,`lesson_number`),
   KEY `unlocked_by` (`unlocked_by`),
   KEY `idx_lessons_unlock` (`is_unlocked`,`unlocked_at`),
-  KEY `idx_lessons_book` (`book_id`,`lesson_number`)
+  KEY `idx_lessons_unit` (`unit_id`,`lesson_number`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
 -- --------------------------------------------------------
@@ -308,7 +308,7 @@ CREATE TABLE IF NOT EXISTS `teacher_grade_assignments` (
 DROP TABLE IF EXISTS `units`;
 CREATE TABLE IF NOT EXISTS `units` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `lesson_id` int NOT NULL,
+  `book_id` int NOT NULL,
   `title` varchar(255) NOT NULL,
   `description` text,
   `unit_number` int NOT NULL,
@@ -319,8 +319,8 @@ CREATE TABLE IF NOT EXISTS `units` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_lesson_unit` (`lesson_id`,`unit_number`),
-  KEY `idx_units_lesson` (`lesson_id`,`unit_number`),
+  UNIQUE KEY `unique_book_unit` (`book_id`,`unit_number`),
+  KEY `idx_units_book` (`book_id`,`unit_number`),
   KEY `unlocked_by` (`unlocked_by`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
@@ -335,13 +335,11 @@ CREATE TABLE IF NOT EXISTS `unit_completions` (
   `id` int NOT NULL AUTO_INCREMENT,
   `child_id` int NOT NULL,
   `unit_id` int NOT NULL,
-  `lesson_id` int NOT NULL,
   `completed_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `completion_score` decimal(5,2) DEFAULT '0.00',
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_child_unit_completion` (`child_id`,`unit_id`),
-  KEY `lesson_id` (`lesson_id`),
-  KEY `idx_unit_completions_child` (`child_id`,`lesson_id`),
+  KEY `idx_unit_completions_child` (`child_id`),
   KEY `idx_unit_completions_unit` (`unit_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
@@ -390,7 +388,7 @@ INSERT INTO `users` (`id`, `username`, `email`, `password`, `created_at`, `updat
 DROP TABLE IF EXISTS `letterpath_data`;
 
 DROP VIEW IF EXISTS `letterpath_data`;
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `letterpath_data`  AS SELECT `u`.`id` AS `unit_id`, `u`.`title` AS `unit_title`, `u`.`description` AS `unit_description`, `u`.`unit_number` AS `level_number`, `l`.`id` AS `lesson_id`, `l`.`title` AS `lesson_title`, `l`.`is_unlocked` AS `lesson_unlocked`, `b`.`id` AS `book_id`, `b`.`title` AS `book_title`, `g`.`id` AS `grade_id`, `g`.`name` AS `grade_name`, count(`a`.`id`) AS `total_activities`, count((case when (`cp`.`completed` = 1) then 1 end)) AS `completed_activities`, `uc`.`completion_score` AS `completion_score`, `uc`.`completed_at` AS `completed_at`, (case when (`uc`.`completed_at` is not null) then 'completed' when (`l`.`is_unlocked` = 1) then 'available' else 'locked' end) AS `status` FROM ((((((`units` `u` join `lessons` `l` on((`u`.`lesson_id` = `l`.`id`))) join `books` `b` on((`l`.`book_id` = `b`.`id`))) join `grades` `g` on((`b`.`grade_id` = `g`.`id`))) left join `activities` `a` on(((`u`.`id` = `a`.`unit_id`) and (`a`.`status` = 'active')))) left join `child_progress` `cp` on((`a`.`id` = `cp`.`activity_id`))) left join `unit_completions` `uc` on((`u`.`id` = `uc`.`unit_id`))) GROUP BY `u`.`id`, `uc`.`child_id` ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `letterpath_data`  AS SELECT `u`.`id` AS `unit_id`, `u`.`title` AS `unit_title`, `u`.`description` AS `unit_description`, `u`.`unit_number` AS `level_number`, `l`.`id` AS `lesson_id`, `l`.`title` AS `lesson_title`, `l`.`is_unlocked` AS `lesson_unlocked`, `b`.`id` AS `book_id`, `b`.`title` AS `book_title`, `g`.`id` AS `grade_id`, `g`.`name` AS `grade_name`, count(`a`.`id`) AS `total_activities`, count((case when (`cp`.`completed` = 1) then 1 end)) AS `completed_activities`, `uc`.`completion_score` AS `completion_score`, `uc`.`completed_at` AS `completed_at`, (case when (`uc`.`completed_at` is not null) then 'completed' when (`u`.`is_unlocked` = 1) then 'available' else 'locked' end) AS `status` FROM ((((((`units` `u` join `books` `b` on((`u`.`book_id` = `b`.`id`))) join `grades` `g` on((`b`.`grade_id` = `g`.`id`))) left join `lessons` `l` on((`u`.`id` = `l`.`unit_id`))) left join `activities` `a` on(((`u`.`id` = `a`.`unit_id`) and (`a`.`status` = 'active')))) left join `child_progress` `cp` on((`a`.`id` = `cp`.`activity_id`))) left join `unit_completions` `uc` on((`u`.`id` = `uc`.`unit_id`))) GROUP BY `u`.`id`, `uc`.`child_id` ;
 
 -- --------------------------------------------------------
 
@@ -451,19 +449,19 @@ ALTER TABLE `children`
 -- Constraints for table `child_progress`
 --
 ALTER TABLE `child_progress`
-  ADD CONSTRAINT `child_progress_ibfk_1` FOREIGN KEY (`child_id`) REFERENCES `children` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `child_progress_ibfk_2` FOREIGN KEY (`activity_id`) REFERENCES `activities` (`id`),
-  ADD CONSTRAINT `child_progress_ibfk_3` FOREIGN KEY (`unit_id`) REFERENCES `units` (`id`),
-  ADD CONSTRAINT `child_progress_ibfk_4` FOREIGN KEY (`lesson_id`) REFERENCES `lessons` (`id`),
-  ADD CONSTRAINT `child_progress_ibfk_5` FOREIGN KEY (`book_id`) REFERENCES `books` (`id`),
-  ADD CONSTRAINT `child_progress_ibfk_6` FOREIGN KEY (`grade_id`) REFERENCES `grades` (`id`),
-  ADD CONSTRAINT `child_progress_ibfk_7` FOREIGN KEY (`assessed_by`) REFERENCES `users` (`id`);
+ADD CONSTRAINT `child_progress_ibfk_1` FOREIGN KEY (`child_id`) REFERENCES `children` (`id`) ON DELETE CASCADE,
+ADD CONSTRAINT `child_progress_ibfk_2` FOREIGN KEY (`activity_id`) REFERENCES `activities` (`id`),
+ADD CONSTRAINT `child_progress_ibfk_3` FOREIGN KEY (`lesson_id`) REFERENCES `lessons` (`id`),
+ADD CONSTRAINT `child_progress_ibfk_4` FOREIGN KEY (`unit_id`) REFERENCES `units` (`id`),
+ADD CONSTRAINT `child_progress_ibfk_5` FOREIGN KEY (`book_id`) REFERENCES `books` (`id`),
+ADD CONSTRAINT `child_progress_ibfk_6` FOREIGN KEY (`grade_id`) REFERENCES `grades` (`id`),
+ADD CONSTRAINT `child_progress_ibfk_7` FOREIGN KEY (`assessed_by`) REFERENCES `users` (`id`);
 
 --
 -- Constraints for table `lessons`
 --
 ALTER TABLE `lessons`
-  ADD CONSTRAINT `lessons_ibfk_1` FOREIGN KEY (`book_id`) REFERENCES `books` (`id`),
+  ADD CONSTRAINT `lessons_ibfk_1` FOREIGN KEY (`unit_id`) REFERENCES `units` (`id`),
   ADD CONSTRAINT `lessons_ibfk_2` FOREIGN KEY (`unlocked_by`) REFERENCES `users` (`id`);
 
 --
@@ -484,7 +482,7 @@ ALTER TABLE `teacher_grade_assignments`
 -- Constraints for table `units`
 --
 ALTER TABLE `units`
-  ADD CONSTRAINT `units_ibfk_1` FOREIGN KEY (`lesson_id`) REFERENCES `lessons` (`id`),
+  ADD CONSTRAINT `units_ibfk_1` FOREIGN KEY (`book_id`) REFERENCES `books` (`id`),
   ADD CONSTRAINT `units_ibfk_2` FOREIGN KEY (`unlocked_by`) REFERENCES `users` (`id`);
 
 --

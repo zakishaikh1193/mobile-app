@@ -93,53 +93,6 @@ router.put('/books/:id', [
 router.delete('/books/:id', auth, adminAuth, educationController.deleteBook);
 
 // ============================================
-// LESSONS ROUTES
-// ============================================
-
-// @route   GET /api/education/lessons
-// @desc    Get all lessons
-// @access  Private/Admin
-router.get('/lessons', auth, adminAuth, educationController.getLessons);
-
-// @route   GET /api/education/books/:bookId/lessons
-// @desc    Get lessons by book
-// @access  Private/Admin
-router.get('/books/:bookId/lessons', auth, adminAuth, educationController.getLessonsByBook);
-
-// @route   POST /api/education/lessons
-// @desc    Create a new lesson
-// @access  Private/Admin
-router.post('/lessons', [
-  auth,
-  adminAuth,
-  [
-    check('title', 'Lesson title is required').not().isEmpty(),
-    check('description', 'Description is required').not().isEmpty(),
-    check('book_id', 'Book ID is required').isInt(),
-    check('lesson_number', 'Lesson number is required').isInt()
-  ]
-], educationController.createLesson);
-
-// @route   PUT /api/education/lessons/:id
-// @desc    Update a lesson
-// @access  Private/Admin
-router.put('/lessons/:id', [
-  auth,
-  adminAuth,
-  [
-    check('title', 'Lesson title is required').not().isEmpty(),
-    check('description', 'Description is required').not().isEmpty(),
-    check('book_id', 'Book ID is required').isInt(),
-    check('lesson_number', 'Lesson number is required').isInt()
-  ]
-], educationController.updateLesson);
-
-// @route   DELETE /api/education/lessons/:id
-// @desc    Delete a lesson
-// @access  Private/Admin
-router.delete('/lessons/:id', auth, adminAuth, educationController.deleteLesson);
-
-// ============================================
 // UNITS ROUTES
 // ============================================
 
@@ -148,10 +101,10 @@ router.delete('/lessons/:id', auth, adminAuth, educationController.deleteLesson)
 // @access  Private/Admin
 router.get('/units', auth, adminAuth, educationController.getUnits);
 
-// @route   GET /api/education/lessons/:lessonId/units
-// @desc    Get units by lesson
+// @route   GET /api/education/books/:bookId/units
+// @desc    Get units by book
 // @access  Private/Admin
-router.get('/lessons/:lessonId/units', auth, adminAuth, educationController.getUnitsByLesson);
+router.get('/books/:bookId/units', auth, adminAuth, educationController.getUnitsByBook);
 
 // @route   POST /api/education/units
 // @desc    Create a new unit
@@ -162,7 +115,7 @@ router.post('/units', [
   [
     check('title', 'Unit title is required').not().isEmpty(),
     check('description', 'Description is required').not().isEmpty(),
-    check('lesson_id', 'Lesson ID is required').isInt(),
+    check('book_id', 'Book ID is required').isInt(),
     check('unit_number', 'Unit number is required').isInt()
   ]
 ], educationController.createUnit);
@@ -176,7 +129,7 @@ router.put('/units/:id', [
   [
     check('title', 'Unit title is required').not().isEmpty(),
     check('description', 'Description is required').not().isEmpty(),
-    check('lesson_id', 'Lesson ID is required').isInt(),
+    check('book_id', 'Book ID is required').isInt(),
     check('unit_number', 'Unit number is required').isInt()
   ]
 ], educationController.updateUnit);
@@ -185,6 +138,53 @@ router.put('/units/:id', [
 // @desc    Delete a unit
 // @access  Private/Admin
 router.delete('/units/:id', auth, adminAuth, educationController.deleteUnit);
+
+// ============================================
+// LESSONS ROUTES
+// ============================================
+
+// @route   GET /api/education/lessons
+// @desc    Get all lessons
+// @access  Private/Admin
+router.get('/lessons', auth, adminAuth, educationController.getLessons);
+
+// @route   GET /api/education/units/:unitId/lessons
+// @desc    Get lessons by unit
+// @access  Private/Admin
+router.get('/units/:unitId/lessons', auth, adminAuth, educationController.getLessonsByUnit);
+
+// @route   POST /api/education/lessons
+// @desc    Create a new lesson
+// @access  Private/Admin
+router.post('/lessons', [
+  auth,
+  adminAuth,
+  [
+    check('title', 'Lesson title is required').not().isEmpty(),
+    check('description', 'Description is required').not().isEmpty(),
+    check('unit_id', 'Unit ID is required').isInt(),
+    check('lesson_number', 'Lesson number is required').isInt()
+  ]
+], educationController.createLesson);
+
+// @route   PUT /api/education/lessons/:id
+// @desc    Update a lesson
+// @access  Private/Admin
+router.put('/lessons/:id', [
+  auth,
+  adminAuth,
+  [
+    check('title', 'Lesson title is required').not().isEmpty(),
+    check('description', 'Description is required').not().isEmpty(),
+    check('unit_id', 'Unit ID is required').isInt(),
+    check('lesson_number', 'Lesson number is required').isInt()
+  ]
+], educationController.updateLesson);
+
+// @route   DELETE /api/education/lessons/:id
+// @desc    Delete a lesson
+// @access  Private/Admin
+router.delete('/lessons/:id', auth, adminAuth, educationController.deleteLesson);
 
 // ============================================
 // TEACHER LESSON UNLOCKING ROUTES

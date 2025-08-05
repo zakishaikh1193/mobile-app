@@ -75,11 +75,7 @@ exports.createChild = async (req, res) => {
       [parentId, first_name, username, email, password, age, gender, avatar || null]
     );
 
-    // Initialize child streak
-    await db.query(
-      'INSERT INTO child_streaks (child_id, current_streak, longest_streak) VALUES (?, 0, 0)',
-      [result.insertId]
-    );
+    // Note: child_streaks table removed - streak tracking will be implemented differently
 
     const newChild = {
       id: result.insertId,
@@ -120,12 +116,8 @@ exports.getChildren = async (req, res) => {
 
     const [children] = await db.query(
       `SELECT 
-        c.*,
-        cs.current_streak,
-        cs.longest_streak,
-        cs.last_activity_date
+        c.*
       FROM children c
-      LEFT JOIN child_streaks cs ON c.id = cs.child_id
       WHERE c.parent_id = ? AND c.is_active = 1
       ORDER BY c.created_at DESC`,
       [parentId]
@@ -134,18 +126,16 @@ exports.getChildren = async (req, res) => {
     // Get progress for each child
     for (let child of children) {
       const [progress] = await db.query(
-        'SELECT activity_type, activity_id, progress_value FROM child_progress WHERE child_id = ?',
+        'SELECT activity_id, progress_value, completed FROM child_progress WHERE child_id = ?',
         [child.id]
       );
 
-      const [badges] = await db.query(
-        'SELECT badge_name, badge_icon FROM child_badges WHERE child_id = ?',
-        [child.id]
-      );
+      // Note: child_badges table removed - badge tracking will be implemented differently
+      const badges = [];
 
       child.progress = {};
       progress.forEach(p => {
-        child.progress[`${p.activity_type}_${p.activity_id}`] = p.progress_value;
+        child.progress[`activity_${p.activity_id}`] = p.progress_value;
       });
 
       child.badges = badges.map(b => ({
@@ -153,7 +143,7 @@ exports.getChildren = async (req, res) => {
         icon: b.badge_icon
       }));
 
-      child.streak = child.current_streak || 0;
+      child.streak = 0; // Streak tracking removed - will be implemented differently
     }
 
     res.json({
@@ -180,9 +170,8 @@ exports.childLogin = async (req, res) => {
   try {
     // Check if child exists
     const [children] = await db.query(
-      `SELECT c.*, cs.current_streak, cs.longest_streak 
+      `SELECT c.*
        FROM children c 
-       LEFT JOIN child_streaks cs ON c.id = cs.child_id 
        WHERE c.email = ?`,
       [email]
     );
@@ -206,19 +195,17 @@ exports.childLogin = async (req, res) => {
 
     // Get child's progress
     const [progress] = await db.query(
-      'SELECT activity_type, activity_id, progress_value FROM child_progress WHERE child_id = ?',
+      'SELECT activity_id, progress_value, completed FROM child_progress WHERE child_id = ?',
       [child.id]
     );
 
-    const [badges] = await db.query(
-      'SELECT badge_name, badge_icon FROM child_badges WHERE child_id = ?',
-      [child.id]
-    );
+    // Note: child_badges table removed - badge tracking will be implemented differently
+    const badges = [];
 
     // Format progress data
     const progressData = {};
     progress.forEach(p => {
-      progressData[`${p.activity_type}_${p.activity_id}`] = p.progress_value;
+      progressData[`activity_${p.activity_id}`] = p.progress_value;
     });
 
     const badgeData = badges.map(b => ({
@@ -241,7 +228,7 @@ exports.childLogin = async (req, res) => {
       age: child.age,
       gender: child.gender,
       progress: progressData,
-      streak: child.current_streak || 0,
+      streak: 0, // Streak tracking removed - will be implemented differently
       badges: badgeData,
       isChild: true,
       parentId: child.parent_id
@@ -287,14 +274,14 @@ exports.updateChildProgress = async (req, res) => {
 
     // Update or insert progress
     await db.query(
-      `INSERT INTO child_progress (child_id, activity_type, activity_id, progress_value, completed, completed_at)
-       VALUES (?, ?, ?, ?, ?, ?)
+      `INSERT INTO child_progress (child_id, activity_id, progress_value, completed, completed_at)
+       VALUES (?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE 
        progress_value = VALUES(progress_value),
        completed = VALUES(completed),
        completed_at = VALUES(completed_at),
        updated_at = NOW()`,
-      [childId, activityType, activityId, progressValue, completed || 0, completed ? new Date() : null]
+      [childId, activityId, progressValue, completed || 0, completed ? new Date() : null]
     );
 
     // Update streak if activity completed
@@ -312,53 +299,10 @@ exports.updateChildProgress = async (req, res) => {
   }
 };
 
-// Helper function to update child streak
+// Helper function to update child streak (placeholder - will be implemented differently)
 const updateChildStreak = async (childId) => {
-  try {
-    const today = new Date().toISOString().split('T')[0];
-    
-    const [streakData] = await db.query(
-      'SELECT * FROM child_streaks WHERE child_id = ?',
-      [childId]
-    );
-
-    if (streakData.length === 0) {
-      await db.query(
-        'INSERT INTO child_streaks (child_id, current_streak, longest_streak, last_activity_date) VALUES (?, 1, 1, ?)',
-        [childId, today]
-      );
-    } else {
-      const streak = streakData[0];
-      const lastActivityDate = streak.last_activity_date;
-      
-      if (lastActivityDate === today) {
-        // Already completed activity today, no streak update needed
-        return;
-      }
-
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-      let newStreak;
-      if (lastActivityDate === yesterdayStr) {
-        // Consecutive day, increment streak
-        newStreak = streak.current_streak + 1;
-      } else {
-        // Streak broken, start new streak
-        newStreak = 1;
-      }
-
-      const longestStreak = Math.max(newStreak, streak.longest_streak);
-
-      await db.query(
-        'UPDATE child_streaks SET current_streak = ?, longest_streak = ?, last_activity_date = ? WHERE child_id = ?',
-        [newStreak, longestStreak, today, childId]
-      );
-    }
-  } catch (error) {
-    console.error('Error updating child streak:', error);
-  }
+  // Streak tracking removed - will be implemented differently
+  console.log('Streak tracking for child:', childId, 'will be implemented differently');
 };
 
 // @desc    Switch to child context (Parent only)
@@ -374,9 +318,8 @@ exports.switchToChild = async (req, res) => {
 
     // Verify child belongs to parent and get child data
     const [children] = await db.query(
-      `SELECT c.*, cs.current_streak, cs.longest_streak 
+      `SELECT c.*
        FROM children c 
-       LEFT JOIN child_streaks cs ON c.id = cs.child_id 
        WHERE c.id = ? AND c.parent_id = ? AND c.is_active = 1`,
       [childId, req.user.id]
     );
@@ -389,19 +332,17 @@ exports.switchToChild = async (req, res) => {
 
     // Get child's progress
     const [progress] = await db.query(
-      'SELECT activity_type, activity_id, progress_value FROM child_progress WHERE child_id = ?',
+      'SELECT activity_id, progress_value, completed FROM child_progress WHERE child_id = ?',
       [child.id]
     );
 
-    const [badges] = await db.query(
-      'SELECT badge_name, badge_icon FROM child_badges WHERE child_id = ?',
-      [child.id]
-    );
+    // Note: child_badges table removed - badge tracking will be implemented differently
+    const badges = [];
 
     // Format progress data
     const progressData = {};
     progress.forEach(p => {
-      progressData[`${p.activity_type}_${p.activity_id}`] = p.progress_value;
+      progressData[`activity_${p.activity_id}`] = p.progress_value;
     });
 
     const badgeData = badges.map(b => ({
@@ -424,7 +365,7 @@ exports.switchToChild = async (req, res) => {
       age: child.age,
       gender: child.gender,
       progress: progressData,
-      streak: child.current_streak || 0,
+      streak: 0, // Streak tracking removed - will be implemented differently
       badges: badgeData,
       isChild: true,
       parentId: child.parent_id,

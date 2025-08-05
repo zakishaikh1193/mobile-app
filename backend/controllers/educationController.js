@@ -273,14 +273,14 @@ exports.deleteBook = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Check if book has lessons
-    const [lessons] = await db.query(`
-      SELECT COUNT(*) as count FROM lessons WHERE book_id = ?
+    // Check if book has units
+    const [units] = await db.query(`
+      SELECT COUNT(*) as count FROM units WHERE book_id = ?
     `, [id]);
 
-    if (lessons[0].count > 0) {
+    if (units[0].count > 0) {
       return res.status(400).json({ 
-        message: 'Cannot delete book - it has associated lessons' 
+        message: 'Cannot delete book - it has associated units' 
       });
     }
 
@@ -317,14 +317,17 @@ exports.getLessons = async (req, res) => {
         l.unlocked_at,
         l.created_at,
         l.updated_at,
+        u.id as unit_id,
+        u.title as unit_title,
         b.id as book_id,
         b.title as book_title,
         g.id as grade_id,
         g.name as grade_name
       FROM lessons l
-      JOIN books b ON l.book_id = b.id
+      JOIN units u ON l.unit_id = u.id
+      JOIN books b ON u.book_id = b.id
       JOIN grades g ON b.grade_id = g.id
-      ORDER BY g.name, b.order_number, l.lesson_number
+      ORDER BY g.name, b.order_number, u.unit_number, l.lesson_number
     `);
 
     res.json({
@@ -337,12 +340,12 @@ exports.getLessons = async (req, res) => {
   }
 };
 
-// @desc    Get lessons by book
-// @route   GET /api/education/books/:bookId/lessons
+// @desc    Get lessons by unit
+// @route   GET /api/education/units/:unitId/lessons
 // @access  Private/Admin
-exports.getLessonsByBook = async (req, res) => {
+exports.getLessonsByUnit = async (req, res) => {
   try {
-    const { bookId } = req.params;
+    const { unitId } = req.params;
 
     const [lessons] = await db.query(`
       SELECT 
@@ -357,16 +360,16 @@ exports.getLessonsByBook = async (req, res) => {
         created_at,
         updated_at
       FROM lessons
-      WHERE book_id = ?
+      WHERE unit_id = ?
       ORDER BY lesson_number
-    `, [bookId]);
+    `, [unitId]);
 
     res.json({
       success: true,
       lessons
     });
   } catch (error) {
-    console.error('Error getting lessons by book:', error);
+    console.error('Error getting lessons by unit:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -379,23 +382,25 @@ exports.createLesson = async (req, res) => {
     const { 
       title, 
       description, 
-      book_id, 
+      unit_id, 
       lesson_number,
       is_active = true 
     } = req.body;
 
     const [result] = await db.query(`
-      INSERT INTO lessons (title, description, book_id, lesson_number, is_active)
+      INSERT INTO lessons (title, description, unit_id, lesson_number, is_active)
       VALUES (?, ?, ?, ?, ?)
-    `, [title, description, book_id, lesson_number, is_active]);
+    `, [title, description, unit_id, lesson_number, is_active]);
 
     const [newLesson] = await db.query(`
       SELECT 
         l.*,
+        u.title as unit_title,
         b.title as book_title,
         g.name as grade_name
       FROM lessons l
-      JOIN books b ON l.book_id = b.id
+      JOIN units u ON l.unit_id = u.id
+      JOIN books b ON u.book_id = b.id
       JOIN grades g ON b.grade_id = g.id
       WHERE l.id = ?
     `, [result.insertId]);
@@ -419,25 +424,27 @@ exports.updateLesson = async (req, res) => {
     const { 
       title, 
       description, 
-      book_id, 
+      unit_id, 
       lesson_number,
       is_active 
     } = req.body;
 
     await db.query(`
       UPDATE lessons 
-      SET title = ?, description = ?, book_id = ?, lesson_number = ?, 
+      SET title = ?, description = ?, unit_id = ?, lesson_number = ?, 
           is_active = ?, updated_at = NOW()
       WHERE id = ?
-    `, [title, description, book_id, lesson_number, is_active, id]);
+    `, [title, description, unit_id, lesson_number, is_active, id]);
 
     const [updatedLesson] = await db.query(`
       SELECT 
         l.*,
+        u.title as unit_title,
         b.title as book_title,
         g.name as grade_name
       FROM lessons l
-      JOIN books b ON l.book_id = b.id
+      JOIN units u ON l.unit_id = u.id
+      JOIN books b ON u.book_id = b.id
       JOIN grades g ON b.grade_id = g.id
       WHERE l.id = ?
     `, [id]);
@@ -459,14 +466,14 @@ exports.deleteLesson = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Check if lesson has units
-    const [units] = await db.query(`
-      SELECT COUNT(*) as count FROM units WHERE lesson_id = ?
+    // Check if lesson has activities
+    const [activities] = await db.query(`
+      SELECT COUNT(*) as count FROM activities WHERE lesson_id = ?
     `, [id]);
 
-    if (units[0].count > 0) {
+    if (activities[0].count > 0) {
       return res.status(400).json({ 
-        message: 'Cannot delete lesson - it has associated units' 
+        message: 'Cannot delete lesson - it has associated activities' 
       });
     }
 
@@ -498,19 +505,19 @@ exports.getUnits = async (req, res) => {
         u.description,
         u.unit_number,
         u.is_active,
+        u.is_unlocked,
+        u.unlocked_by,
+        u.unlocked_at,
         u.created_at,
         u.updated_at,
-        l.id as lesson_id,
-        l.title as lesson_title,
         b.id as book_id,
         b.title as book_title,
         g.id as grade_id,
         g.name as grade_name
       FROM units u
-      JOIN lessons l ON u.lesson_id = l.id
-      JOIN books b ON l.book_id = b.id
+      JOIN books b ON u.book_id = b.id
       JOIN grades g ON b.grade_id = g.id
-      ORDER BY g.name, b.order_number, l.lesson_number, u.unit_number
+      ORDER BY g.name, b.order_number, u.unit_number
     `);
 
     res.json({
@@ -523,12 +530,12 @@ exports.getUnits = async (req, res) => {
   }
 };
 
-// @desc    Get units by lesson
-// @route   GET /api/education/lessons/:lessonId/units
+// @desc    Get units by book
+// @route   GET /api/education/books/:bookId/units
 // @access  Private/Admin
-exports.getUnitsByLesson = async (req, res) => {
+exports.getUnitsByBook = async (req, res) => {
   try {
-    const { lessonId } = req.params;
+    const { bookId } = req.params;
 
     const [units] = await db.query(`
       SELECT 
@@ -537,19 +544,22 @@ exports.getUnitsByLesson = async (req, res) => {
         description,
         unit_number,
         is_active,
+        is_unlocked,
+        unlocked_by,
+        unlocked_at,
         created_at,
         updated_at
       FROM units
-      WHERE lesson_id = ?
+      WHERE book_id = ?
       ORDER BY unit_number
-    `, [lessonId]);
+    `, [bookId]);
 
     res.json({
       success: true,
       units
     });
   } catch (error) {
-    console.error('Error getting units by lesson:', error);
+    console.error('Error getting units by book:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -562,25 +572,23 @@ exports.createUnit = async (req, res) => {
     const { 
       title, 
       description, 
-      lesson_id, 
+      book_id, 
       unit_number,
       is_active = true 
     } = req.body;
 
     const [result] = await db.query(`
-      INSERT INTO units (title, description, lesson_id, unit_number, is_active)
+      INSERT INTO units (title, description, book_id, unit_number, is_active)
       VALUES (?, ?, ?, ?, ?)
-    `, [title, description, lesson_id, unit_number, is_active]);
+    `, [title, description, book_id, unit_number, is_active]);
 
     const [newUnit] = await db.query(`
       SELECT 
         u.*,
-        l.title as lesson_title,
         b.title as book_title,
         g.name as grade_name
       FROM units u
-      JOIN lessons l ON u.lesson_id = l.id
-      JOIN books b ON l.book_id = b.id
+      JOIN books b ON u.book_id = b.id
       JOIN grades g ON b.grade_id = g.id
       WHERE u.id = ?
     `, [result.insertId]);
@@ -604,27 +612,25 @@ exports.updateUnit = async (req, res) => {
     const { 
       title, 
       description, 
-      lesson_id, 
+      book_id, 
       unit_number,
       is_active 
     } = req.body;
 
     await db.query(`
       UPDATE units 
-      SET title = ?, description = ?, lesson_id = ?, unit_number = ?, 
+      SET title = ?, description = ?, book_id = ?, unit_number = ?, 
           is_active = ?, updated_at = NOW()
       WHERE id = ?
-    `, [title, description, lesson_id, unit_number, is_active, id]);
+    `, [title, description, book_id, unit_number, is_active, id]);
 
     const [updatedUnit] = await db.query(`
       SELECT 
         u.*,
-        l.title as lesson_title,
         b.title as book_title,
         g.name as grade_name
       FROM units u
-      JOIN lessons l ON u.lesson_id = l.id
-      JOIN books b ON l.book_id = b.id
+      JOIN books b ON u.book_id = b.id
       JOIN grades g ON b.grade_id = g.id
       WHERE u.id = ?
     `, [id]);
