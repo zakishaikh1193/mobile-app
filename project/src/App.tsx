@@ -9,7 +9,6 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ChildDashboard from './pages/ChildDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
-import AdminDashboard from './pages/AdminDashboard';
 import AdminPortal from './pages/AdminPortal';
 import LearningHub from './pages/LearningHub';
 import ParentDashboard from './pages/ParentDashboard';
@@ -140,7 +139,7 @@ const AppRoutes = () => {
         <Route path="/admin/*" element={
           <PrivateRoute roles={['admin']}>
             <Routes>
-              <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="dashboard" element={<AdminPortal />} />
               <Route path="portal" element={<AdminPortal />} />
               <Route path="users/new" element={<RegisterPage />} />
               <Route path="users" element={<div>User Management</div>} />

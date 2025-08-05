@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   LogOut, Users, BookOpen, Settings, BarChart3, 
   MessageSquare, Upload, Plus, Edit, Trash2, 
@@ -138,6 +139,7 @@ const AddContentForm: React.FC<{
 
 const AdminPortal: React.FC = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   if (!user) return null;
   const [activeTab, setActiveTab] = useState('overview');
   const [contentLibrary, setContentLibrary] = useState<any[]>([]);
@@ -329,6 +331,163 @@ const AdminPortal: React.FC = () => {
     </div>
   );
 
+  const renderEducationManagement = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-800">Education Management</h2>
+        <div className="flex space-x-2">
+          <AnimatedButton 
+            className="flex items-center space-x-2" 
+            onClick={() => navigate('/admin/users/new')}
+          >
+            <Plus className="h-4 w-4" />
+            <span>Add User</span>
+          </AnimatedButton>
+          <AnimatedButton 
+            className="flex items-center space-x-2" 
+            onClick={() => setActiveTab('content')}
+          >
+            <Plus className="h-4 w-4" />
+            <span>Add Content</span>
+          </AnimatedButton>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Grades Management */}
+        <div className="bg-white rounded-3xl p-6 shadow-lg">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <School className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Grades</h3>
+              <p className="text-sm text-gray-600">Manage educational grades</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <AnimatedButton variant="secondary" size="sm" className="w-full">
+              View Grades
+            </AnimatedButton>
+            <AnimatedButton variant="primary" size="sm" className="w-full">
+              Add Grade
+            </AnimatedButton>
+          </div>
+        </div>
+
+        {/* Books Management */}
+        <div className="bg-white rounded-3xl p-6 shadow-lg">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <BookOpen className="h-6 w-6 text-green-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Books</h3>
+              <p className="text-sm text-gray-600">Manage educational books</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <AnimatedButton variant="secondary" size="sm" className="w-full">
+              View Books
+            </AnimatedButton>
+            <AnimatedButton variant="primary" size="sm" className="w-full">
+              Add Book
+            </AnimatedButton>
+          </div>
+        </div>
+
+        {/* Lessons Management */}
+        <div className="bg-white rounded-3xl p-6 shadow-lg">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+              <FileText className="h-6 w-6 text-purple-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Lessons</h3>
+              <p className="text-sm text-gray-600">Manage lessons and unlock status</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <AnimatedButton variant="secondary" size="sm" className="w-full">
+              View Lessons
+            </AnimatedButton>
+            <AnimatedButton variant="primary" size="sm" className="w-full">
+              Add Lesson
+            </AnimatedButton>
+          </div>
+        </div>
+
+        {/* Units Management */}
+        <div className="bg-white rounded-3xl p-6 shadow-lg">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+              <TrendingUp className="h-6 w-6 text-orange-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Units</h3>
+              <p className="text-sm text-gray-600">Manage learning units/levels</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <AnimatedButton variant="secondary" size="sm" className="w-full">
+              View Units
+            </AnimatedButton>
+            <AnimatedButton variant="primary" size="sm" className="w-full">
+              Add Unit
+            </AnimatedButton>
+          </div>
+        </div>
+
+        {/* Activities Management */}
+        <div className="bg-white rounded-3xl p-6 shadow-lg">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+              <Upload className="h-6 w-6 text-red-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Activities</h3>
+              <p className="text-sm text-gray-600">Manage learning activities</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <AnimatedButton variant="secondary" size="sm" className="w-full">
+              View Activities
+            </AnimatedButton>
+            <AnimatedButton variant="primary" size="sm" className="w-full">
+              Add Activity
+            </AnimatedButton>
+          </div>
+        </div>
+
+        {/* User Management */}
+        <div className="bg-white rounded-3xl p-6 shadow-lg">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+              <Users className="h-6 w-6 text-indigo-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Users</h3>
+              <p className="text-sm text-gray-600">Manage teachers, parents, students</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <AnimatedButton variant="secondary" size="sm" className="w-full">
+              View Users
+            </AnimatedButton>
+            <AnimatedButton 
+              variant="primary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/admin/users/new')}
+            >
+              Add User
+            </AnimatedButton>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderContentManagement = () => (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -500,7 +659,8 @@ const AdminPortal: React.FC = () => {
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
-    { id: 'content', label: 'Content', icon: BookOpen },
+    { id: 'education', label: 'Education', icon: BookOpen },
+    { id: 'content', label: 'Content', icon: Upload },
     { id: 'activities', label: 'Activities', icon: Upload },
     { id: 'schools', label: 'Schools', icon: School },
     { id: 'feedback', label: 'Feedback', icon: MessageSquare },
@@ -564,6 +724,7 @@ const AdminPortal: React.FC = () => {
           transition={{ duration: 0.6 }}
         >
           {activeTab === 'overview' && renderOverview()}
+          {activeTab === 'education' && renderEducationManagement()}
           {activeTab === 'content' && renderContentManagement()}
           {activeTab === 'activities' && <ActivityManager />}
           {activeTab === 'schools' && renderSchoolManagement()}

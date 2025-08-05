@@ -29,6 +29,11 @@ router.get('/topics/:topicId/activities', auth, educationalController.getTopicAc
 // @access  Private (Parent/Child/Teacher)
 router.get('/progress/:childId', auth, educationalController.getChildProgress);
 
+// @route   GET /api/educational/letterpath/:childId
+// @desc    Get topics as levels for LetterPath component
+// @access  Private (Parent/Child/Teacher)
+router.get('/letterpath/:childId', auth, educationalController.getLetterPathTopics);
+
 // ============================================
 // ADMIN ROUTES
 // ============================================

@@ -28,6 +28,7 @@ app.use('/api/children', childRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/activities', activityRoutes);
 app.use('/api/educational', require('./routes/educationalRoutes'));
+app.use('/api/education', require('./routes/educationRoutes'));
 
 // Error handling middleware (should be after all other middleware and routes)
 app.use(errorHandler);

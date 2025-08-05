@@ -373,6 +373,95 @@ exports.completeTopic = async (req, res) => {
   }
 };
 
+// @desc    Get topics as levels for LetterPath component
+// @route   GET /api/educational/letterpath/:childId
+// @access  Private (Parent/Child/Teacher)
+exports.getLetterPathTopics = async (req, res) => {
+  try {
+    const { childId } = req.params;
+    const { academic_year = '2024-2025' } = req.query;
+
+    // Get child's enrolled grade
+    const [enrollments] = await db.query(
+      'SELECT grade_id FROM student_enrollments WHERE student_id = ? AND is_active = 1',
+      [childId]
+    );
+
+    if (enrollments.length === 0) {
+      return res.status(404).json({ message: 'Child not enrolled in any grade' });
+    }
+
+    const gradeId = enrollments[0].grade_id;
+
+    // Get all topics as levels, ordered by chapter and topic order
+    const [topics] = await db.query(`
+      SELECT 
+        t.id as topic_id,
+        t.title as topic_title,
+        t.description as topic_description,
+        t.order_number as level_number,
+        t.is_unlocked,
+        t.unlock_requirement,
+        ch.id as chapter_id,
+        ch.title as chapter_title,
+        ch.is_released,
+        ch.release_date,
+        b.id as book_id,
+        b.title as book_title,
+        s.id as subject_id,
+        s.name as subject_name,
+        COUNT(a.id) as total_activities,
+        COUNT(CASE WHEN cp.completed = 1 THEN 1 END) as completed_activities,
+        tc.completion_score,
+        tc.completed_at,
+        CASE 
+          WHEN tc.completed_at IS NOT NULL THEN 'completed'
+          WHEN ch.is_released = 1 AND (t.is_unlocked = 1 OR t.order_number = 1) THEN 'available'
+          ELSE 'locked'
+        END as status
+      FROM topics t
+      JOIN chapters ch ON t.chapter_id = ch.id
+      JOIN books b ON ch.book_id = b.id
+      JOIN subjects s ON b.subject_id = s.id
+      LEFT JOIN activities a ON t.id = a.topic_id AND a.status = 'active'
+      LEFT JOIN child_progress cp ON a.id = cp.activity_id AND cp.child_id = ?
+      LEFT JOIN topic_completions tc ON t.id = tc.topic_id AND tc.child_id = ?
+      WHERE s.academic_year = ? 
+        AND b.academic_year = ?
+        AND s.grade_id = ?
+      GROUP BY t.id
+      ORDER BY s.name, b.order_number, ch.chapter_number, t.order_number
+    `, [childId, childId, academic_year, academic_year, gradeId]);
+
+    // Calculate overall progress for each topic
+    const processedTopics = topics.map(topic => {
+      const progressPercentage = topic.total_activities > 0 ? 
+        Math.round((topic.completed_activities / topic.total_activities) * 100) : 0;
+      
+      return {
+        ...topic,
+        progress_percentage: progressPercentage,
+        is_available: topic.status === 'available' || topic.status === 'completed'
+      };
+    });
+
+    // Calculate overall progress across all topics
+    const totalActivities = processedTopics.reduce((sum, topic) => sum + topic.total_activities, 0);
+    const completedActivities = processedTopics.reduce((sum, topic) => sum + topic.completed_activities, 0);
+    const overallProgress = totalActivities > 0 ? Math.round((completedActivities / totalActivities) * 100) : 0;
+
+    res.json({
+      success: true,
+      topics: processedTopics,
+      overall_progress: overallProgress,
+      total_levels: processedTopics.length
+    });
+  } catch (error) {
+    console.error('Error getting LetterPath topics:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // @desc    Get child's learning progress overview
 // @route   GET /api/educational/progress/:childId
 // @access  Private (Parent/Child/Teacher)
@@ -421,5 +510,6 @@ module.exports = {
   releaseChapter: exports.releaseChapter,
   getChaptersForAdmin: exports.getChaptersForAdmin,
   completeTopic: exports.completeTopic,
-  getChildProgress: exports.getChildProgress
+  getChildProgress: exports.getChildProgress,
+  getLetterPathTopics: exports.getLetterPathTopics
 }; 

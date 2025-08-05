@@ -10,33 +10,33 @@ const BADGES = [
   '/badges/B3.png',
   '/badges/B4.png',
   '/badges/B5.png',
+  '/badges/L1.png',  // Additional badge for level 6
+  '/badges/B1.png',  // Reuse B1 for level 7
+  '/badges/B2.png',  // Reuse B2 for level 8
 ];
 
 const LEVELS = 5;
 
-const getProgress = () => {
-  try {
-    return JSON.parse(localStorage.getItem('letterPathProgress') || '[]');
-  } catch {
-    return [];
-  }
-};
-
-const setProgress = (progress: number[]) => {
-  localStorage.setItem('letterPathProgress', JSON.stringify(progress));
-};
+// Database integration - no longer using localStorage
 
 const LetterPath: React.FC = () => {
   const navigate = useNavigate();
   const { childId } = useParams<{ childId: string }>();
   const { user, updateChildProgress, switchBackToParent } = useAuth();
-  const [progress, setProgressState] = useState<number[]>(getProgress());
+  const [topics, setTopics] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
   const [restartTrigger, setRestartTrigger] = useState(0);
   const [isDesktop, setIsDesktop] = useState(false);
 
   // Get child data
   const child = user?.children?.find(c => c.id === childId);
+
+  // Fetch topics from database
+  useEffect(() => {
+    fetchTopics();
+  }, [childId]);
 
   // Check screen size and refresh progress when restart trigger changes
   useEffect(() => {
@@ -48,117 +48,69 @@ const LetterPath: React.FC = () => {
     window.addEventListener('resize', checkScreenSize);
     
     if (restartTrigger > 0) {
-      // Refresh progress from localStorage
-      const freshProgress = getProgress();
-      setProgressState(freshProgress);
+      // Refresh topics from database
+      fetchTopics();
     }
     
     return () => window.removeEventListener('resize', checkScreenSize);
   }, [restartTrigger]);
 
-  // Calculate overall progress from all learning hubs
-  const getOverallProgress = () => {
-    if (!child) return 0;
-    const progressValues = Object.values(child.progress) as number[];
-    return progressValues.reduce((sum, val) => sum + val, 0) / progressValues.length;
-  };
-
-  // Check if level should be unlocked based on progress
-  const shouldUnlockLevel = (level: number) => {
-    if (level === 1) return true; // Level 1 is always unlocked
-    // All other levels require teacher approval - mock system
-    return false; // Only Level 1 is accessible
-  };
-
-  // Level data with details
-  const levelData = [
-    {
-      id: 1,
-      title: 'All About Me and My Family',
-      description: 'Build self-awareness, recognize emotions, explore the body, and understand family and home',
-      objectives: [
-        'Recognize and express basic emotions',
-        'Identify body parts and personal preferences',
-        'Understand family roles, home spaces, and traditions'
-      ],
-      difficulty: 'Easy',
-      estimatedTime: 60,
-      skills: ['Emotional Awareness', 'Body & Spatial Knowledge', 'Social Understanding'],
-      rewards: {
-        stars: 3,
-        badges: ['Me & My World Explorer'],
-        points: 600
+  const fetchTopics = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3000/api/educational/letterpath/${childId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch topics');
       }
-    },
-    {
-      id: 2,
-      title: 'Creative Expression',
-      description: 'Express yourself through art and creativity',
-      objectives: ['Create artwork', 'Use imagination', 'Develop creativity'],
-      difficulty: 'Easy',
-      estimatedTime: 15,
-      skills: ['Artistic expression', 'Creativity', 'Fine motor skills'],
-      rewards: {
-        stars: 3,
-        badges: ['Creative Artist'],
-        points: 150
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setTopics(data.topics);
+      } else {
+        setError('Failed to load topics');
       }
-    },
-    {
-      id: 3,
-      title: 'Story Time',
-      description: 'Listen to and create stories',
-      objectives: ['Listen to stories', 'Create narratives', 'Develop imagination'],
-      difficulty: 'Medium',
-      estimatedTime: 20,
-      skills: ['Listening comprehension', 'Storytelling', 'Imagination'],
-      rewards: {
-        stars: 3,
-        badges: ['Story Master'],
-        points: 200
-      }
-    },
-    {
-      id: 4,
-      title: 'Math Adventure',
-      description: 'Learn numbers and basic math concepts',
-      objectives: ['Count numbers', 'Learn basic addition', 'Understand patterns'],
-      difficulty: 'Medium',
-      estimatedTime: 25,
-      skills: ['Number recognition', 'Basic math', 'Pattern recognition'],
-      rewards: {
-        stars: 3,
-        badges: ['Math Explorer'],
-        points: 250
-      }
-    },
-    {
-      id: 5,
-      title: 'Science Discovery',
-      description: 'Explore the world through science',
-      objectives: ['Learn about nature', 'Understand basic science', 'Make observations'],
-      difficulty: 'Hard',
-      estimatedTime: 30,
-      skills: ['Scientific thinking', 'Observation', 'Curiosity'],
-      rewards: {
-        stars: 3,
-        badges: ['Science Master'],
-        points: 300
-      }
+    } catch (err) {
+      console.error('Error fetching topics:', err);
+      setError('Error loading topics');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  useEffect(() => {
-    setProgress(progress);
-  }, [progress]);
+  // Calculate overall progress from database topics
+  const getOverallProgress = () => {
+    if (topics.length === 0) return 0;
+    const totalActivities = topics.reduce((sum, topic) => sum + topic.total_activities, 0);
+    const completedActivities = topics.reduce((sum, topic) => sum + topic.completed_activities, 0);
+    return totalActivities > 0 ? Math.round((completedActivities / totalActivities) * 100) : 0;
+  };
+
+  // Check if level should be unlocked based on database data
+  const shouldUnlockLevel = (level: number) => {
+    const topic = topics.find(t => t.level_number === level);
+    if (!topic) return false;
+    return topic.is_available || topic.status === 'completed';
+  };
+
+  // Level data is now fetched from database instead of hardcoded
+
+  // Remove this useEffect as we're now using database instead of localStorage
 
   const handleStart = (level: number) => {
-    if (level === 1) {
-      // Navigate to student dashboard for level 1
-      navigate('/student/dashboard');
+    const topic = topics.find(t => t.level_number === level);
+    if (topic && topic.is_available) {
+      // Navigate to structured learning with the specific topic
+      navigate(`/structured-learning/${childId}?topicId=${topic.topic_id}`);
     } else {
-      // For other levels, stay in standalone mode
-      console.log(`Starting level ${level} - standalone mode`);
+      console.log(`Level ${level} is not available`);
     }
   };
 
@@ -190,9 +142,7 @@ const LetterPath: React.FC = () => {
     }
     
     // Reset all progress to 0% - complete restart
-    const newProgress: number[] = [];
-    setProgress(newProgress);
-    setProgressState(newProgress);
+    // Note: This will be handled by database reset in future implementation
     
     // Reset child's learning hub progress to 0%
     if (child) {
@@ -278,17 +228,20 @@ const LetterPath: React.FC = () => {
   };
 
   const handleLevelClick = (level: number) => {
-    setSelectedLevel(level);
+    const topic = topics.find(t => t.level_number === level);
+    if (topic) {
+      setSelectedLevel(level);
+    }
   };
 
   const handleStartLevel = (level: number) => {
     setSelectedLevel(null);
-    if (level === 1) {
-      // Navigate to student dashboard for level 1
-      navigate('/student/dashboard');
+    const topic = topics.find(t => t.level_number === level);
+    if (topic && topic.is_available) {
+      // Navigate to structured learning with the specific topic
+      navigate(`/structured-learning/${childId}?topicId=${topic.topic_id}`);
     } else {
-      // For other levels, stay in standalone mode
-      console.log(`Starting level ${level} from popup - standalone mode`);
+      console.log(`Level ${level} is not available`);
     }
   };
 
@@ -328,40 +281,72 @@ const LetterPath: React.FC = () => {
         </button>
       </div>
       <h1 className="text-3xl font-extrabold text-center text-green-600 mb-8 mt-2 tracking-tight" style={{ fontFamily: 'Comic Sans MS, Comic Sans, cursive' }}></h1>
-      <div className="relative w-full h-[600px] md:h-[400px] flex items-center justify-center px-2 sm:px-4 md:px-8">
+      
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="text-center py-12">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button 
+            onClick={fetchTopics}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Content */}
+      {!loading && !error && (
+        <div className="relative w-full h-[600px] md:h-[400px] flex items-center justify-center px-2 sm:px-4 md:px-8">
         
         {/* Curved Level Layout */}
         <div className="relative w-full h-full">
-          {[...Array(LEVELS)].map((_, idx) => {
-            const level = idx + 1;
+          {topics.map((topic, idx) => {
+            const level = topic.level_number;
             const isUnlocked = shouldUnlockLevel(level);
-            // Only Level 1 can be completed, and only when all activities are 100%
-            const isCompleted = level === 1 && getOverallProgress() >= 100;
-            const badgeSrc = BADGES[idx];
+            const isCompleted = topic.status === 'completed';
+            const badgeSrc = BADGES[idx] || BADGES[0]; // Fallback to first badge
             const overallProgress = getOverallProgress();
             
             // Curved positioning for levels - horizontal desktop, V-shape mobile
             const getLevelPosition = (index: number) => {
               if (isDesktop) {
-                // Desktop: horizontal straight line
+                // Desktop: horizontal straight line with more positions
                 const positions = [
                   { x: 10, y: 50 },   // Level 1: Left
-                  { x: 30, y: 50 },   // Level 2: Left-center
-                  { x: 50, y: 50 },   // Level 3: Center
-                  { x: 70, y: 50 },   // Level 4: Right-center
-                  { x: 90, y: 50 }    // Level 5: Right
+                  { x: 25, y: 50 },   // Level 2: Left-center
+                  { x: 40, y: 50 },   // Level 3: Center-left
+                  { x: 55, y: 50 },   // Level 4: Center
+                  { x: 70, y: 50 },   // Level 5: Center-right
+                  { x: 85, y: 50 },   // Level 6: Right-center
+                  { x: 100, y: 50 },  // Level 7: Right
+                  { x: 115, y: 50 }   // Level 8: Far-right
                 ];
-                return { left: `${positions[index].x}%`, top: `${positions[index].y}%` };
+                // Use modulo to handle any number of levels
+                const safeIndex = index % positions.length;
+                return { left: `${positions[safeIndex].x}%`, top: `${positions[safeIndex].y}%` };
               } else {
-                // Mobile & iPad: vertical inverted V-shape
+                // Mobile & iPad: vertical inverted V-shape with more positions
                 const positions = [
                   { x: 65, y: -12 },   // Level 1: Top center
                   { x: 25, y: 22 },   // Level 2: Mid-left
                   { x: 70, y: 62 },   // Level 3: Mid-right
                   { x: 30, y: 102 },   // Level 4: Bottom-left
-                  { x: 70, y: 142 }    // Level 5: Bottom-right
+                  { x: 70, y: 142 },   // Level 5: Bottom-right
+                  { x: 15, y: 182 },   // Level 6: Far-bottom-left
+                  { x: 80, y: 222 },   // Level 7: Far-bottom-right
+                  { x: 50, y: 262 }    // Level 8: Bottom-center
                 ];
-                return { left: `${positions[index].x}%`, top: `${positions[index].y}%` };
+                // Use modulo to handle any number of levels
+                const safeIndex = index % positions.length;
+                return { left: `${positions[safeIndex].x}%`, top: `${positions[safeIndex].y}%` };
               }
             };
             
@@ -449,7 +434,8 @@ const LetterPath: React.FC = () => {
           );
         })}
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Level Details Popup Modal */}
       <AnimatePresence>
@@ -474,13 +460,13 @@ const LetterPath: React.FC = () => {
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <img
-                        src={BADGES[selectedLevel - 1]}
+                        src={BADGES[selectedLevel - 1] || BADGES[0]}
                         alt={`Level ${selectedLevel} Badge`}
                         className="w-12 h-12 rounded-full border-2 border-yellow-400"
                       />
                       <div>
                         <h2 className="text-xl font-bold text-gray-800">
-                          {levelData[selectedLevel - 1].title}
+                          {topics.find(t => t.level_number === selectedLevel)?.topic_title || `Level ${selectedLevel}`}
                         </h2>
                         <p className="text-sm text-gray-600">Level {selectedLevel}</p>
                       </div>
@@ -495,85 +481,69 @@ const LetterPath: React.FC = () => {
 
                   {/* Description */}
                   <p className="text-gray-700 mb-4">
-                    {levelData[selectedLevel - 1].description}
+                    {topics.find(t => t.level_number === selectedLevel)?.topic_description || 'No description available'}
                   </p>
 
-                  {/* Difficulty and Time */}
+                  {/* Progress and Activities */}
                   <div className="flex items-center gap-4 mb-4">
                     <div className="flex items-center gap-2">
-                      <div className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        levelData[selectedLevel - 1].difficulty === 'Easy' ? 'bg-green-100 text-green-700' :
-                        levelData[selectedLevel - 1].difficulty === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-red-100 text-red-700'
-                      }`}>
-                        {levelData[selectedLevel - 1].difficulty}
+                      <div className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                        {topics.find(t => t.level_number === selectedLevel)?.completed_activities || 0}/{topics.find(t => t.level_number === selectedLevel)?.total_activities || 0} Activities
                       </div>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <span>Time:</span>
-                      <span>{levelData[selectedLevel - 1].estimatedTime} min</span>
+                      <span>Progress:</span>
+                      <span>{topics.find(t => t.level_number === selectedLevel)?.progress_percentage || 0}%</span>
                     </div>
                   </div>
 
-                  {/* Objectives */}
+                  {/* Chapter and Subject Info */}
                   <div className="mb-4">
-                    <h3 className="font-semibold text-gray-800 mb-2">Learning Objectives:</h3>
-                    <ul className="space-y-1">
-                      {levelData[selectedLevel - 1].objectives.map((objective, index) => (
-                        <li key={index} className="flex items-start gap-2 text-sm text-gray-700">
-                          <span className="text-green-500 mt-1">•</span>
-                          <span>{objective}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Skills */}
-                  <div className="mb-4">
-                    <h3 className="font-semibold text-gray-800 mb-2">Skills You'll Learn:</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {levelData[selectedLevel - 1].skills.map((skill, index) => (
-                        <span
-                          key={index}
-                          className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium"
-                        >
-                          {skill}
-                        </span>
-                      ))}
+                    <h3 className="font-semibold text-gray-800 mb-2">Learning Context:</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-700">
+                        <span className="font-medium">Subject:</span>
+                        <span>{topics.find(t => t.level_number === selectedLevel)?.subject_name || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-700">
+                        <span className="font-medium">Book:</span>
+                        <span>{topics.find(t => t.level_number === selectedLevel)?.book_title || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-700">
+                        <span className="font-medium">Chapter:</span>
+                        <span>{topics.find(t => t.level_number === selectedLevel)?.chapter_title || 'N/A'}</span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Rewards */}
+                  {/* Status and Completion */}
                   <div className="mb-6">
-                    <h3 className="font-semibold text-gray-800 mb-2">Rewards:</h3>
+                    <h3 className="font-semibold text-gray-800 mb-2">Status:</h3>
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
-                        <Star className="w-5 h-5 text-yellow-500 fill-current" />
-                        <span className="text-sm text-gray-700">
-                          {levelData[selectedLevel - 1].rewards.stars} Stars
-                        </span>
+                        <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          topics.find(t => t.level_number === selectedLevel)?.status === 'completed' ? 'bg-green-100 text-green-700' :
+                          topics.find(t => t.level_number === selectedLevel)?.status === 'available' ? 'bg-blue-100 text-blue-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {topics.find(t => t.level_number === selectedLevel)?.status === 'completed' ? 'Completed' :
+                           topics.find(t => t.level_number === selectedLevel)?.status === 'available' ? 'Available' : 'Locked'}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-700">
-                          {levelData[selectedLevel - 1].rewards.points} Points ({Math.floor(levelData[selectedLevel - 1].rewards.points / 6)} per activity)
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-2">
-                      {levelData[selectedLevel - 1].rewards.badges.map((badge, index) => (
-                        <span
-                          key={index}
-                          className="inline-block px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium mr-2"
-                        >
-                          {badge}
-                        </span>
-                      ))}
+                      {topics.find(t => t.level_number === selectedLevel)?.completion_score && (
+                        <div className="flex items-center gap-2">
+                          <Star className="w-4 h-4 text-yellow-500" />
+                          <span className="text-sm text-gray-700">
+                            {topics.find(t => t.level_number === selectedLevel)?.completion_score}% Score
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Action Buttons */}
                   <div className="flex gap-3">
-                    {selectedLevel === 1 ? (
+                    {topics.find(t => t.level_number === selectedLevel)?.is_available ? (
                       <motion.button
                         onClick={() => handleStartLevel(selectedLevel)}
                         className="flex-1 flex items-center justify-center gap-2 bg-green-500 text-white py-3 px-4 rounded-xl font-semibold hover:bg-green-600 transition-colors"
@@ -586,11 +556,13 @@ const LetterPath: React.FC = () => {
                     ) : (
                       <div className="flex-1 flex items-center justify-center gap-2 bg-gray-300 text-gray-500 py-3 px-4 rounded-xl font-semibold">
                         <Lock className="w-4 h-4" />
-                        Teacher Approval Required
+                        {topics.find(t => t.level_number === selectedLevel)?.unlock_requirement ? 
+                          `Complete ${topics.find(t => t.level_number === selectedLevel)?.unlock_requirement} previous topic(s)` : 
+                          'Teacher Approval Required'}
                       </div>
                     )}
                     
-                    {(selectedLevel === 1 && getOverallProgress() >= 100) && (
+                    {topics.find(t => t.level_number === selectedLevel)?.status === 'completed' && (
                       <motion.button
                         onClick={() => {
                           handleRestart(selectedLevel);

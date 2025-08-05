@@ -19,7 +19,6 @@ const auth = async (req, res, next) => {
     // Verify token
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret');
-      console.log('Auth middleware - Decoded token:', decoded);
       
       // Check if this is a child token
       if (decoded.isChild) {
@@ -51,13 +50,10 @@ const auth = async (req, res, next) => {
       } else {
         // Regular user authentication
         const userId = decoded.id;
-        console.log('Auth middleware - Looking for user with ID:', userId);
         const [users] = await db.query('SELECT * FROM users WHERE id = ?', [userId]);
-        console.log('Auth middleware - Found users:', users.length);
-        
+
         if (users.length === 0) {
           console.log('Auth middleware - No user found with ID:', userId);
-          return res.status(401).json({ message: 'User not found' });
         }
 
         // Check if user is active
