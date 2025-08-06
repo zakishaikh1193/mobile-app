@@ -5,238 +5,278 @@ const path = require('path');
 const fs = require('fs');
 const pool = require('../models/db');
 
-// Configure multer for activity content uploads
-const UPLOAD_PATH = path.join(__dirname, '..', 'uploads', 'activities');
+// --- 1. Path and Directory Setup ---
+
+const UPLOAD_PATH = path.join(__dirname, '..', 'uploads');
+const ACTIVITIES_PATH = path.join(UPLOAD_PATH, 'activities');
+const TEMP_PATH = path.join(UPLOAD_PATH, 'temp');
+
+// Proactively create directories on startup to ensure they exist.
+try {
+    if (!fs.existsSync(ACTIVITIES_PATH)) fs.mkdirSync(ACTIVITIES_PATH, { recursive: true });
+    if (!fs.existsSync(TEMP_PATH)) fs.mkdirSync(TEMP_PATH, { recursive: true });
+} catch (error) {
+    console.error("FATAL: Could not create upload directories.", error);
+    process.exit(1); // Exit if the app can't function properly.
+}
+
+// --- 2. Multer Configuration ---
+
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        try {
-            if (!fs.existsSync(UPLOAD_PATH)) {
-                fs.mkdirSync(UPLOAD_PATH, { recursive: true });
-            }
-            cb(null, UPLOAD_PATH);
-        } catch (error) {
-            console.error("Error creating upload directory:", error);
-            cb(error);
-        }
-    },
+    destination: (req, file, cb) => cb(null, TEMP_PATH), // Always upload to temp folder first
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
     }
 });
-const upload = multer({ 
-    storage,
+
+const upload = multer({
+    storage: storage,
     fileFilter: (req, file, cb) => {
-        if (file.mimetype.startsWith('image/')) { cb(null, true); } 
-        else { cb(new Error('Only image files are allowed!'), false); }
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files are allowed!'), false);
+        }
     },
-    limits: { fileSize: 5 * 1024 * 1024 }
+    limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
 });
+
+// --- 3. Helper Functions ---
+
+// Returns a clean, relative path for database storage.
 const getRelativePath = (fullPath) => {
     return path.join('uploads', 'activities', path.basename(fullPath)).replace(/\\/g, '/');
-}
+};
 
-// Helper function to process activity data for response
+// Formats an activity record for the client, adding the full image URL.
 const processActivityForResponse = (activity) => {
     if (!activity) return null;
-
     let parsedColors = [];
     if (activity.colors) {
         try {
-            // The database stores JSON, so it should already be parsed by the driver.
-            // If it's a string, we parse it.
-            parsedColors = typeof activity.colors === 'string' 
-                ? JSON.parse(activity.colors) 
-                : activity.colors;
+            parsedColors = typeof activity.colors === 'string' ? JSON.parse(activity.colors) : activity.colors;
         } catch (e) {
-            // Fallback for malformed strings
-            parsedColors = activity.colors.split(',').map(c => c.trim());
+            parsedColors = []; // Default to empty array on parse error
         }
     }
-    
     return {
         ...activity,
-        // CHANGE: Generate the full URL path on the backend.
-        // The path stored in the DB is like 'uploads/activities/image-123.png'.
-        // The client needs a URL like '/uploads/activities/image-123.png'.
         image_url: activity.image_path ? `/${activity.image_path.replace(/\\/g, '/')}` : null,
         colors: parsedColors,
     };
 };
 
-// Create new activity content
-router.post('/create', upload.single('image'), async (req, res) => {
+// --- 4. CRUD Routes ---
+
+/**
+ * CREATE a new activity
+ * POST /api/activities
+ */
+router.post('/', upload.single('image'), async (req, res, next) => {
     try {
-        const { title, type, description, difficulty, colors } = req.body;
-        
-        if (!title || !type || !description) {
-            return res.status(400).json({ error: 'Title, type, and description are required.' });
-        }
+        const {
+            title, type, description, difficulty = 'easy', colors, grade_id,
+            book_id, unit_id, lesson_id, learning_objectives, prerequisites,
+            estimated_duration = 10, max_attempts = 3, passing_score = 70
+        } = req.body;
+
         if (!req.file) {
             return res.status(400).json({ error: 'Image file is required for new activities.' });
         }
+        if (!title || !type || !description) {
+            return res.status(400).json({ error: 'Title, type, and description are required.' });
+        }
 
-        let parsedColors = colors ? JSON.parse(colors) : [];
-        const imageDbPath = getRelativePath(req.file.path);
+        // Move the file from temp to its final destination
+        const finalPath = path.join(ACTIVITIES_PATH, req.file.filename);
+        fs.renameSync(req.file.path, finalPath);
+        const imageDbPath = getRelativePath(finalPath);
 
         const [result] = await pool.query(
-            `INSERT INTO activities (title, type, description, difficulty, image_path, colors, status, created_at) 
-             VALUES (?, ?, ?, ?, ?, ?, 'active', NOW())`,
-            [title, type, description, difficulty || 'easy', imageDbPath, JSON.stringify(parsedColors)]
+            `INSERT INTO activities (
+                title, type, description, difficulty, image_path, colors, 
+                grade_id, book_id, unit_id, lesson_id, learning_objectives, 
+                prerequisites, estimated_duration, max_attempts, passing_score,
+                status, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW())`,
+            [
+                title, type, description, difficulty, imageDbPath, colors || '[]',
+                grade_id || null, book_id || null, unit_id || null, lesson_id || null,
+                learning_objectives || null, prerequisites || null, estimated_duration,
+                max_attempts, passing_score
+            ]
         );
 
-        res.status(201).json({ 
-            message: 'Activity created successfully', 
-            activityId: result.insertId
-        });
+        res.status(201).json({ message: 'Activity created successfully', activityId: result.insertId });
     } catch (error) {
-        console.error('Error creating activity:', error);
-        if (req.file) { fs.unlink(req.file.path, (err) => { if (err) console.error("Error deleting orphaned file:", err); }); }
-        res.status(500).json({ error: error.message });
-    }
-});
-// Get all activities (combined logic)
-router.get('/', async (req, res) => {
-    try {
-        const { type } = req.query; // CHANGE: Use query param for filtering
-        let query = 'SELECT * FROM activities WHERE status = "active"';
-        let params = [];
-
-        if (type) {
-            query += ' AND type = ?';
-            params.push(type);
+        // If an error occurs, delete the uploaded temp file to prevent orphans.
+        if (req.file) {
+            fs.unlink(req.file.path, (err) => {
+                if(err) console.error("Error deleting temp file on failure:", err);
+            });
         }
-        query += ' ORDER BY type, created_at DESC';
-
-        const [rows] = await pool.query(query, params);
-        
-        const activities = rows.map(processActivityForResponse);
-        res.json(activities);
-    } catch (error) {
-        console.error('Error fetching activities:', error);
-        res.status(500).json({ error: error.message });
+        next(error); // Pass error to the global handler
     }
 });
 
-// CHANGE: Deprecate /type/:type in favor of /?type=coloring for consistency
-router.get('/type/:type', async (req, res) => {
+/**
+ * READ all activities (with optional filtering)
+ * GET /api/activities
+ */
+router.get('/', async (req, res, next) => {
     try {
-        const { type } = req.params;
-        const [rows] = await pool.query(
-            'SELECT * FROM activities WHERE type = ? AND status = "active" ORDER BY created_at DESC',
-            [type]
-        );
-        const activities = rows.map(processActivityForResponse);
-        res.json(activities);
+        // ... (Your existing GET all code is good and remains here)
+        // This code was already functional.
+        const { type, grade_id, book_id, unit_id, lesson_id } = req.query;
+        let query = `
+            SELECT 
+                a.*,
+                g.name as grade_name,
+                b.title as book_title,
+                u.title as unit_title,
+                l.title as lesson_title
+            FROM activities a
+            LEFT JOIN grades g ON a.grade_id = g.id
+            LEFT JOIN books b ON a.book_id = b.id
+            LEFT JOIN units u ON a.unit_id = u.id
+            LEFT JOIN lessons l ON a.lesson_id = l.id
+            WHERE a.status = "active"
+        `;
+        let params = [];
+        if (type) { query += ' AND a.type = ?'; params.push(type); }
+        if (grade_id) { query += ' AND a.grade_id = ?'; params.push(grade_id); }
+        if (book_id) { query += ' AND a.book_id = ?'; params.push(book_id); }
+        if (unit_id) { query += ' AND a.unit_id = ?'; params.push(unit_id); }
+        if (lesson_id) { query += ' AND a.lesson_id = ?'; params.push(lesson_id); }
+        query += ' ORDER BY a.created_at DESC';
+        const [rows] = await pool.query(query, params);
+        res.json(rows.map(processActivityForResponse));
     } catch (error) {
-        console.error('Error fetching activities:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
+        next(error);
     }
 });
 
-
-// Get single activity
-router.get('/:id', async (req, res) => {
+/**
+ * READ a single activity by ID
+ * GET /api/activities/:id
+ */
+router.get('/:id', async (req, res, next) => {
     try {
         const { id } = req.params;
-        const [rows] = await pool.query(
-            'SELECT * FROM activities WHERE id = ? AND status = "active"',
-            [id]
-        );
-        
+        const [rows] = await pool.query(`
+            SELECT 
+                a.*,
+                g.name as grade_name,
+                b.title as book_title,
+                u.title as unit_title,
+                l.title as lesson_title
+            FROM activities a
+            LEFT JOIN grades g ON a.grade_id = g.id
+            LEFT JOIN books b ON a.book_id = b.id
+            LEFT JOIN units u ON a.unit_id = u.id
+            LEFT JOIN lessons l ON a.lesson_id = l.id
+            WHERE a.id = ? AND a.status = "active"
+        `, [id]);
         if (rows.length === 0) {
             return res.status(404).json({ error: 'Activity not found' });
         }
-        
-        const activity = processActivityForResponse(rows[0]);
-        res.json(activity);
+        res.json(processActivityForResponse(rows[0]));
     } catch (error) {
-        console.error('Error fetching activity:', error);
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 });
 
-router.put('/:id', upload.any(), async (req, res) => {
+/**
+ * UPDATE an existing activity by ID
+ * PUT /api/activities/:id
+ */
+router.put('/:id', upload.single('image'), async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { title, description, difficulty, colors } = req.body;
-
-        // The file, if it exists, will now be in req.files array
-        const newFile = req.files && req.files.length > 0 ? req.files[0] : null;
-
         const [existingRows] = await pool.query('SELECT image_path FROM activities WHERE id = ?', [id]);
         if (existingRows.length === 0) {
-            // If activity not found, delete the uploaded file if it exists
-            if (newFile) fs.unlinkSync(newFile.path); 
             return res.status(404).json({ error: 'Activity not found' });
         }
-        const oldImagePath = existingRows[0].image_path;
 
-        let updateFields = {};
-        if (title) updateFields.title = title;
-        if (description) updateFields.description = description;
-        if (difficulty) updateFields.difficulty = difficulty;
-        if (colors) updateFields.colors = JSON.stringify(JSON.parse(colors));
-        
-        // If a new file was uploaded, update the path and delete the old file
-        if (newFile) {
-            updateFields.image_path = getRelativePath(newFile.path);
-            if (oldImagePath) {
-                const fullOldPath = path.join(__dirname, '..', oldImagePath);
-                if (fs.existsSync(fullOldPath)) {
-                    fs.unlink(fullOldPath, err => {
-                        if (err) console.error("Error deleting old image:", err);
-                    });
-                }
-            }
+        const updateFields = { ...req.body };
+        let oldImagePath = existingRows[0].image_path;
+
+        // If a new file is uploaded, handle the file move and path update.
+        if (req.file) {
+            const finalPath = path.join(ACTIVITIES_PATH, req.file.filename);
+            fs.renameSync(req.file.path, finalPath);
+            updateFields.image_path = getRelativePath(finalPath);
         }
-        
-        // Check if there is anything to update
-        if (Object.keys(updateFields).length === 0) {
+
+        // Prepare for dynamic SQL query
+        delete updateFields.id; // Prevent updating the primary key
+        const fieldEntries = Object.entries(updateFields);
+        if (fieldEntries.length === 0) {
             return res.status(400).json({ error: 'No fields to update' });
         }
 
-        const setClause = Object.keys(updateFields).map(key => `${key} = ?`).join(', ');
-        const values = [...Object.values(updateFields), id];
+        const setClause = fieldEntries.map(([key]) => `${key} = ?`).join(', ');
+        const values = fieldEntries.map(([, val]) => val);
 
-        await pool.query(
-            `UPDATE activities SET ${setClause}, updated_at = NOW() WHERE id = ?`,
-            values
-        );
+        await pool.query(`UPDATE activities SET ${setClause}, updated_at = NOW() WHERE id = ?`, [...values, id]);
+        
+        // If update was successful and a new image was uploaded, delete the old one.
+        if (req.file && oldImagePath) {
+            const fullOldPath = path.join(__dirname, '..', oldImagePath);
+            fs.unlink(fullOldPath, err => {
+                if (err) console.error("Non-fatal: Error deleting old image:", err);
+            });
+        }
 
         res.json({ message: 'Activity updated successfully' });
     } catch (error) {
-        console.error('Error updating activity:', error);
-        // Clean up orphaned file on error
-        const newFile = req.files && req.files.length > 0 ? req.files[0] : null;
-        if (newFile) { 
-            fs.unlink(newFile.path, (err) => { 
-                if (err) console.error("Error deleting orphaned file on update:", err); 
-            }); 
+        if (req.file) {
+            fs.unlink(req.file.path, (err) => {
+                if(err) console.error("Error deleting temp file on update failure:", err);
+            });
         }
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 });
 
 
-// Delete activity (soft delete)
-router.delete('/:id', async (req, res) => {
+/**
+ * DELETE an activity by ID (Soft Delete)
+ * DELETE /api/activities/:id
+ */
+router.delete('/:id', async (req, res, next) => {
     try {
         const { id } = req.params;
         const [result] = await pool.query(
             'UPDATE activities SET status = "deleted", updated_at = NOW() WHERE id = ?',
             [id]
         );
-
         if (result.affectedRows === 0) {
             return res.status(404).json({ error: 'Activity not found' });
         }
-
+        // NOTE: The physical image file is NOT deleted on soft delete,
+        // allowing for potential restoration in the future.
         res.json({ message: 'Activity deleted successfully' });
     } catch (error) {
-        console.error('Error deleting activity:', error);
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 });
+
+
+// --- 5. Global Error Handler for This Router ---
+
+// This middleware catches errors from Multer and any other errors passed via `next(error)`.
+router.use((error, req, res, next) => {
+    console.error("An error occurred in the activities router:", error);
+
+    if (error instanceof multer.MulterError) {
+        return res.status(400).json({ error: `File upload error: ${error.message}` });
+    }
+    
+    // For any other errors, send a generic response.
+    res.status(500).json({ error: `An unexpected server error occurred: ${error.message}`});
+});
+
 
 module.exports = router;

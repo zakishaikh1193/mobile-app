@@ -12,6 +12,7 @@ import KodeitLogo from '../components/KodeitLogo';
 import AnimatedButton from '../components/AnimatedButton';
 import AudioButton from '../components/AudioButton';
 import ActivityManager from '../components/ActivityManager';
+import axios from 'axios';
 
 // AddContentForm component
 const AddContentForm: React.FC<{
@@ -449,6 +450,37 @@ const AdminPortal: React.FC = () => {
           </div>
         </div>
 
+{/* Units Management */}
+<div className="bg-white rounded-3xl p-6 shadow-lg">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+              <TrendingUp className="h-6 w-6 text-orange-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Units</h3>
+              <p className="text-sm text-gray-600">Manage learning units/levels</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <AnimatedButton 
+              variant="secondary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/admin/units')}
+            >
+              View Units
+            </AnimatedButton>
+            <AnimatedButton 
+              variant="primary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/admin/units')}
+            >
+              Add Unit
+            </AnimatedButton>
+          </div>
+        </div>
+
         {/* Lessons Management */}
         <div className="bg-white rounded-3xl p-6 shadow-lg">
           <div className="flex items-center space-x-3 mb-4">
@@ -476,37 +508,6 @@ const AdminPortal: React.FC = () => {
               onClick={() => navigate('/admin/lessons')}
             >
               Add Lesson
-            </AnimatedButton>
-          </div>
-        </div>
-
-        {/* Units Management */}
-        <div className="bg-white rounded-3xl p-6 shadow-lg">
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-              <TrendingUp className="h-6 w-6 text-orange-600" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-gray-800">Units</h3>
-              <p className="text-sm text-gray-600">Manage learning units/levels</p>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <AnimatedButton 
-              variant="secondary" 
-              size="sm" 
-              className="w-full"
-              onClick={() => navigate('/admin/units')}
-            >
-              View Units
-            </AnimatedButton>
-            <AnimatedButton 
-              variant="primary" 
-              size="sm" 
-              className="w-full"
-              onClick={() => navigate('/admin/units')}
-            >
-              Add Unit
             </AnimatedButton>
           </div>
         </div>

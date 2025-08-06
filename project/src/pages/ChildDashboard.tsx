@@ -20,7 +20,7 @@ const ChildDashboard = () => {
   const { user, updateUser, switchBackToParent } = useAuth();
   const { speak } = useAudio();
   const navigate = useNavigate();
-  const { updateProgress, completeCard, updateStreakAndBadges } = useProgressService();
+
   
   // State declarations
   const [htmlModalUrl, setHtmlModalUrl] = useState(null);
@@ -37,7 +37,7 @@ const ChildDashboard = () => {
   
   
   // Memoized callbacks
-  const handleAvatarSelect = useCallback(async (avatarUrl) => {
+  const handleAvatarSelect = useCallback(async (avatarUrl: any) => {
     try {
       if (!user) return;
       

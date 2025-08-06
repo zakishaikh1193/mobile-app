@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Plus, Edit, Trash2, Save, X } from 'lucide-react';
 import { activityService, Activity } from '../services/activityService';
+import api from '../services/api';
 
 interface ActivityManagerProps {
   onClose?: () => void;
@@ -17,14 +18,53 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
     type: 'coloring' as Activity['type'],
     description: '',
     difficulty: 'easy' as Activity['difficulty'],
-    colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD']
+    colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD'],
+    grade_id: '',
+    book_id: '',
+    unit_id: '',
+    lesson_id: '',
+    learning_objectives: '',
+    prerequisites: '',
+    estimated_duration: 10,
+    max_attempts: 3,
+    passing_score: 70
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  
+  // Hierarchy data state
+  const [grades, setGrades] = useState<any[]>([]);
+  const [books, setBooks] = useState<any[]>([]);
+  const [units, setUnits] = useState<any[]>([]);
+  const [lessons, setLessons] = useState<any[]>([]);
 
   useEffect(() => {
     loadActivities();
+    loadHierarchyData();
   }, []);
+
+    const loadHierarchyData = async () => {
+    try {
+      // Load grades
+      const gradesResponse = await api.get('/education/grades');
+      setGrades(gradesResponse.data.grades || []);
+     
+      // Load books
+      const booksResponse = await api.get('/education/books');
+      console.log("Books Response", booksResponse.data.books);
+      setBooks(booksResponse.data.books || []);
+
+      // Load units
+      const unitsResponse = await api.get('/education/units');
+      setUnits(unitsResponse.data.units || []);
+
+      // Load lessons
+      const lessonsResponse = await api.get('/education/lessons');
+      setLessons(lessonsResponse.data.lessons || []);
+    } catch (error) {
+      console.error('Error loading hierarchy data:', error);
+    }
+  };
 
   const loadActivities = async () => {
     setLoading(true);
@@ -65,6 +105,7 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Create full FormData with all fields
     const submitFormData = new FormData();
     submitFormData.append('title', formData.title);
     submitFormData.append('type', formData.type);
@@ -72,8 +113,37 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
     submitFormData.append('difficulty', formData.difficulty);
     submitFormData.append('colors', JSON.stringify(formData.colors));
     
+    // Add all hierarchy fields
+    if (formData.grade_id && formData.grade_id.trim() !== '') {
+      submitFormData.append('grade_id', formData.grade_id);
+    }
+    if (formData.book_id && formData.book_id.trim() !== '') {
+      submitFormData.append('book_id', formData.book_id);
+    }
+    if (formData.unit_id && formData.unit_id.trim() !== '') {
+      submitFormData.append('unit_id', formData.unit_id);
+    }
+    if (formData.lesson_id && formData.lesson_id.trim() !== '') {
+      submitFormData.append('lesson_id', formData.lesson_id);
+    }
+    if (formData.learning_objectives && formData.learning_objectives.trim() !== '') {
+      submitFormData.append('learning_objectives', formData.learning_objectives);
+    }
+    if (formData.prerequisites && formData.prerequisites.trim() !== '') {
+      submitFormData.append('prerequisites', formData.prerequisites);
+    }
+    submitFormData.append('estimated_duration', formData.estimated_duration.toString());
+    submitFormData.append('max_attempts', formData.max_attempts.toString());
+    submitFormData.append('passing_score', formData.passing_score.toString());
+    
     if (selectedFile) {
       submitFormData.append('image', selectedFile);
+    }
+
+    // Debug: Log FormData contents
+    console.log('FormData contents:');
+    for (let [key, value] of submitFormData.entries()) {
+      console.log(key, value);
     }
 
     try {
@@ -110,6 +180,15 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
       description: activity.description,
       difficulty: activity.difficulty,
       colors: Array.isArray(activity.colors) ? activity.colors : [], // Ensure colors is an array
+      grade_id: activity.grade_id?.toString() || '',
+      book_id: activity.book_id?.toString() || '',
+      unit_id: activity.unit_id?.toString() || '',
+      lesson_id: activity.lesson_id?.toString() || '',
+      learning_objectives: activity.learning_objectives || '',
+      prerequisites: activity.prerequisites || '',
+      estimated_duration: activity.estimated_duration || 10,
+      max_attempts: activity.max_attempts || 3,
+      passing_score: activity.passing_score || 70
     });
     // --- CHANGE THIS LINE ---
     if (activity.image_url) {
@@ -143,12 +222,34 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
       type: 'coloring',
       description: '',
       difficulty: 'easy',
-      colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD']
+      colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD'],
+      grade_id: '',
+      book_id: '',
+      unit_id: '',
+      lesson_id: '',
+      learning_objectives: '',
+      prerequisites: '',
+      estimated_duration: 10,
+      max_attempts: 3,
+      passing_score: 70
     });
     setSelectedFile(null);
     setPreviewUrl('');
     setEditingActivity(null);
     setShowCreateForm(false);
+  };
+
+  // Helper functions to filter hierarchy data
+  const getBooksByGrade = (gradeId: string) => {
+    return books.filter(book => book.grade_id === parseInt(gradeId));
+  };
+
+  const getUnitsByBook = (bookId: string) => {
+    return units.filter(unit => unit.book_id === parseInt(bookId));
+  };
+
+  const getLessonsByUnit = (unitId: string) => {
+    return lessons.filter(lesson => lesson.unit_id === parseInt(unitId));
   };
 
   if (loading) {
@@ -258,6 +359,178 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
                   <option value="medium">Medium</option>
                   <option value="hard">Hard</option>
                 </select>
+              </div>
+
+              {/* Hierarchy Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Grade
+                  </label>
+                  <select
+                    value={formData.grade_id}
+                    onChange={(e) => {
+                      setFormData({ 
+                        ...formData, 
+                        grade_id: e.target.value,
+                        book_id: '',
+                        unit_id: '',
+                        lesson_id: ''
+                      });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select Grade</option>
+                    {grades.map((grade) => (
+                      <option key={grade.id} value={grade.id}>
+                        {grade.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Book
+                  </label>
+                  <select
+                    value={formData.book_id}
+                    onChange={(e) => {
+                      setFormData({ 
+                        ...formData, 
+                        book_id: e.target.value,
+                        unit_id: '',
+                        lesson_id: ''
+                      });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={!formData.grade_id}
+                  >
+                    <option value="">Select Book</option>
+                    {formData.grade_id && getBooksByGrade(formData.grade_id).map((book) => (
+                      <option key={book.id} value={book.id}>
+                        {book.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Unit
+                  </label>
+                  <select
+                    value={formData.unit_id}
+                    onChange={(e) => {
+                      setFormData({ 
+                        ...formData, 
+                        unit_id: e.target.value,
+                        lesson_id: ''
+                      });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={!formData.book_id}
+                  >
+                    <option value="">Select Unit</option>
+                    {formData.book_id && getUnitsByBook(formData.book_id).map((unit) => (
+                      <option key={unit.id} value={unit.id}>
+                        {unit.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Lesson
+                  </label>
+                  <select
+                    value={formData.lesson_id}
+                    onChange={(e) => setFormData({ ...formData, lesson_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={!formData.unit_id}
+                  >
+                    <option value="">Select Lesson</option>
+                    {formData.unit_id && getLessonsByUnit(formData.unit_id).map((lesson) => (
+                      <option key={lesson.id} value={lesson.id}>
+                        {lesson.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Educational Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Learning Objectives
+                  </label>
+                  <textarea
+                    value={formData.learning_objectives}
+                    onChange={(e) => setFormData({ ...formData, learning_objectives: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows={2}
+                    placeholder="What will students learn from this activity?"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Prerequisites
+                  </label>
+                  <textarea
+                    value={formData.prerequisites}
+                    onChange={(e) => setFormData({ ...formData, prerequisites: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows={2}
+                    placeholder="What should students know before this activity?"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Estimated Duration (minutes)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.estimated_duration}
+                    onChange={(e) => setFormData({ ...formData, estimated_duration: parseInt(e.target.value) || 10 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    min="1"
+                    max="120"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Max Attempts
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.max_attempts}
+                    onChange={(e) => setFormData({ ...formData, max_attempts: parseInt(e.target.value) || 3 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    min="1"
+                    max="10"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Passing Score (%)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.passing_score}
+                    onChange={(e) => setFormData({ ...formData, passing_score: parseInt(e.target.value) || 70 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    min="0"
+                    max="100"
+                  />
+                </div>
               </div>
 
               <div>
