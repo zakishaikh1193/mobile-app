@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, BookOpen, Lock, Unlock, Eye, Edit } from 'lucide-react';
+import api from '../services/api';
 
 interface Chapter {
   id: number;
@@ -31,17 +32,10 @@ const AdminChapterManagement: React.FC = () => {
   const fetchChapters = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/educational/admin/chapters', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await response.json();
+      const response = await api.get('/educational/admin/chapters');
       
-      if (data.success) {
-        setChapters(data.chapters);
+      if (response.data.success) {
+        setChapters(response.data.chapters);
       }
     } catch (err) {
       console.error('Error fetching chapters:', err);
@@ -57,21 +51,13 @@ const AdminChapterManagement: React.FC = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/educational/admin/release-chapter', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          chapterId: selectedChapter.id,
-          releaseDate,
-          releaseNotes
-        })
+      const response = await api.post('/educational/admin/release-chapter', {
+        chapterId: selectedChapter.id,
+        releaseDate,
+        releaseNotes
       });
 
-      if (response.ok) {
+      if (response.status === 200) {
         setShowReleaseModal(false);
         setSelectedChapter(null);
         setReleaseDate('');

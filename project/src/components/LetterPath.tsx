@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Star, Lock, Play, RotateCcw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../services/api';
 
 const BADGES = [
   '/badges/B1.png',
@@ -58,22 +59,10 @@ const LetterPath: React.FC = () => {
   const fetchTopics = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/educational/letterpath/${childId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await api.get(`/educational/letterpath/${childId}`);
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch topics');
-      }
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        setTopics(data.topics);
+      if (response.data.success) {
+        setTopics(response.data.topics);
       } else {
         setError('Failed to load topics');
       }

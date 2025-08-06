@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Play, CheckCircle, Clock, Star, Trophy } from 'lucide-react';
+import api from '../services/api';
 
 interface Activity {
   id: number;
@@ -56,18 +57,11 @@ const TopicActivities: React.FC<TopicActivitiesProps> = ({
   const fetchTopicActivities = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/educational/topics/${topicId}/activities?childId=${childId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await response.json();
+      const response = await api.get(`/educational/topics/${topicId}/activities?childId=${childId}`);
       
-      if (data.success) {
-        setTopic(data.topic);
-        setActivities(data.activities);
+      if (response.data.success) {
+        setTopic(response.data.topic);
+        setActivities(response.data.activities);
       } else {
         setError('Failed to load activities');
       }
@@ -85,23 +79,15 @@ const TopicActivities: React.FC<TopicActivitiesProps> = ({
   const handleActivityComplete = async (activityId: number, score: number) => {
     try {
       // Update progress in backend
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/children/${childId}/progress`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          activityType: 'activity',
-          activityId: activityId.toString(),
-          progressValue: 100,
-          completed: true,
-          score: score
-        })
+      const response = await api.put(`/children/${childId}/progress`, {
+        activityType: 'activity',
+        activityId: activityId.toString(),
+        progressValue: 100,
+        completed: true,
+        score: score
       });
 
-      if (response.ok) {
+      if (response.status === 200) {
         // Update local state
         setActivities(prev => prev.map(activity => 
           activity.id === activityId 
@@ -134,21 +120,13 @@ const TopicActivities: React.FC<TopicActivitiesProps> = ({
     try {
       const avgScore = activities.reduce((sum, activity) => sum + (activity.score || 0), 0) / activities.length;
       
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/educational/complete-topic', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          topicId,
-          childId: parseInt(childId),
-          completionScore: avgScore
-        })
+      const response = await api.post('/educational/complete-topic', {
+        topicId,
+        childId: parseInt(childId),
+        completionScore: avgScore
       });
 
-      if (response.ok) {
+      if (response.status === 200) {
         // Show completion celebration
         console.log('Topic completed!');
       }
@@ -240,7 +218,7 @@ const TopicActivities: React.FC<TopicActivitiesProps> = ({
             <h2 className="text-2xl font-bold text-gray-800">
               {topic?.title}
             </h2>
-            {topic?.completion_score > 0 && (
+            {topic?.completion_score && topic.completion_score > 0 && (
               <div className="flex items-center mt-1">
                 <Trophy className="w-4 h-4 text-yellow-500 mr-1" />
                 <span className="text-sm text-gray-600">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, Lock, CheckCircle, Play, Star } from 'lucide-react';
+import api from '../services/api';
 
 interface Topic {
   topic_id: number;
@@ -45,17 +46,10 @@ const EducationalHierarchy: React.FC<EducationalHierarchyProps> = ({
   const fetchAvailableTopics = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/educational/available-topics/${childId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await response.json();
+      const response = await api.get(`/educational/available-topics/${childId}`);
       
-      if (data.success) {
-        setTopics(data.topics);
+      if (response.data.success) {
+        setTopics(response.data.topics);
       } else {
         setError('Failed to load topics');
       }
