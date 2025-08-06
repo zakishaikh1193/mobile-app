@@ -101,6 +101,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const handleAuthSuccess = useCallback((token: string, userData: User) => {
     localStorage.setItem('token', token);
+    localStorage.setItem('userId', userData.id.toString()); // Store user ID
     setUser(userData);
     if (userData.role === 'admin') {
       navigate('/admin/dashboard');
@@ -126,10 +127,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.log('AuthContext - attempting to get profile with token');
       const userData = await authAPI.getProfile();
       console.log('AuthContext - profile loaded successfully:', userData);
+      localStorage.setItem('userId', userData.id.toString()); // Store user ID
       setUser(userData);
     } catch (error) {
       console.error('AuthContext - error loading user:', error);
       localStorage.removeItem('token');
+      localStorage.removeItem('userId'); // Clear user ID on error
     } finally {
       console.log('AuthContext - loadUser finished, setting loading to false');
       setLoading(false);
@@ -199,6 +202,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = (): void => {
     localStorage.removeItem('token');
+    localStorage.removeItem('userId'); // Clear user ID
     setUser(null);
     navigate('/login');
   };
@@ -278,6 +282,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       // Update token and set child as current user
       localStorage.setItem('token', response.token);
+      localStorage.setItem('userId', response.user.id.toString()); // Store child user ID
       
       // Update the user state with the new child user data
       setUser({
@@ -315,6 +320,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Ensure parentToken is a string before using it
       const tokenToUse = parentToken || '';
       localStorage.setItem('token', tokenToUse);
+      localStorage.setItem('userId', parentUser.id.toString()); // Restore parent user ID
       
       // Update user state with parent data
       setUser({

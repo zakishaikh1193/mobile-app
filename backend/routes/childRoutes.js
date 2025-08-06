@@ -49,4 +49,9 @@ router.put(
 // @access  Private/Parent
 router.delete('/:childId', auth, childController.deleteChild);
 
+// @route   GET /api/children/all
+// @desc    Get all children (for teachers to enroll)
+// @access  Private/Teacher
+router.get('/all', auth, childController.getAllChildren);
+
 module.exports = router;

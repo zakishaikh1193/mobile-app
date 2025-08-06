@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Aug 05, 2025 at 07:46 AM
+-- Generation Time: Aug 06, 2025 at 09:19 AM
 -- Server version: 9.1.0
 -- PHP Version: 8.1.31
 
@@ -104,13 +104,13 @@ DROP TABLE IF EXISTS `children`;
 CREATE TABLE IF NOT EXISTS `children` (
   `id` int NOT NULL AUTO_INCREMENT,
   `parent_id` int NOT NULL,
-  `first_name` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
-  `username` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
-  `email` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
-  `password` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `first_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `username` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `email` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `age` int NOT NULL,
-  `gender` enum('boy','girl') COLLATE utf8mb4_general_ci NOT NULL,
-  `avatar` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `gender` enum('boy','girl') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `avatar` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `is_active` tinyint(1) DEFAULT '1',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -120,17 +120,7 @@ CREATE TABLE IF NOT EXISTS `children` (
   KEY `parent_id` (`parent_id`),
   KEY `idx_children_parent` (`parent_id`),
   KEY `idx_children_active` (`is_active`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `children`
---
-
-INSERT INTO `children` (`id`, `parent_id`, `first_name`, `username`, `email`, `password`, `age`, `gender`, `avatar`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, 10, 'Zaki', 'zaki_11_', 'zaki_11_@child.local', 'not_used', 3, 'boy', '/avatar/boy4.png', 1, '2025-08-01 06:38:21', '2025-08-01 06:38:21'),
-(2, 10, 'Zaki', 'zaki11', 'zaki11@child.local', 'not_used', 4, 'boy', '/avatar/boy4.png', 1, '2025-08-01 06:39:33', '2025-08-01 06:39:33'),
-(3, 12, 'Kid', 'kid', 'kid@child.local', 'not_used', 4, 'girl', '/avatar/girl1.png', 1, '2025-08-01 09:58:06', '2025-08-01 09:58:06'),
-(4, 10, 'new', 'new', 'new@child.local', 'not_used', 4, 'girl', '/avatar/girl1.png', 1, '2025-08-01 10:47:57', '2025-08-01 10:47:57');
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -352,33 +342,23 @@ CREATE TABLE IF NOT EXISTS `unit_completions` (
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE IF NOT EXISTS `users` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `username` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `email` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `password` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `username` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `email` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `role` enum('admin','teacher','parent','student') COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'student',
-  `first_name` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `last_name` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `role` enum('admin','teacher','parent','student') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'student',
+  `first_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `last_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `is_active` tinyint(1) DEFAULT '1',
-  `avatar` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `avatar` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `max_children` int DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),
   UNIQUE KEY `email` (`email`),
   UNIQUE KEY `email_2` (`email`),
   UNIQUE KEY `username_2` (`username`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `users`
---
-
-INSERT INTO `users` (`id`, `username`, `email`, `password`, `created_at`, `updated_at`, `role`, `first_name`, `last_name`, `is_active`, `avatar`, `max_children`) VALUES
-(8, 'admin1', 'info@bylinelearning.com', '$2b$10$U0wXs2mwUNm3OTBCAEFeNOhvYEUjJcWag7YIwxUgaz9F9CFqx7j1m', '2025-07-31 10:35:52', '2025-07-31 10:35:52', 'admin', 'admin', 'Byline', 1, NULL, 0),
-(9, 'teacher1', 'Teacher@demo.com', '$2b$10$6euwgrA8R2Ep7qthKtH1A.RZruzyhuOI9Trbc4rLSiz7S23dEUsz6', '2025-07-31 10:36:53', '2025-07-31 10:36:53', 'teacher', 'Teacher', 'User', 1, NULL, 0),
-(10, 'parent1', 'Parent@demo.com', '$2b$10$R.y3YD.ctqLjxLYTzT5/eOcPsWAWQaLdXFyTgK/LP8w1FkY21yCU.', '2025-07-31 10:53:40', '2025-08-01 08:19:59', 'parent', 'Parent', 'User', 1, NULL, 3),
-(12, 'parent2', 'parent2@demo.com', '$2b$10$260bm/VYlXxw2mzfKFhtIOqgyUwJbhOIhRwFAhJHWSNR2txas1iM.', '2025-08-01 09:48:00', '2025-08-01 09:48:00', 'parent', 'Parent', '2', 1, NULL, 1);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -449,13 +429,13 @@ ALTER TABLE `children`
 -- Constraints for table `child_progress`
 --
 ALTER TABLE `child_progress`
-ADD CONSTRAINT `child_progress_ibfk_1` FOREIGN KEY (`child_id`) REFERENCES `children` (`id`) ON DELETE CASCADE,
-ADD CONSTRAINT `child_progress_ibfk_2` FOREIGN KEY (`activity_id`) REFERENCES `activities` (`id`),
-ADD CONSTRAINT `child_progress_ibfk_3` FOREIGN KEY (`lesson_id`) REFERENCES `lessons` (`id`),
-ADD CONSTRAINT `child_progress_ibfk_4` FOREIGN KEY (`unit_id`) REFERENCES `units` (`id`),
-ADD CONSTRAINT `child_progress_ibfk_5` FOREIGN KEY (`book_id`) REFERENCES `books` (`id`),
-ADD CONSTRAINT `child_progress_ibfk_6` FOREIGN KEY (`grade_id`) REFERENCES `grades` (`id`),
-ADD CONSTRAINT `child_progress_ibfk_7` FOREIGN KEY (`assessed_by`) REFERENCES `users` (`id`);
+  ADD CONSTRAINT `child_progress_ibfk_1` FOREIGN KEY (`child_id`) REFERENCES `children` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `child_progress_ibfk_2` FOREIGN KEY (`activity_id`) REFERENCES `activities` (`id`),
+  ADD CONSTRAINT `child_progress_ibfk_3` FOREIGN KEY (`lesson_id`) REFERENCES `lessons` (`id`),
+  ADD CONSTRAINT `child_progress_ibfk_4` FOREIGN KEY (`unit_id`) REFERENCES `units` (`id`),
+  ADD CONSTRAINT `child_progress_ibfk_5` FOREIGN KEY (`book_id`) REFERENCES `books` (`id`),
+  ADD CONSTRAINT `child_progress_ibfk_6` FOREIGN KEY (`grade_id`) REFERENCES `grades` (`id`),
+  ADD CONSTRAINT `child_progress_ibfk_7` FOREIGN KEY (`assessed_by`) REFERENCES `users` (`id`);
 
 --
 -- Constraints for table `lessons`
@@ -484,14 +464,6 @@ ALTER TABLE `teacher_grade_assignments`
 ALTER TABLE `units`
   ADD CONSTRAINT `units_ibfk_1` FOREIGN KEY (`book_id`) REFERENCES `books` (`id`),
   ADD CONSTRAINT `units_ibfk_2` FOREIGN KEY (`unlocked_by`) REFERENCES `users` (`id`);
-
---
--- Constraints for table `unit_completions`
---
-ALTER TABLE `unit_completions`
-  ADD CONSTRAINT `unit_completions_ibfk_1` FOREIGN KEY (`child_id`) REFERENCES `children` (`id`),
-  ADD CONSTRAINT `unit_completions_ibfk_2` FOREIGN KEY (`unit_id`) REFERENCES `units` (`id`),
-  ADD CONSTRAINT `unit_completions_ibfk_3` FOREIGN KEY (`lesson_id`) REFERENCES `lessons` (`id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

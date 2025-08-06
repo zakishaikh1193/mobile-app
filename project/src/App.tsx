@@ -160,7 +160,8 @@ const AppRoutes = () => {
         <Route path="/teacher/*" element={
           <PrivateRoute roles={['teacher']}>
             <Routes>
-              <Route path="dashboard" element={<TeacherPortal />} />
+              <Route path="dashboard" element={<TeacherDashboard />} />
+              <Route path="portal" element={<TeacherPortal />} />
               <Route path="classes" element={<div>My Classes</div>} />
               <Route path="assignments" element={<div>Assignments</div>} />
             </Routes>

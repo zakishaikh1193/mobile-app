@@ -119,7 +119,7 @@ const UnitsManagement: React.FC = () => {
 
   const handleToggleLock = async (unit: Unit) => {
     try {
-      const url = `/api/education/units/${unit.id}/${unit.is_unlocked ? 'lock' : 'unlock'}`;
+      const url = `/education/units/${unit.id}/${unit.is_unlocked ? 'lock' : 'unlock'}`;
       const response = await api.post(url, {
         unlockNotes: 'Unlocked by admin'
       });

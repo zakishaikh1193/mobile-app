@@ -156,6 +156,44 @@ exports.getChildren = async (req, res) => {
   }
 };
 
+// @desc    Get all children (for teachers to enroll)
+// @route   GET /api/children/all
+// @access  Private/Teacher
+exports.getAllChildren = async (req, res) => {
+  try {
+    // Check if user is a teacher
+    if (req.user.role !== 'teacher') {
+      return res.status(403).json({ message: 'Only teachers can view all children' });
+    }
+
+    const [children] = await db.query(
+      `SELECT 
+        c.id,
+        c.first_name,
+        c.username,
+        c.email,
+        c.age,
+        c.gender,
+        c.avatar,
+        c.is_active,
+        CONCAT(u.first_name, ' ', u.last_name) as parent_name
+      FROM children c
+      LEFT JOIN users u ON c.parent_id = u.id
+      WHERE c.is_active = 1
+      ORDER BY c.first_name`,
+      []
+    );
+
+    res.json({
+      success: true,
+      children
+    });
+  } catch (error) {
+    console.error('Error getting all children:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // @desc    Authenticate child & get token
 // @route   POST /api/children/login
 // @access  Public

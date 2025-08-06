@@ -12,6 +12,7 @@ import KodeitLogo from '../components/KodeitLogo';
 import AnimatedButton from '../components/AnimatedButton';
 import AudioButton from '../components/AudioButton';
 import ActivityManager from '../components/ActivityManager';
+import BookAssignment from './admin/BookAssignment';
 import axios from 'axios';
 
 // AddContentForm component
@@ -736,6 +737,7 @@ const AdminPortal: React.FC = () => {
     { id: 'education', label: 'Education', icon: BookOpen },
     { id: 'content', label: 'Content', icon: Upload },
     { id: 'activities', label: 'Activities', icon: Upload },
+    { id: 'book-assignment', label: 'Book Assignment', icon: Users },
     { id: 'schools', label: 'Schools', icon: School },
     { id: 'feedback', label: 'Feedback', icon: MessageSquare },
     { id: 'settings', label: 'Settings', icon: Settings }
@@ -801,6 +803,7 @@ const AdminPortal: React.FC = () => {
           {activeTab === 'education' && renderEducationManagement()}
           {activeTab === 'content' && renderContentManagement()}
           {activeTab === 'activities' && <ActivityManager />}
+          {activeTab === 'book-assignment' && <BookAssignment />}
           {activeTab === 'schools' && renderSchoolManagement()}
           {activeTab === 'feedback' && renderFeedback()}
           {activeTab === 'settings' && (

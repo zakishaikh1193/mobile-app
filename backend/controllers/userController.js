@@ -196,15 +196,48 @@ exports.updateUserProfile = async (req, res) => {
 // @access  Private/Admin
 exports.getUsers = async (req, res) => {
   try {
-    const [users] = await db.query(
-      'SELECT id, username, email, role, first_name as firstName, last_name as lastName, is_active, max_children as maxChildren, created_at FROM users'
-    );
+    // 1. Get the optional 'role' from the query parameters.
+    const { role } = req.query;
+
+    // 2. Start with the base SQL query.
+    let query = `
+      SELECT 
+        id, 
+        username, 
+        email, 
+        role, 
+        first_name AS firstName, 
+        last_name AS lastName, 
+        is_active, 
+        max_children AS maxChildren, 
+        created_at 
+      FROM users
+    `;
+
+    // 3. Create an array to hold the parameters for the query to prevent SQL injection.
+    const params = [];
+
+    // 4. If a 'role' was provided in the URL, add a WHERE clause to the query.
+    if (role) {
+      // Note: Using a WHERE clause is better than filtering an entire table in JavaScript.
+      query += ' WHERE role = ?';
+      params.push(role);
+    }
+
+    // 5. Add an ORDER BY clause for consistent results.
+    query += ' ORDER BY created_at DESC';
+
+    // 6. Execute the query using the dynamically built query string and parameters.
+    const [users] = await db.query(query, params);
+
+    // 7. Send the result.
     res.json(users);
+
   } catch (error) {
     console.error('Error getting users:', error);
     res.status(500).json({ message: 'Server error' });
   }
-};
+}
 
 // @desc    Update user (Admin only)
 // @route   PUT /api/users/:id
