@@ -187,7 +187,11 @@ router.get('/:id', async (req, res, next) => {
         if (rows.length === 0) {
             return res.status(404).json({ error: 'Activity not found' });
         }
-        res.json(processActivityForResponse(rows[0]));
+        const activity = processActivityForResponse(rows[0]);
+        res.json({
+            success: true,
+            activity: activity
+        });
     } catch (error) {
         next(error);
     }
@@ -1306,5 +1310,37 @@ router.get('/lesson/:lessonId', async (req, res, next) => {
         next(error);
     }
 });
+
+/**
+ * Get a single activity by ID
+ * GET /api/activities/:activityId
+ */
+// router.get('/:activityId', async (req, res, next) => {
+//     try {
+//         const { activityId } = req.params;
+        
+//         const [activities] = await pool.query(`
+//             SELECT 
+//                 id, title, type, description, difficulty, image_path, colors,
+//                 estimated_duration, max_attempts, passing_score, status,
+//                 lesson_id, unit_id, book_id, grade_id
+//             FROM activities 
+//             WHERE id = ? AND status = 'active'
+//         `, [activityId]);
+        
+//         if (activities.length === 0) {
+//             return res.status(404).json({ error: 'Activity not found' });
+//         }
+        
+//         const activity = processActivityForResponse(activities[0]);
+        
+//         res.json({
+//             success: true,
+//             activity: activity
+//         });
+//     } catch (error) {
+//         next(error);
+//     }
+// });
 
 module.exports = router;
