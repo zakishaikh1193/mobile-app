@@ -160,8 +160,8 @@ const ParentDashboard = () => {
       const success = await switchToChild(childId);
       if (success) {
         speak(`Welcome ${childName}! Let's start learning!`);
-        // Navigate to the LetterPath component for the selected child
-        navigate(`/letter-path/${childId}`, { replace: true });
+        // Navigate to the StudentBookSelector component for the selected child
+        navigate(`/student-books/${childId}`, { replace: true });
       } else {
         console.error('Failed to switch to child');
       }

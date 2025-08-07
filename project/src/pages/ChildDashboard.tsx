@@ -9,6 +9,7 @@ import AnimatedButton from '../components/AnimatedButton';
 import AudioButton from '../components/AudioButton';
 import ProgressWheel from '../components/ProgressWheel';
 import AvatarSelector from '../components/AvatarSelector';
+
 import { useProgressService } from '../services/progressService';
 import api from '../services/api';
 

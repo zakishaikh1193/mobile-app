@@ -60,9 +60,15 @@ const processActivityForResponse = (activity) => {
             parsedColors = []; // Default to empty array on parse error
         }
     }
+    
+    // Construct full URL for images
+    const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://prek-backend.bylinelms.com' 
+        : 'http://localhost:3000';
+    
     return {
         ...activity,
-        image_url: activity.image_path ? `/${activity.image_path.replace(/\\/g, '/')}` : null,
+        image_url: activity.image_path ? `${baseUrl}/${activity.image_path.replace(/\\/g, '/')}` : null,
         colors: parsedColors,
     };
 };
@@ -765,6 +771,105 @@ router.get('/child/:childId/unlocked-content', async (req, res, next) => {
     }
 });
 
+/**
+ * Get books assigned to a child
+ * GET /api/activities/child/:childId/enrolled-books
+ */
+router.get('/child/:childId/enrolled-books', async (req, res, next) => {
+    try {
+        const { childId } = req.params;
+        
+        const [books] = await pool.query(`
+            SELECT 
+                b.id as book_id,
+                b.title as book_title,
+                b.description as book_description,
+                g.name as grade_name,
+                COUNT(DISTINCT sbe.student_id) as enrolled_students,
+                COUNT(DISTINCT u.id) as total_units,
+                COUNT(DISTINCT CASE WHEN u.is_unlocked = 1 THEN u.id END) as unlocked_units,
+                COUNT(DISTINCT l.id) as total_lessons,
+                COUNT(DISTINCT CASE WHEN l.is_unlocked = 1 THEN l.id END) as unlocked_lessons
+            FROM student_book_enrollments sbe
+            LEFT JOIN books b ON sbe.book_id = b.id
+            LEFT JOIN grades g ON b.grade_id = g.id
+            LEFT JOIN units u ON b.id = u.book_id
+            LEFT JOIN lessons l ON u.id = l.unit_id
+            WHERE sbe.student_id = ? AND sbe.is_active = 1 AND b.is_active = 1
+            GROUP BY b.id
+            ORDER BY b.title
+        `, [childId]);
+        
+        res.json(books);
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * Get units and lessons for a specific book
+ * GET /api/activities/book/:bookId/units-lessons/:childId
+ */
+router.get('/book/:bookId/units-lessons/:childId', async (req, res, next) => {
+    try {
+        const { bookId, childId } = req.params;
+        
+        // Get book info
+        const [bookInfo] = await pool.query(`
+            SELECT b.*, g.name as grade_name
+            FROM books b
+            LEFT JOIN grades g ON b.grade_id = g.id
+            WHERE b.id = ? AND b.is_active = 1
+        `, [bookId]);
+        
+        if (bookInfo.length === 0) {
+            return res.status(404).json({ error: 'Book not found' });
+        }
+        
+        // Get units for the book
+        const [units] = await pool.query(`
+            SELECT 
+                u.id as unit_id,
+                u.title as unit_title,
+                u.description as unit_description,
+                u.unit_number,
+                u.is_unlocked,
+                u.unlocked_by,
+                u.unlocked_at
+            FROM units u
+            WHERE u.book_id = ? AND u.is_active = 1
+            ORDER BY u.unit_number
+        `, [bookId]);
+        
+        // Get lessons for each unit
+        for (let unit of units) {
+            const [lessons] = await pool.query(`
+                SELECT 
+                    l.id as lesson_id,
+                    l.title as lesson_title,
+                    l.description as lesson_description,
+                    l.lesson_number,
+                    l.is_unlocked,
+                    l.unlocked_by,
+                    l.unlocked_at
+                FROM lessons l
+                WHERE l.unit_id = ? AND l.is_active = 1
+                ORDER BY l.lesson_number
+            `, [unit.unit_id]);
+            
+            unit.lessons = lessons;
+        }
+        
+        res.json({
+            success: true,
+            book: bookInfo[0],
+            units: units
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
 // --- 10. Teacher-Book Assignment Routes ---
 
 /**
@@ -1134,6 +1239,69 @@ router.get('/teacher-books/:teacherId', async (req, res, next) => {
         }
         
         res.json(books);
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * Get activities by lesson ID grouped by type
+ * GET /api/activities/lesson/:lessonId
+ */
+router.get('/lesson/:lessonId', async (req, res, next) => {
+    try {
+        const { lessonId } = req.params;
+        
+        // Get lesson info
+        const [lessonInfo] = await pool.query(`
+            SELECT l.*, u.title as unit_title, b.title as book_title
+            FROM lessons l
+            LEFT JOIN units u ON l.unit_id = u.id
+            LEFT JOIN books b ON u.book_id = b.id
+            WHERE l.id = ? AND l.is_active = 1
+        `, [lessonId]);
+        
+        if (lessonInfo.length === 0) {
+            return res.status(404).json({ error: 'Lesson not found' });
+        }
+        
+        // Get activities for this lesson, grouped by type
+        const [activities] = await pool.query(`
+            SELECT 
+                id, title, type, description, difficulty, image_path, colors,
+                estimated_duration, max_attempts, passing_score, status
+            FROM activities 
+            WHERE lesson_id = ? AND status = 'active'
+            ORDER BY type, title
+        `, [lessonId]);
+        
+        // Group activities by type
+        const activitiesByType = activities.reduce((acc, activity) => {
+            if (!acc[activity.type]) {
+                acc[activity.type] = [];
+            }
+            acc[activity.type].push(processActivityForResponse(activity));
+            return acc;
+        }, {});
+        
+        // Get activity type metadata (for display names, icons, etc.)
+        const activityTypes = {
+            coloring: { name: 'Coloring Activities', icon: '🎨', description: 'Creative coloring exercises' },
+            letter_match: { name: 'Letter Matching', icon: '🔤', description: 'Match letters and sounds' },
+            bubble_pop: { name: 'Bubble Pop', icon: '🫧', description: 'Interactive bubble popping games' },
+            counting: { name: 'Counting Games', icon: '🔢', description: 'Number and counting activities' },
+            emotion_match: { name: 'Emotion Matching', icon: '😊', description: 'Learn about emotions' },
+            family_tree: { name: 'Family Tree', icon: '👨‍👩‍👧‍👦', description: 'Family relationship activities' },
+            digital_painting: { name: 'Digital Painting', icon: '🖼️', description: 'Digital art creation' },
+            forest_hunt: { name: 'Forest Hunt', icon: '🌲', description: 'Adventure in the forest' }
+        };
+        
+        res.json({
+            success: true,
+            lesson: lessonInfo[0],
+            activitiesByType,
+            activityTypes
+        });
     } catch (error) {
         next(error);
     }
