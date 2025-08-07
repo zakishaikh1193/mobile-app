@@ -9,16 +9,24 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ChildDashboard from './pages/ChildDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
-import AdminDashboard from './pages/AdminDashboard';
 import AdminPortal from './pages/AdminPortal';
+import GradesManagement from './pages/admin/GradesManagement';
+import BooksManagement from './pages/admin/BooksManagement';
+import LessonsManagement from './pages/admin/LessonsManagement';
+import UnitsManagement from './pages/admin/UnitsManagement';
 import LearningHub from './pages/LearningHub';
 import ParentDashboard from './pages/ParentDashboard';
 import TeacherPortal from './pages/TeacherPortal';
 import LetterPath from './components/LetterPath';
+import StudentBookSelector from './components/StudentBookSelector';
+import LessonActivities from './components/LessonActivities';
+import ActivityPlayer from './components/ActivityPlayer';
 import LetterMatchingGame from './pages/LetterMatchingGame';
 import EducationalGame from './pages/EducationalGame';
 import WordMatchGame from './components/WordMatchGame';
 import ForestLetterHuntGame from './components/ForestLetterHunt/Game';
+import StructuredLearning from './pages/StructuredLearning';
+import AdminChapterManagement from './pages/AdminChapterManagement';
 
 // A wrapper for routes that require authentication
 const PrivateRoute: React.FC<{ children: React.ReactNode, roles?: Array<'admin' | 'teacher' | 'parent' | 'student'> }> = ({ 
@@ -138,9 +146,13 @@ const AppRoutes = () => {
         <Route path="/admin/*" element={
           <PrivateRoute roles={['admin']}>
             <Routes>
-              <Route path="dashboard" element={<AdminDashboard />} />
-              <Route path="portal" element={<AdminPortal />} />
-              <Route path="users/new" element={<RegisterPage />} />
+                              <Route path="dashboard" element={<AdminPortal />} />
+                <Route path="portal" element={<AdminPortal />} />
+                <Route path="users/new" element={<RegisterPage />} />
+                <Route path="grades" element={<GradesManagement />} />
+                <Route path="books" element={<BooksManagement />} />
+                <Route path="lessons" element={<LessonsManagement />} />
+                <Route path="units" element={<UnitsManagement />} />
               <Route path="users" element={<div>User Management</div>} />
               <Route path="content" element={<div>Content Management</div>} />
             </Routes>
@@ -151,7 +163,8 @@ const AppRoutes = () => {
         <Route path="/teacher/*" element={
           <PrivateRoute roles={['teacher']}>
             <Routes>
-              <Route path="dashboard" element={<TeacherPortal />} />
+              <Route path="dashboard" element={<TeacherDashboard />} />
+              <Route path="portal" element={<TeacherPortal />} />
               <Route path="classes" element={<div>My Classes</div>} />
               <Route path="assignments" element={<div>Assignments</div>} />
             </Routes>
@@ -171,6 +184,27 @@ const AppRoutes = () => {
         <Route path="/letter-path/:childId" element={
           <PrivateRoute>
             <LetterPath />
+          </PrivateRoute>
+        } />
+        
+        {/* Student Book Routes */}
+        <Route path="/student-books/:childId" element={
+          <PrivateRoute>
+            <StudentBookSelector />
+          </PrivateRoute>
+        } />
+        
+        {/* Lesson Activities Routes */}
+        <Route path="/lesson-activities/:lessonId/:childId" element={
+          <PrivateRoute>
+            <LessonActivities />
+          </PrivateRoute>
+        } />
+        
+        {/* Activity Player Routes */}
+        <Route path="/activity/:activityId/:childId" element={
+          <PrivateRoute>
+            <ActivityPlayer />
           </PrivateRoute>
         } />
         
@@ -248,6 +282,17 @@ const AppRoutes = () => {
         <Route path="/learning/:hubId/:childId" element={
           <PrivateRoute>
             <LearningHub />
+          </PrivateRoute>
+        } />
+        
+        <Route path="/structured-learning/:childId" element={
+          <PrivateRoute>
+            <StructuredLearning />
+          </PrivateRoute>
+        } />
+        <Route path="/admin/chapters" element={
+          <PrivateRoute roles={['admin']}>
+            <AdminChapterManagement />
           </PrivateRoute>
         } />
         

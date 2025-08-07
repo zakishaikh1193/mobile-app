@@ -188,14 +188,6 @@ const RegisterPage: React.FC = () => {
             {isAdminFlow ? 'Create New User Account' : 'Create New Account'}
           </Typography>
           
-          {/* Debug info in development */}
-          {process.env.NODE_ENV === 'development' && (
-            <Alert severity="info" sx={{ mb: 2 }}>
-              Debug: isAdminFlow={String(isAdminFlow)}, userRole={user?.role || 'none'}, 
-              maxChildren={maxChildren}
-            </Alert>
-          )}
-          
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}

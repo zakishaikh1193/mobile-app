@@ -13,6 +13,23 @@ export interface Activity {
     status: 'active' | 'inactive' | 'deleted';
     created_at: string;
     updated_at: string;
+    // Hierarchy fields
+    grade_id?: number;
+    book_id?: number;
+    unit_id?: number;
+    lesson_id?: number;
+    grade_name?: string;
+    book_title?: string;
+    unit_title?: string;
+    lesson_title?: string;
+    // Educational fields
+    learning_objectives?: string;
+    prerequisites?: string;
+    estimated_duration?: number;
+    max_attempts?: number;
+    passing_score?: number;
+    is_adaptive?: boolean;
+    adaptive_rules?: any;
   }
   
 
@@ -43,8 +60,8 @@ export interface Activity {
     // Get all activities by type
     async getActivitiesByType(type: string): Promise<Activity[]> {
       try {
-        // CHANGE: Use query parameters for better RESTful design
-        const response = await fetch(`${API_ENDPOINT}/type/${type}`);
+        // Use query parameters for better RESTful design
+        const response = await fetch(`${API_ENDPOINT}?type=${type}`);
         if (!response.ok) {
           throw new Error(`Failed to fetch activities: ${response.statusText}`);
         }
@@ -94,9 +111,13 @@ export interface Activity {
     // Create new activity (for admin)
     async createActivity(activityData: FormData): Promise<{ success: boolean; activityId?: number; error?: string }> {
       try {
-        const response = await fetch(`${API_ENDPOINT}/create`, {
+        // For FormData, we need to use fetch directly instead of axios
+        // because axios doesn't handle FormData properly by default
+        const response = await fetch(`${API_ENDPOINT}`, {
           method: 'POST',
-          // DO NOT set Content-Type header, browser does it for FormData
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+          },
           body: activityData,
         });
   
@@ -116,6 +137,9 @@ export interface Activity {
       try {
         const response = await fetch(`${API_ENDPOINT}/${id}`, {
           method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+          },
           body: activityData,
         });
   
@@ -181,6 +205,56 @@ export interface Activity {
     }
     const baseUrl = API_BASE_URL.replace('/api', '');
     return `${baseUrl}${imagePath}`;
+  }
+
+  // Get activities by hierarchy
+  async getActivitiesByHierarchy(
+    gradeId?: number,
+    bookId?: number,
+    unitId?: number,
+    lessonId?: number,
+    type?: string
+  ): Promise<Activity[]> {
+    try {
+      let url = `${API_ENDPOINT}/hierarchy`;
+      if (gradeId) url += `/${gradeId}`;
+      if (bookId) url += `/${bookId}`;
+      if (unitId) url += `/${unitId}`;
+      if (lessonId) url += `/${lessonId}`;
+      if (type) url += `?type=${type}`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch activities by hierarchy: ${response.statusText}`);
+      }
+      const data = await response.json();
+      return Array.isArray(data) 
+        ? data.map(act => this.processActivity(act))
+        : [];
+    } catch (error) {
+      console.error('Error fetching activities by hierarchy:', error);
+      return [];
+    }
+  }
+
+  // Get activities for teacher
+  async getTeacherActivities(teacherId: number, type?: string): Promise<Activity[]> {
+    try {
+      let url = `${API_ENDPOINT}/teacher/${teacherId}`;
+      if (type) url += `?type=${type}`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch teacher activities: ${response.statusText}`);
+      }
+      const data = await response.json();
+      return Array.isArray(data) 
+        ? data.map(act => this.processActivity(act))
+        : [];
+    } catch (error) {
+      console.error('Error fetching teacher activities:', error);
+      return [];
+    }
   }
 }
 

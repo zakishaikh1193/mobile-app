@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   LogOut, Users, BookOpen, Settings, BarChart3, 
   MessageSquare, Upload, Plus, Edit, Trash2, 
@@ -11,6 +12,8 @@ import KodeitLogo from '../components/KodeitLogo';
 import AnimatedButton from '../components/AnimatedButton';
 import AudioButton from '../components/AudioButton';
 import ActivityManager from '../components/ActivityManager';
+import BookAssignment from './admin/BookAssignment';
+import axios from 'axios';
 
 // AddContentForm component
 const AddContentForm: React.FC<{
@@ -138,6 +141,7 @@ const AddContentForm: React.FC<{
 
 const AdminPortal: React.FC = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   if (!user) return null;
   const [activeTab, setActiveTab] = useState('overview');
   const [contentLibrary, setContentLibrary] = useState<any[]>([]);
@@ -152,7 +156,7 @@ const AdminPortal: React.FC = () => {
 
   const fetchContent = async () => {
     try {
-      const res = await axios.get(API_URL);
+      const res = await api.get('/content');
       setContentLibrary(res.data);
     } catch (err) {
       console.error('Failed to fetch content:', err);
@@ -160,6 +164,39 @@ const AdminPortal: React.FC = () => {
   };
 
   const handleAddContent = async (content: any) => {
+    try {
+      const res = await api.post('/content', content);
+      setContentLibrary([...contentLibrary, res.data]);
+      return true;
+    } catch (err) {
+      console.error('Failed to add content:', err);
+      return false;
+    }
+  };
+
+  const handleUpdateContent = async (id: string, content: any) => {
+    try {
+      const res = await api.put(`/content/${id}`, content);
+      setContentLibrary(contentLibrary.map(item => item.id === id ? res.data : item));
+      return true;
+    } catch (err) {
+      console.error('Failed to update content:', err);
+      return false;
+    }
+  };
+
+  const handleDeleteContent = async (id: string) => {
+    try {
+      await api.delete(`/content/${id}`);
+      setContentLibrary(contentLibrary.filter(item => item.id !== id));
+      return true;
+    } catch (err) {
+      console.error('Failed to delete content:', err);
+      return false;
+    }
+  };
+
+  const handleAddContentForm = async (content: any) => {
     try {
       const formData = new FormData();
       formData.append('title', content.title);
@@ -170,7 +207,7 @@ const AdminPortal: React.FC = () => {
       if (content.thumbnail instanceof File) formData.append('thumbnail', content.thumbnail);
       if (editContentId !== null) {
         // Edit
-        await axios.put(`${API_URL}/${editContentId}`, content);
+        await api.put(`/content/${editContentId}`, formData);
         setEditContentId(null);
         setEditInitialValues(null);
       } else {
@@ -323,6 +360,203 @@ const AdminPortal: React.FC = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderEducationManagement = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-800">Education Management</h2>
+        <div className="flex space-x-2">
+          <AnimatedButton 
+            className="flex items-center space-x-2" 
+            onClick={() => navigate('/admin/users/new')}
+          >
+            <Plus className="h-4 w-4" />
+            <span>Add User</span>
+          </AnimatedButton>
+          <AnimatedButton 
+            className="flex items-center space-x-2" 
+            onClick={() => setActiveTab('content')}
+          >
+            <Plus className="h-4 w-4" />
+            <span>Add Content</span>
+          </AnimatedButton>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Grades Management */}
+        <div className="bg-white rounded-3xl p-6 shadow-lg">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <School className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Grades</h3>
+              <p className="text-sm text-gray-600">Manage educational grades</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <AnimatedButton 
+              variant="secondary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/admin/grades')}
+            >
+              View Grades
+            </AnimatedButton>
+            <AnimatedButton 
+              variant="primary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/admin/grades')}
+            >
+              Add Grade
+            </AnimatedButton>
+          </div>
+        </div>
+
+        {/* Books Management */}
+        <div className="bg-white rounded-3xl p-6 shadow-lg">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <BookOpen className="h-6 w-6 text-green-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Books</h3>
+              <p className="text-sm text-gray-600">Manage educational books</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <AnimatedButton 
+              variant="secondary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/admin/books')}
+            >
+              View Books
+            </AnimatedButton>
+            <AnimatedButton 
+              variant="primary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/admin/books')}
+            >
+              Add Book
+            </AnimatedButton>
+          </div>
+        </div>
+
+{/* Units Management */}
+<div className="bg-white rounded-3xl p-6 shadow-lg">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+              <TrendingUp className="h-6 w-6 text-orange-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Units</h3>
+              <p className="text-sm text-gray-600">Manage learning units/levels</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <AnimatedButton 
+              variant="secondary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/admin/units')}
+            >
+              View Units
+            </AnimatedButton>
+            <AnimatedButton 
+              variant="primary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/admin/units')}
+            >
+              Add Unit
+            </AnimatedButton>
+          </div>
+        </div>
+
+        {/* Lessons Management */}
+        <div className="bg-white rounded-3xl p-6 shadow-lg">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+              <FileText className="h-6 w-6 text-purple-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Lessons</h3>
+              <p className="text-sm text-gray-600">Manage lessons and unlock status</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <AnimatedButton 
+              variant="secondary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/admin/lessons')}
+            >
+              View Lessons
+            </AnimatedButton>
+            <AnimatedButton 
+              variant="primary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/admin/lessons')}
+            >
+              Add Lesson
+            </AnimatedButton>
+          </div>
+        </div>
+
+        {/* Activities Management */}
+        <div className="bg-white rounded-3xl p-6 shadow-lg">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+              <Upload className="h-6 w-6 text-red-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Activities</h3>
+              <p className="text-sm text-gray-600">Manage learning activities</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <AnimatedButton variant="secondary" size="sm" className="w-full">
+              View Activities
+            </AnimatedButton>
+            <AnimatedButton variant="primary" size="sm" className="w-full">
+              Add Activity
+            </AnimatedButton>
+          </div>
+        </div>
+
+        {/* User Management */}
+        <div className="bg-white rounded-3xl p-6 shadow-lg">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+              <Users className="h-6 w-6 text-indigo-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Users</h3>
+              <p className="text-sm text-gray-600">Manage teachers, parents, students</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <AnimatedButton variant="secondary" size="sm" className="w-full">
+              View Users
+            </AnimatedButton>
+            <AnimatedButton 
+              variant="primary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/admin/users/new')}
+            >
+              Add User
+            </AnimatedButton>
           </div>
         </div>
       </div>
@@ -500,8 +734,10 @@ const AdminPortal: React.FC = () => {
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
-    { id: 'content', label: 'Content', icon: BookOpen },
+    { id: 'education', label: 'Education', icon: BookOpen },
+    { id: 'content', label: 'Content', icon: Upload },
     { id: 'activities', label: 'Activities', icon: Upload },
+    { id: 'book-assignment', label: 'Book Assignment', icon: Users },
     { id: 'schools', label: 'Schools', icon: School },
     { id: 'feedback', label: 'Feedback', icon: MessageSquare },
     { id: 'settings', label: 'Settings', icon: Settings }
@@ -564,8 +800,10 @@ const AdminPortal: React.FC = () => {
           transition={{ duration: 0.6 }}
         >
           {activeTab === 'overview' && renderOverview()}
+          {activeTab === 'education' && renderEducationManagement()}
           {activeTab === 'content' && renderContentManagement()}
           {activeTab === 'activities' && <ActivityManager />}
+          {activeTab === 'book-assignment' && <BookAssignment />}
           {activeTab === 'schools' && renderSchoolManagement()}
           {activeTab === 'feedback' && renderFeedback()}
           {activeTab === 'settings' && (

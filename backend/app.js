@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const fileUpload = require('express-fileupload');
+// const fileUpload = require('express-fileupload');
 const contentRoutes = require('./routes/contentRoutes');
 const activityRoutes = require('./routes/activityRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -16,7 +16,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(fileUpload());
 
 // Static folder
 app.use('/uploads', express.static('uploads'));
@@ -27,6 +26,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/children', childRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/activities', activityRoutes);
+app.use('/api/educational', require('./routes/educationalRoutes'));
+app.use('/api/education', require('./routes/educationRoutes'));
 
 // Error handling middleware (should be after all other middleware and routes)
 app.use(errorHandler);

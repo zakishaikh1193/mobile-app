@@ -43,7 +43,7 @@ router.get('/profile', auth, userController.getUserProfile);
 // @route   GET /api/users
 // @desc    Get all users (Admin only)
 // @access  Private/Admin
-router.get('/', [auth, adminAuth], userController.getUsers);
+router.get('/', auth, userController.getUsers);
 
 // @route   PUT /api/users/update-avatar
 // @desc    Update user's avatar

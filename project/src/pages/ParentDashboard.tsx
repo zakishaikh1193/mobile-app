@@ -160,8 +160,8 @@ const ParentDashboard = () => {
       const success = await switchToChild(childId);
       if (success) {
         speak(`Welcome ${childName}! Let's start learning!`);
-        // Navigate to the LetterPath component for the selected child
-        navigate(`/letter-path/${childId}`, { replace: true });
+        // Navigate to the StudentBookSelector component for the selected child
+        navigate(`/student-books/${childId}`, { replace: true });
       } else {
         console.error('Failed to switch to child');
       }
@@ -235,31 +235,42 @@ const ParentDashboard = () => {
               </h2>
               <div className="flex flex-wrap items-center justify-center gap-4">
                 {children.map((child) => (
-                  <motion.div
-                    key={child.id}
-                    className="cursor-pointer text-center p-1 sm:p-2"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleSwitchToChild(child.id, child.first_name)}
-                  >
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/90 rounded-full shadow-md flex items-center justify-center border-4 border-cyan-500 p-1">
-                      <div className="w-20 h-20 md:w-24 md:h-24">
-                        <OptimizedImage
-                          src={child.avatar || avatars.girl[0]}
-                          alt={child.first_name}
-                          className="w-full h-full object-cover rounded-full"
-                          width={96}
-                          height={96}
-                          // Simple gray placeholder for the child avatar
-                          blurDataURL="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMjQgMjQnPjxwYXRoIGZpbGw9JyNkMWQxZDEnIGQ9J00xMiAyQzYuNDggMiAyIDYuNDggMiAxMnYxMGgxMGM1LjUyIDAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6Jy8+PC9zdmc+"
-                          placeholderSrc={avatars.girl[0]} // Fallback avatar
-                        />
+                  <div key={child.id} className="flex flex-col items-center gap-2">
+                    <motion.div
+                      className="cursor-pointer text-center p-1 sm:p-2"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleSwitchToChild(child.id, child.first_name)}
+                    >
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/90 rounded-full shadow-md flex items-center justify-center border-4 border-cyan-500 p-1">
+                        <div className="w-20 h-20 md:w-24 md:h-24">
+                          <OptimizedImage
+                            src={child.avatar || avatars.girl[0]}
+                            alt={child.first_name}
+                            className="w-full h-full object-cover rounded-full"
+                            width={96}
+                            height={96}
+                            // Simple gray placeholder for the child avatar
+                            blurDataURL="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMjQgMjQnPjxwYXRoIGZpbGw9JyNkMWQxZDEnIGQ9J00xMiAyQzYuNDggMiAyIDYuNDggMiAxMnYxMGgxMGM1LjUyIDAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6Jy8+PC9zdmc+"
+                            placeholderSrc={avatars.girl[0]} // Fallback avatar
+                          />
+                        </div>
                       </div>
-                    </div>
-                    <p className="text-center font-bold mt-1 text-sm sm:text-base" style={{ color: '#5C3A21' }}>
-                      {child.first_name || child.firstName}
-                    </p>
-                  </motion.div>
+                      <p className="text-center font-bold mt-1 text-sm sm:text-base" style={{ color: '#5C3A21' }}>
+                        {child.first_name || child.firstName}
+                      </p>
+                    </motion.div>
+                    
+                    {/* Structured Learning Button */}
+                    <motion.button
+                      onClick={() => navigate(`/structured-learning/${child.id}`)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold hover:bg-green-600 transition-colors shadow-md"
+                    >
+                      Structured Learning
+                    </motion.button>
+                  </div>
                 ))}
               </div>
             </div>

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const API_URL ='http://localhost:3000/api';
-
+// const API_URL ='https://prek-backend.bylinelms.com/api';
+const API_URL = 'http://localhost:3000/api';
 // Create axios instance
 const api = axios.create({
   baseURL: API_URL,
