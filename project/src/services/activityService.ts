@@ -26,8 +26,6 @@ export interface Activity {
     learning_objectives?: string;
     prerequisites?: string;
     estimated_duration?: number;
-    max_attempts?: number;
-    passing_score?: number;
     is_adaptive?: boolean;
     adaptive_rules?: any;
   }

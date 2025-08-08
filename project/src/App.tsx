@@ -20,7 +20,7 @@ import TeacherPortal from './pages/TeacherPortal';
 import LetterPath from './components/LetterPath';
 import StudentBookSelector from './components/StudentBookSelector';
 import LessonActivities from './components/LessonActivities';
-import ActivityPlayer from './components/ActivityPlayer';
+import ActivityPlayer from './components/ActivityPlayerWithCompletion';
 import LetterMatchingGame from './pages/LetterMatchingGame';
 import EducationalGame from './pages/EducationalGame';
 import WordMatchGame from './components/WordMatchGame';

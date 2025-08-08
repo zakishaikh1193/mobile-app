@@ -84,7 +84,7 @@ router.post('/', upload.single('image'), async (req, res, next) => {
         const {
             title, type, description, difficulty = 'easy', colors, grade_id,
             book_id, unit_id, lesson_id, learning_objectives, prerequisites,
-            estimated_duration = 10, max_attempts = 3, passing_score = 70
+            estimated_duration = 10
         } = req.body;
 
         if (!req.file) {
@@ -103,14 +103,13 @@ router.post('/', upload.single('image'), async (req, res, next) => {
             `INSERT INTO activities (
                 title, type, description, difficulty, image_path, colors, 
                 grade_id, book_id, unit_id, lesson_id, learning_objectives, 
-                prerequisites, estimated_duration, max_attempts, passing_score,
+                prerequisites, estimated_duration,
                 status, created_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW())`,
             [
                 title, type, description, difficulty, imageDbPath, colors || '[]',
                 grade_id || null, book_id || null, unit_id || null, lesson_id || null,
                 learning_objectives || null, prerequisites || null, estimated_duration,
-                max_attempts, passing_score
             ]
         );
 
@@ -1273,7 +1272,7 @@ router.get('/lesson/:lessonId', async (req, res, next) => {
         const [activities] = await pool.query(`
             SELECT 
                 id, title, type, description, difficulty, image_path, colors,
-                estimated_duration, max_attempts, passing_score, status
+                estimated_duration, status
             FROM activities 
             WHERE lesson_id = ? AND status = 'active'
             ORDER BY type, title
@@ -1309,6 +1308,229 @@ router.get('/lesson/:lessonId', async (req, res, next) => {
     } catch (error) {
         next(error);
     }
+});
+
+/**
+ * POST /api/activities/complete
+ * Save a completed activity
+ */
+router.post('/complete', upload.single('completed_file'), async (req, res, next) => {
+  try {
+    console.log('Received completion request:', req.body);
+    console.log('File uploaded:', req.file);
+    
+    const { 
+      child_id, 
+      activity_id, 
+      lesson_id, 
+      unit_id, 
+      book_id, 
+      grade_id,
+      completion_data,
+      time_spent_seconds 
+    } = req.body;
+
+    // Validate required fields
+    if (!child_id || !activity_id) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Child ID and Activity ID are required' 
+      });
+    }
+
+    // Handle file upload
+    let completed_file_path = null;
+    if (req.file) {
+      completed_file_path = req.file.path.replace(/\\/g, '/');
+      console.log('File path saved:', completed_file_path);
+    } else {
+      console.log('No file uploaded');
+    }
+
+    // Insert into completed_activities table
+    const [result] = await pool.query(`
+      INSERT INTO completed_activities (
+        child_id, activity_id, lesson_id, unit_id, book_id, grade_id,
+        completed_file_path, completion_data, time_spent_seconds, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'submitted')
+    `, [
+      child_id, activity_id, lesson_id || null, unit_id || null, 
+      book_id || null, grade_id || null, completed_file_path, 
+      completion_data ? JSON.stringify(completion_data) : null,
+      time_spent_seconds || 0
+    ]);
+
+    // Update child_progress
+    await pool.query(`
+      INSERT INTO child_progress (
+        child_id, activity_id, lesson_id, unit_id, book_id, grade_id,
+        completed, completed_at, completion_file_path, completion_data,
+        time_spent_seconds, status
+      ) VALUES (?, ?, ?, ?, ?, ?, 1, NOW(), ?, ?, ?, 'completed')
+      ON DUPLICATE KEY UPDATE
+        completed = 1,
+        completed_at = NOW(),
+        completion_file_path = VALUES(completion_file_path),
+        completion_data = VALUES(completion_data),
+        time_spent_seconds = VALUES(time_spent_seconds),
+        status = 'completed'
+    `, [
+      child_id, activity_id, lesson_id || null, unit_id || null,
+      book_id || null, grade_id || null, completed_file_path,
+      completion_data ? JSON.stringify(completion_data) : null,
+      time_spent_seconds || 0
+    ]);
+
+    res.json({
+      success: true,
+      message: 'Activity completed successfully',
+      completion_id: result.insertId
+    });
+
+  } catch (error) {
+    console.error('Error completing activity:', error);
+    next(error);
+  }
+});
+
+/**
+ * GET /api/activities/pending-assessments
+ * Get all pending assessments for teachers
+ */
+router.get('/pending-assessments', async (req, res, next) => {
+  try {
+    const [assessments] = await pool.query(`
+      SELECT * FROM pending_assessments
+      ORDER BY completed_at DESC
+    `);
+
+    res.json({
+      success: true,
+      assessments: assessments
+    });
+
+  } catch (error) {
+    console.error('Error fetching pending assessments:', error);
+    next(error);
+  }
+});
+
+/**
+ * GET /api/activities/completed/:childId
+ * Get completed activities for a specific child
+ */
+router.get('/completed/:childId', async (req, res, next) => {
+  try {
+    const { childId } = req.params;
+
+    const [completed] = await pool.query(`
+      SELECT 
+        ca.*,
+        a.title as activity_title,
+        a.type as activity_type,
+        a.description as activity_description,
+        ac.name as assessment_criteria,
+        ac.color as criteria_color,
+        u.first_name as assessor_name
+      FROM completed_activities ca
+      JOIN activities a ON ca.activity_id = a.id
+      LEFT JOIN assessment_criteria ac ON ca.assessment_criteria_id = ac.id
+      LEFT JOIN users u ON ca.assessed_by = u.id
+      WHERE ca.child_id = ?
+      ORDER BY ca.completed_at DESC
+    `, [childId]);
+
+    res.json({
+      success: true,
+      completed_activities: completed
+    });
+
+  } catch (error) {
+    console.error('Error fetching completed activities:', error);
+    next(error);
+  }
+});
+
+/**
+ * PUT /api/activities/assess/:completionId
+ * Teacher assesses a completed activity
+ */
+router.put('/assess/:completionId', async (req, res, next) => {
+  try {
+    const { completionId } = req.params;
+    const { 
+      assessment_criteria_id, 
+      teacher_feedback, 
+      teacher_notes,
+      assessed_by 
+    } = req.body;
+
+    if (!assessment_criteria_id || !assessed_by) {
+      return res.status(400).json({
+        success: false,
+        error: 'Assessment criteria and assessor are required'
+      });
+    }
+
+    // Update completed_activities
+    await pool.query(`
+      UPDATE completed_activities 
+      SET 
+        assessment_criteria_id = ?,
+        teacher_feedback = ?,
+        teacher_notes = ?,
+        assessed_by = ?,
+        assessed_at = NOW(),
+        status = 'assessed'
+      WHERE id = ?
+    `, [assessment_criteria_id, teacher_feedback, teacher_notes, assessed_by, completionId]);
+
+    // Update child_progress
+    await pool.query(`
+      UPDATE child_progress 
+      SET 
+        assessment_criteria_id = ?,
+        teacher_feedback = ?,
+        teacher_notes = ?,
+        assessed_by = ?,
+        assessed_at = NOW(),
+        status = 'assessed'
+      WHERE child_id = (SELECT child_id FROM completed_activities WHERE id = ?)
+      AND activity_id = (SELECT activity_id FROM completed_activities WHERE id = ?)
+    `, [assessment_criteria_id, teacher_feedback, teacher_notes, assessed_by, completionId, completionId]);
+
+    res.json({
+      success: true,
+      message: 'Assessment saved successfully'
+    });
+
+  } catch (error) {
+    console.error('Error assessing activity:', error);
+    next(error);
+  }
+});
+
+/**
+ * GET /api/activities/assessment-criteria
+ * Get all assessment criteria
+ */
+router.get('/assessment-criteria', async (req, res, next) => {
+  try {
+    const [criteria] = await pool.query(`
+      SELECT * FROM assessment_criteria 
+      WHERE is_active = 1 
+      ORDER BY level_order
+    `);
+
+    res.json({
+      success: true,
+      criteria: criteria
+    });
+
+  } catch (error) {
+    console.error('Error fetching assessment criteria:', error);
+    next(error);
+  }
 });
 
 /**

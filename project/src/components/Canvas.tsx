@@ -23,7 +23,6 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
   React.useEffect(() => { colorRef.current = currentColor; }, [currentColor]);
   React.useEffect(() => { sizeRef.current = brushSize; }, [brushSize]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [showStickers, setShowStickers] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
@@ -61,43 +60,65 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const overlayCanvas = overlayCanvasRef.current;
-    if (!canvas || !overlayCanvas) return;
+    if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    const overlayCtx = overlayCanvas.getContext('2d');
-    if (!ctx || !overlayCtx) return;
+    if (!ctx) return;
 
     // Set canvas size
     canvas.width = 600;
     canvas.height = 600;
-    overlayCanvas.width = 600;
-    overlayCanvas.height = 600;
 
-    // Clear both canvases
-    ctx.clearRect(0, 0, 600, 600);
-    overlayCtx.clearRect(0, 0, 600, 600);
+    // Clear canvas and fill with white background
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, 600, 600);
 
-    // Draw the line art on overlay canvas only (for display)
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = artwork.svgContent;
-    const svg = tempDiv.querySelector('svg');
-    if (svg) {
-      svg.setAttribute('width', '600');
-      svg.setAttribute('height', '600');
-      const data = new XMLSerializer().serializeToString(svg);
+    // Draw the background image/line art
+    if (artwork.svgContent.trim().startsWith('<svg')) {
+      // Handle SVG content
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = artwork.svgContent;
+      const svg = tempDiv.querySelector('svg');
+      if (svg) {
+        svg.setAttribute('width', '600');
+        svg.setAttribute('height', '600');
+        const data = new XMLSerializer().serializeToString(svg);
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0);
+          saveState();
+        };
+        img.src = 'data:image/svg+xml;base64,' + btoa(data);
+      }
+    } else if (artwork.svgContent) {
+      // Handle image URL
       const img = new Image();
+      img.crossOrigin = 'anonymous';
       img.onload = () => {
-        overlayCtx.drawImage(img, 0, 0);
+        // Calculate dimensions to fit the image properly
+        const maxSize = 600;
+        const scale = Math.min(maxSize / img.width, maxSize / img.height);
+        const width = img.width * scale;
+        const height = img.height * scale;
+        const x = (600 - width) / 2;
+        const y = (600 - height) / 2;
+        
+        ctx.drawImage(img, x, y, width, height);
         saveState();
       };
-      img.src = 'data:image/svg+xml;base64,' + btoa(data);
+      img.onerror = () => {
+        console.error('Failed to load background image');
+        saveState();
+      };
+      img.src = artwork.svgContent;
+    } else {
+      saveState();
     }
 
     // Set up canvas context
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-  }, [artwork.id]);
+  }, [artwork.id, artwork.svgContent]);
 
   const saveState = useCallback(() => {
     const canvas = canvasRef.current;
@@ -185,18 +206,12 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
 
   const floodFill = useCallback((startX: number, startY: number, fillColor: string, tolerance: number = 32) => {
     const canvas = canvasRef.current;
-    const overlayCanvas = overlayCanvasRef.current;
-    if (!canvas || !overlayCanvas) return;
+    if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    const overlayCtx = overlayCanvas.getContext('2d');
-    if (!ctx || !overlayCtx) return;
+    if (!ctx) return;
 
-    // Get the overlay canvas data to check for line boundaries
-    const overlayImageData = overlayCtx.getImageData(0, 0, overlayCanvas.width, overlayCanvas.height);
-    const overlayData = overlayImageData.data;
-
-    // Get the main canvas data
+    // Get the canvas data
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     
@@ -233,11 +248,6 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
       );
     }
 
-    // Helper to check if a pixel is a line boundary (from overlay canvas)
-    function isLineBoundary(idx: number) {
-      return overlayData[idx + 3] > 0; // If there's any opacity in the overlay at this pixel
-    }
-
     const pixelStack = [[Math.floor(startX), Math.floor(startY)]];
 
     while (pixelStack.length) {
@@ -245,7 +255,7 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
       if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) continue;
 
       const pos = (y * canvas.width + x) * 4;
-      if (colorMatch(pos) && !isAlreadyFilled(pos) && !isLineBoundary(pos) && fillColorRgb) {
+      if (colorMatch(pos) && !isAlreadyFilled(pos) && fillColorRgb) {
         data[pos] = fillColorRgb.r;
         data[pos + 1] = fillColorRgb.g;
         data[pos + 2] = fillColorRgb.b;
@@ -326,28 +336,28 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
       ctx.globalCompositeOperation = 'source-over';
       ctx.strokeStyle = colorRef.current;
       ctx.lineWidth = sizeRef.current;
-      // Brush style logic
+      // Brush style logic with transparency to see background lines
       if (brushStyle === 'round') {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.globalAlpha = 1.0;
+        ctx.globalAlpha = 0.6; // More transparent to see background lines
       } else if (brushStyle === 'square') {
         ctx.lineCap = 'butt';
         ctx.lineJoin = 'miter';
-        ctx.globalAlpha = 1.0;
+        ctx.globalAlpha = 0.7; // Slightly more opaque for square brush
       } else if (brushStyle === 'marker') {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.globalAlpha = 0.4;
+        ctx.globalAlpha = 0.4; // Keep marker transparent
       } else if (brushStyle === 'calligraphy') {
         ctx.lineCap = 'butt';
         ctx.lineJoin = 'bevel';
-        ctx.globalAlpha = 1.0;
+        ctx.globalAlpha = 0.8; // Calligraphy can be more opaque
         ctx.setLineDash([sizeRef.current * 2, sizeRef.current]);
       } else {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.globalAlpha = 1.0;
+        ctx.globalAlpha = 0.6; // Default transparency
       }
       if (brushStyle !== 'calligraphy') ctx.setLineDash([]);
       ctx.lineTo(pos.x, pos.y);
@@ -408,49 +418,14 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
 
   const handleSave = () => {
     const canvas = canvasRef.current;
-    const overlayCanvas = overlayCanvasRef.current;
-    if (!canvas || !overlayCanvas) return;
+    if (!canvas) return;
 
-    console.log('Saving artwork with outlines...');
+    console.log('Saving artwork with background image included...');
 
-    // Create a temporary canvas to combine line art and drawings
-    const tempCanvas = document.createElement('canvas');
-    const tempCtx = tempCanvas.getContext('2d');
-    if (!tempCtx) return;
-
-    // Set the temporary canvas size
-    tempCanvas.width = canvas.width;
-    tempCanvas.height = canvas.height;
-
-    // Fill with white background
-    tempCtx.fillStyle = 'white';
-    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-
-    // First, draw the user's drawings (colored areas)
-    tempCtx.drawImage(canvas, 0, 0);
-
-    // Create a new canvas for the line art with full opacity
-    const lineCanvas = document.createElement('canvas');
-    const lineCtx = lineCanvas.getContext('2d');
-    if (lineCtx) {
-      lineCanvas.width = overlayCanvas.width;
-      lineCanvas.height = overlayCanvas.height;
-      
-      // Draw the overlay canvas content with full opacity
-      lineCtx.globalAlpha = 1.0;
-      lineCtx.drawImage(overlayCanvas, 0, 0);
-      
-      // Draw the line art on top of the user's drawings
-      tempCtx.globalCompositeOperation = 'source-over';
-      tempCtx.globalAlpha = 1.0;
-      tempCtx.drawImage(lineCanvas, 0, 0);
-      
-      console.log('Line art drawn with full opacity');
-    }
-
-    // Get the combined image data
-    const dataURL = tempCanvas.toDataURL('image/png');
-    console.log('Image saved with outlines included');
+    // The canvas already contains both the background image and user's drawings
+    // So we can directly save it
+    const dataURL = canvas.toDataURL('image/png');
+    console.log('Image saved with background and drawings included');
     onSave(dataURL);
     playSound('celebrate');
     saveToGallery(dataURL);
@@ -465,7 +440,40 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
     if (!ctx) return;
 
     saveState();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Clear and redraw the background
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Redraw the background image
+    if (artwork.svgContent.trim().startsWith('<svg')) {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = artwork.svgContent;
+      const svg = tempDiv.querySelector('svg');
+      if (svg) {
+        svg.setAttribute('width', '600');
+        svg.setAttribute('height', '600');
+        const data = new XMLSerializer().serializeToString(svg);
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0);
+        };
+        img.src = 'data:image/svg+xml;base64,' + btoa(data);
+      }
+    } else if (artwork.svgContent) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const maxSize = 600;
+        const scale = Math.min(maxSize / img.width, maxSize / img.height);
+        const width = img.width * scale;
+        const height = img.height * scale;
+        const x = (600 - width) / 2;
+        const y = (600 - height) / 2;
+        ctx.drawImage(img, x, y, width, height);
+      };
+      img.src = artwork.svgContent;
+    }
   };
 
   // Add sticker handler
@@ -557,8 +565,8 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
       <div className="flex-1 flex items-center justify-center relative w-full h-full" style={{ minHeight: 600, minWidth: 600 }}>
         <canvas
           ref={canvasRef}
-          className="absolute top-0 left-0 w-full h-full rounded-lg cursor-crosshair touch-none bg-transparent"
-          style={{ zIndex: 2, background: 'transparent', width: 600, height: 600, touchAction: 'none' }}
+          className="absolute top-0 left-0 w-full h-full rounded-lg cursor-crosshair touch-none bg-white"
+          style={{ zIndex: 2, background: 'white', width: 600, height: 600, touchAction: 'none' }}
           width={600}
           height={600}
           onMouseDown={handleMouseDown}
@@ -569,14 +577,6 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
           onTouchMove={handleTouchMove}
           onTouchEnd={stopDrawing}
           aria-label="Drawing Canvas"
-        />
-        <canvas
-          ref={overlayCanvasRef}
-          className="absolute top-0 left-0 w-full h-full rounded-lg pointer-events-none opacity-30"
-          style={{ zIndex: 1, background: 'transparent', width: 600, height: 600 }}
-          width={600}
-          height={600}
-          aria-hidden="true"
         />
         {/* Sticker Panel */}
         {showStickers && (
@@ -608,4 +608,4 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
   );
 });
 
-export default Canvas; 
+export default Canvas;

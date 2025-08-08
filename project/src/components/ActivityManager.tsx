@@ -26,8 +26,6 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
     learning_objectives: '',
     prerequisites: '',
     estimated_duration: 10,
-    max_attempts: 3,
-    passing_score: 70
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
@@ -133,8 +131,6 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
       submitFormData.append('prerequisites', formData.prerequisites);
     }
     submitFormData.append('estimated_duration', formData.estimated_duration.toString());
-    submitFormData.append('max_attempts', formData.max_attempts.toString());
-    submitFormData.append('passing_score', formData.passing_score.toString());
     
     if (selectedFile) {
       submitFormData.append('image', selectedFile);
@@ -187,8 +183,6 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
       learning_objectives: activity.learning_objectives || '',
       prerequisites: activity.prerequisites || '',
       estimated_duration: activity.estimated_duration || 10,
-      max_attempts: activity.max_attempts || 3,
-      passing_score: activity.passing_score || 70
     });
     // --- CHANGE THIS LINE ---
     if (activity.image_url) {
@@ -230,8 +224,6 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
       learning_objectives: '',
       prerequisites: '',
       estimated_duration: 10,
-      max_attempts: 3,
-      passing_score: 70
     });
     setSelectedFile(null);
     setPreviewUrl('');
@@ -508,29 +500,9 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Max Attempts
                   </label>
-                  <input
-                    type="number"
-                    value={formData.max_attempts}
-                    onChange={(e) => setFormData({ ...formData, max_attempts: parseInt(e.target.value) || 3 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    min="1"
-                    max="10"
-                  />
+                  
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Passing Score (%)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.passing_score}
-                    onChange={(e) => setFormData({ ...formData, passing_score: parseInt(e.target.value) || 70 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    min="0"
-                    max="100"
-                  />
-                </div>
               </div>
 
               <div>
