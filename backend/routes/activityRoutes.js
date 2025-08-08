@@ -1322,10 +1322,6 @@ router.post('/complete', upload.single('completed_file'), async (req, res, next)
     const { 
       child_id, 
       activity_id, 
-      lesson_id, 
-      unit_id, 
-      book_id, 
-      grade_id,
       completion_data,
       time_spent_seconds 
     } = req.body;
@@ -1337,6 +1333,24 @@ router.post('/complete', upload.single('completed_file'), async (req, res, next)
         error: 'Child ID and Activity ID are required' 
       });
     }
+
+    // Fetch activity details including hierarchy IDs
+    const [activityRows] = await pool.query(`
+      SELECT 
+        id, lesson_id, unit_id, book_id, grade_id
+      FROM activities 
+      WHERE id = ? AND status = 'active'
+    `, [activity_id]);
+
+    if (activityRows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Activity not found' 
+      });
+    }
+
+    const activity = activityRows[0];
+    const { lesson_id, unit_id, book_id, grade_id } = activity;
 
     // Handle file upload
     let completed_file_path = null;
@@ -1354,8 +1368,8 @@ router.post('/complete', upload.single('completed_file'), async (req, res, next)
         completed_file_path, completion_data, time_spent_seconds, status
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'submitted')
     `, [
-      child_id, activity_id, lesson_id || null, unit_id || null, 
-      book_id || null, grade_id || null, completed_file_path, 
+      child_id, activity_id, lesson_id, unit_id, 
+      book_id, grade_id, completed_file_path, 
       completion_data ? JSON.stringify(completion_data) : null,
       time_spent_seconds || 0
     ]);
@@ -1375,8 +1389,8 @@ router.post('/complete', upload.single('completed_file'), async (req, res, next)
         time_spent_seconds = VALUES(time_spent_seconds),
         status = 'completed'
     `, [
-      child_id, activity_id, lesson_id || null, unit_id || null,
-      book_id || null, grade_id || null, completed_file_path,
+      child_id, activity_id, lesson_id, unit_id,
+      book_id, grade_id, completed_file_path,
       completion_data ? JSON.stringify(completion_data) : null,
       time_spent_seconds || 0
     ]);
