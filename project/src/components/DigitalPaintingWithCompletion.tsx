@@ -71,11 +71,9 @@ const DigitalPaintingWithCompletion: React.FC<DigitalPaintingWithCompletionProps
   };
 
   const saveEntireContainer = () => {
-    // Get the canvas element directly since it now contains both background and drawings
-    const canvas = document.querySelector('canvas');
-    if (canvas) {
-      const dataURL = canvas.toDataURL('image/png');
-      handleSave(dataURL);
+    // Use the Canvas component's save method which properly composites layers
+    if (canvasRef.current) {
+      canvasRef.current.handleSave();
     } else {
       alert('❌ Could not save artwork. Please try again.');
     }
@@ -106,17 +104,24 @@ const DigitalPaintingWithCompletion: React.FC<DigitalPaintingWithCompletionProps
     }
   
     try {
-      // Get the single canvas that contains both line art and user's drawing
-      const canvas = document.querySelector('canvas');
-      if (!canvas) {
-        alert('❌ Could not find canvas. Please try again.');
+      // Get the composite canvas from the Canvas component
+      if (!canvasRef.current) {
+        alert('❌ Could not access canvas. Please try again.');
         return;
       }
 
-      console.log('Canvas found, dimensions:', canvas.width, 'x', canvas.height);
+      // Use the Canvas component's composite functionality
+      const compositeCanvas = canvasRef.current.compositeLayers ? canvasRef.current.compositeLayers() : null;
+      
+      if (!compositeCanvas) {
+        alert('❌ Could not create composite image. Please try again.');
+        return;
+      }
 
-      // Convert canvas to blob
-      canvas.toBlob(async (blob) => {
+      console.log('Composite canvas created, dimensions:', compositeCanvas.width, 'x', compositeCanvas.height);
+
+      // Convert composite canvas to blob
+      compositeCanvas.toBlob(async (blob: Blob | null) => {
         if (!blob) {
           alert('❌ Could not capture your artwork. Please try again.');
           return;

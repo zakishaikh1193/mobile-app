@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
-import { Save, Download, Sparkles, Volume2 } from 'lucide-react';
+// Removed unused imports
 import { LineArt, Tool } from '../types/lineArt';
 import StickerPanel from './StickerPanel';
 import { useAudio } from '../contexts/AudioContext';
@@ -22,11 +22,16 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
   React.useEffect(() => { toolRef.current = currentTool; }, [currentTool]);
   React.useEffect(() => { colorRef.current = currentColor; }, [currentColor]);
   React.useEffect(() => { sizeRef.current = brushSize; }, [brushSize]);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  // Multi-layer canvas approach
+  const backgroundCanvasRef = useRef<HTMLCanvasElement>(null); // Background image + line art (never erased)
+  const drawingCanvasRef = useRef<HTMLCanvasElement>(null); // User's drawing layer (can be erased)
+  const compositeCanvasRef = useRef<HTMLCanvasElement>(null); // Final composite for export
+  
   const [isDrawing, setIsDrawing] = useState(false);
   const [showStickers, setShowStickers] = useState(false);
-  const [canUndo, setCanUndo] = useState(false);
-  const [canRedo, setCanRedo] = useState(false);
+  const [, setCanUndo] = useState(false);
+  const [, setCanRedo] = useState(false);
   const undoStackRef = useRef<ImageData[]>([]);
   const redoStackRef = useRef<ImageData[]>([]);
 
@@ -59,21 +64,35 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
   }, [playAudioSound]);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const backgroundCanvas = backgroundCanvasRef.current;
+    const drawingCanvas = drawingCanvasRef.current;
+    const compositeCanvas = compositeCanvasRef.current;
+    
+    if (!backgroundCanvas || !drawingCanvas || !compositeCanvas) return;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    // Set canvas sizes
+    [backgroundCanvas, drawingCanvas, compositeCanvas].forEach(canvas => {
+      canvas.width = 600;
+      canvas.height = 600;
+    });
 
-    // Set canvas size
-    canvas.width = 600;
-    canvas.height = 600;
+    const backgroundCtx = backgroundCanvas.getContext('2d');
+    const drawingCtx = drawingCanvas.getContext('2d');
+    
+    if (!backgroundCtx || !drawingCtx) return;
 
-    // Clear canvas and fill with white background
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, 600, 600);
+    // Set up drawing canvas context
+    drawingCtx.lineCap = 'round';
+    drawingCtx.lineJoin = 'round';
+    
+    // Clear the drawing canvas to be fully transparent
+    drawingCtx.clearRect(0, 0, 600, 600);
 
-    // Draw the background image/line art
+    // Clear and set up background canvas with white background
+    backgroundCtx.fillStyle = 'white';
+    backgroundCtx.fillRect(0, 0, 600, 600);
+
+    // Draw the background image/line art on background canvas
     if (artwork.svgContent.trim().startsWith('<svg')) {
       // Handle SVG content
       const tempDiv = document.createElement('div');
@@ -85,7 +104,7 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
         const data = new XMLSerializer().serializeToString(svg);
         const img = new Image();
         img.onload = () => {
-          ctx.drawImage(img, 0, 0);
+          backgroundCtx.drawImage(img, 0, 0);
           saveState();
         };
         img.src = 'data:image/svg+xml;base64,' + btoa(data);
@@ -103,7 +122,7 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
         const x = (600 - width) / 2;
         const y = (600 - height) / 2;
         
-        ctx.drawImage(img, x, y, width, height);
+        backgroundCtx.drawImage(img, x, y, width, height);
         saveState();
       };
       img.onerror = () => {
@@ -114,20 +133,16 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
     } else {
       saveState();
     }
-
-    // Set up canvas context
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
   }, [artwork.id, artwork.svgContent]);
 
   const saveState = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const drawingCanvas = drawingCanvasRef.current;
+    if (!drawingCanvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = drawingCanvas.getContext('2d');
     if (!ctx) return;
 
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, drawingCanvas.width, drawingCanvas.height);
     undoStackRef.current.push(imageData);
     
     if (undoStackRef.current.length > 20) {
@@ -142,10 +157,10 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
   const undo = useCallback(() => {
     if (undoStackRef.current.length <= 1) return;
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const drawingCanvas = drawingCanvasRef.current;
+    if (!drawingCanvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = drawingCanvas.getContext('2d');
     if (!ctx) return;
 
     const currentState = undoStackRef.current.pop()!;
@@ -161,10 +176,10 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
   const redo = useCallback(() => {
     if (redoStackRef.current.length === 0) return;
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const drawingCanvas = drawingCanvasRef.current;
+    if (!drawingCanvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = drawingCanvas.getContext('2d');
     if (!ctx) return;
 
     const nextState = redoStackRef.current.pop()!;
@@ -176,12 +191,12 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
   }, []);
 
   const getMousePos = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
+    const drawingCanvas = drawingCanvasRef.current;
+    if (!drawingCanvas) return { x: 0, y: 0 };
 
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
+    const rect = drawingCanvas.getBoundingClientRect();
+    const scaleX = drawingCanvas.width / rect.width;
+    const scaleY = drawingCanvas.height / rect.height;
 
     return {
       x: (e.clientX - rect.left) * scaleX,
@@ -190,12 +205,12 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
   }, []);
 
   const getTouchPos = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
+    const drawingCanvas = drawingCanvasRef.current;
+    if (!drawingCanvas) return { x: 0, y: 0 };
 
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
+    const rect = drawingCanvas.getBoundingClientRect();
+    const scaleX = drawingCanvas.width / rect.width;
+    const scaleY = drawingCanvas.height / rect.height;
     const touch = e.touches[0];
 
     return {
@@ -204,18 +219,55 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
     };
   }, []);
 
-  const floodFill = useCallback((startX: number, startY: number, fillColor: string, tolerance: number = 32) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  // Function to composite all layers for saving
+  const compositeLayers = useCallback(() => {
+    const backgroundCanvas = backgroundCanvasRef.current;
+    const drawingCanvas = drawingCanvasRef.current;
+    const compositeCanvas = compositeCanvasRef.current;
+    
+    if (!backgroundCanvas || !drawingCanvas || !compositeCanvas) return null;
 
-    const ctx = canvas.getContext('2d');
+    const compositeCtx = compositeCanvas.getContext('2d');
+    if (!compositeCtx) return null;
+
+    // Clear composite canvas and set white background
+    compositeCtx.fillStyle = 'white';
+    compositeCtx.fillRect(0, 0, 600, 600);
+    
+    // Draw background layer first (background + line art)
+    compositeCtx.drawImage(backgroundCanvas, 0, 0);
+    
+    // Draw user's drawing layer on top
+    compositeCtx.globalCompositeOperation = 'source-over';
+    compositeCtx.drawImage(drawingCanvas, 0, 0);
+    
+    // Lightly overlay the line art to ensure edges are visible in saved image
+    // This ensures teachers can see boundaries without making them too dark
+    compositeCtx.globalCompositeOperation = 'source-over';
+    compositeCtx.globalAlpha = 0.4; // Slightly more visible in saved image
+    compositeCtx.drawImage(backgroundCanvas, 0, 0);
+    
+    // Reset composite operation and alpha
+    compositeCtx.globalCompositeOperation = 'source-over';
+    compositeCtx.globalAlpha = 1.0;
+    
+    console.log('Composite layers created - Background:', backgroundCanvas.width, 'x', backgroundCanvas.height, 'Drawing:', drawingCanvas.width, 'x', drawingCanvas.height);
+    
+    return compositeCanvas;
+  }, []);
+
+  const floodFill = useCallback((startX: number, startY: number, fillColor: string, tolerance: number = 32) => {
+    const drawingCanvas = drawingCanvasRef.current;
+    if (!drawingCanvas) return;
+
+    const ctx = drawingCanvas.getContext('2d');
     if (!ctx) return;
 
-    // Get the canvas data
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    // Get the drawing canvas data only
+    const imageData = ctx.getImageData(0, 0, drawingCanvas.width, drawingCanvas.height);
     const data = imageData.data;
     
-    const startPos = (Math.floor(startY) * canvas.width + Math.floor(startX)) * 4;
+    const startPos = (Math.floor(startY) * drawingCanvas.width + Math.floor(startX)) * 4;
     const startR = data[startPos];
     const startG = data[startPos + 1];
     const startB = data[startPos + 2];
@@ -252,9 +304,9 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
 
     while (pixelStack.length) {
       const [x, y] = pixelStack.pop()!;
-      if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) continue;
+      if (x < 0 || y < 0 || x >= drawingCanvas.width || y >= drawingCanvas.height) continue;
 
-      const pos = (y * canvas.width + x) * 4;
+      const pos = (y * drawingCanvas.width + x) * 4;
       if (colorMatch(pos) && !isAlreadyFilled(pos) && fillColorRgb) {
         data[pos] = fillColorRgb.r;
         data[pos + 1] = fillColorRgb.g;
@@ -266,6 +318,17 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
     }
 
     ctx.putImageData(imageData, 0, 0);
+    
+    // After filling, lightly overlay the line art to keep edges visible
+    const backgroundCanvas = backgroundCanvasRef.current;
+    if (backgroundCanvas) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'darken'; // Use darken to only show the dark lines
+      ctx.globalAlpha = 0.3; // Light overlay for visible edges
+      ctx.drawImage(backgroundCanvas, 0, 0);
+      ctx.restore();
+    }
+    
     playSound('fill');
     
     // Notify parent component of changes
@@ -284,10 +347,10 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
   };
 
   const startDrawing = useCallback((pos: { x: number, y: number }) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const drawingCanvas = drawingCanvasRef.current;
+    if (!drawingCanvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = drawingCanvas.getContext('2d');
     if (!ctx) return;
 
     // Always reset to default before setting tool-specific mode
@@ -305,7 +368,7 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
       ctx.strokeStyle = colorRef.current;
       ctx.lineWidth = sizeRef.current;
     } else if (toolRef.current === 'eraser') {
-      // We'll implement color eraser logic in draw
+      // Eraser only affects the drawing layer, not the background
       ctx.strokeStyle = 'rgba(0,0,0,0)'; // transparent, but logic will be in draw
       ctx.lineWidth = sizeRef.current * 2;
     }
@@ -319,13 +382,15 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
     if (!isDrawing) return;
     if (toolRef.current === 'fill' || toolRef.current === 'sticker') return;
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const drawingCanvas = drawingCanvasRef.current;
+    const backgroundCanvas = backgroundCanvasRef.current;
+    if (!drawingCanvas || !backgroundCanvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = drawingCanvas.getContext('2d');
     if (!ctx) return;
 
     if (toolRef.current === 'eraser') {
+      // Eraser only affects the drawing layer, background is preserved
       ctx.globalCompositeOperation = 'destination-out';
       ctx.strokeStyle = 'rgba(0,0,0,1)';
       ctx.lineWidth = sizeRef.current * 2;
@@ -333,35 +398,49 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
       ctx.stroke();
       playSound('paint');
     } else if (toolRef.current === 'brush') {
+      // First draw the brush stroke
       ctx.globalCompositeOperation = 'source-over';
       ctx.strokeStyle = colorRef.current;
       ctx.lineWidth = sizeRef.current;
-      // Brush style logic with transparency to see background lines
+      
+      // Make brush strokes semi-transparent so line art from background canvas shows through
       if (brushStyle === 'round') {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.globalAlpha = 0.6; // More transparent to see background lines
+        ctx.globalAlpha = 0.6; // Semi-transparent so background lines show through
       } else if (brushStyle === 'square') {
         ctx.lineCap = 'butt';
         ctx.lineJoin = 'miter';
-        ctx.globalAlpha = 0.7; // Slightly more opaque for square brush
+        ctx.globalAlpha = 0.6; 
       } else if (brushStyle === 'marker') {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.globalAlpha = 0.4; // Keep marker transparent
+        ctx.globalAlpha = 0.5; // Marker more transparent
       } else if (brushStyle === 'calligraphy') {
         ctx.lineCap = 'butt';
         ctx.lineJoin = 'bevel';
-        ctx.globalAlpha = 0.8; // Calligraphy can be more opaque
+        ctx.globalAlpha = 0.7; // Calligraphy slightly more opaque
         ctx.setLineDash([sizeRef.current * 2, sizeRef.current]);
       } else {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.globalAlpha = 0.6; // Default transparency
+        ctx.globalAlpha = 0.6; // Default semi-transparent
       }
       if (brushStyle !== 'calligraphy') ctx.setLineDash([]);
       ctx.lineTo(pos.x, pos.y);
       ctx.stroke();
+      
+      // After drawing the brush stroke, lightly overlay the line art from background canvas
+      // This ensures line art edges are always visible while drawing
+      const backgroundCanvas = backgroundCanvasRef.current;
+      if (backgroundCanvas) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'darken'; // Use darken to only show the dark lines
+        ctx.globalAlpha = 0.3; // Light overlay for visible edges
+        ctx.drawImage(backgroundCanvas, 0, 0);
+        ctx.restore();
+      }
+      
       playSound('paint');
     }
     
@@ -369,7 +448,7 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
     if (onChange) {
       onChange();
     }
-  }, [isDrawing, playSound, onChange]);
+  }, [isDrawing, playSound, onChange, brushStyle]);
 
   const stopDrawing = useCallback(() => {
     if (isDrawing) {
@@ -416,14 +495,32 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
   };
 
   const handleSave = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
     console.log('Saving artwork with background image included...');
 
-    // The canvas already contains both the background image and user's drawings
-    // So we can directly save it
-    const dataURL = canvas.toDataURL('image/png');
+    // Debug: Check canvas content
+    const backgroundCanvas = backgroundCanvasRef.current;
+    const drawingCanvas = drawingCanvasRef.current;
+    
+    if (backgroundCanvas && drawingCanvas) {
+      console.log('Background canvas:', backgroundCanvas.width, 'x', backgroundCanvas.height);
+      console.log('Drawing canvas:', drawingCanvas.width, 'x', drawingCanvas.height);
+      
+      // Create debug images
+      const bgDataURL = backgroundCanvas.toDataURL('image/png');
+      const drawingDataURL = drawingCanvas.toDataURL('image/png');
+      console.log('Background canvas data length:', bgDataURL.length);
+      console.log('Drawing canvas data length:', drawingDataURL.length);
+    }
+
+    // Composite all layers for saving
+    const compositeCanvas = compositeLayers();
+    if (!compositeCanvas) {
+      console.error('Could not composite layers for saving');
+      return;
+    }
+
+    const dataURL = compositeCanvas.toDataURL('image/png');
+    console.log('Composite image data length:', dataURL.length);
     console.log('Image saved with background and drawings included');
     onSave(dataURL);
     playSound('celebrate');
@@ -432,47 +529,16 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
   };
 
   const handleClear = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const drawingCanvas = drawingCanvasRef.current;
+    if (!drawingCanvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = drawingCanvas.getContext('2d');
     if (!ctx) return;
 
     saveState();
     
-    // Clear and redraw the background
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Redraw the background image
-    if (artwork.svgContent.trim().startsWith('<svg')) {
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = artwork.svgContent;
-      const svg = tempDiv.querySelector('svg');
-      if (svg) {
-        svg.setAttribute('width', '600');
-        svg.setAttribute('height', '600');
-        const data = new XMLSerializer().serializeToString(svg);
-        const img = new Image();
-        img.onload = () => {
-          ctx.drawImage(img, 0, 0);
-        };
-        img.src = 'data:image/svg+xml;base64,' + btoa(data);
-      }
-    } else if (artwork.svgContent) {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        const maxSize = 600;
-        const scale = Math.min(maxSize / img.width, maxSize / img.height);
-        const width = img.width * scale;
-        const height = img.height * scale;
-        const x = (600 - width) / 2;
-        const y = (600 - height) / 2;
-        ctx.drawImage(img, x, y, width, height);
-      };
-      img.src = artwork.svgContent;
-    }
+    // Clear only the drawing layer, background stays intact
+    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
   };
 
   // Add sticker handler
@@ -517,7 +583,6 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
   const handleResizeMouseMove = (e: MouseEvent | TouchEvent) => {
     if (resizingSticker === null) return;
     let clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
-    let clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
     setStickers(prev => prev.map(s =>
       s.id === resizingSticker ? { ...s, size: Math.max(24, Math.min(120, s.size + (clientX - s.x) / 10)) } : s
     ));
@@ -555,17 +620,31 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
 
   useImperativeHandle(ref, () => ({
     undo,
-    handleSave
+    redo,
+    handleSave,
+    handleClear,
+    compositeLayers
   }));
 
   return (
     <div className="flex flex-col h-full">
       {/* Canvas Container */}
       <div className="flex-1 flex items-center justify-center relative w-full h-full" style={{ minHeight: 600, minWidth: 600 }}>
+        {/* Background Canvas (Line art + background image) */}
         <canvas
-          ref={canvasRef}
-          className="absolute top-0 left-0 w-full h-full rounded-lg cursor-crosshair touch-none bg-white"
-          style={{ zIndex: 2, background: 'white', width: 600, height: 600, touchAction: 'none' }}
+          ref={backgroundCanvasRef}
+          className="absolute top-0 left-0 w-full h-full rounded-lg"
+          style={{ zIndex: 1, width: 600, height: 600, pointerEvents: 'none' }}
+          width={600}
+          height={600}
+          aria-label="Background Canvas"
+        />
+        
+        {/* Drawing Canvas (User's drawings) */}
+        <canvas
+          ref={drawingCanvasRef}
+          className="absolute top-0 left-0 w-full h-full rounded-lg cursor-crosshair touch-none"
+          style={{ zIndex: 2, width: 600, height: 600, touchAction: 'none' }}
           width={600}
           height={600}
           onMouseDown={handleMouseDown}
@@ -577,6 +656,16 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
           onTouchEnd={stopDrawing}
           aria-label="Drawing Canvas"
         />
+        
+        {/* Hidden Composite Canvas for exporting */}
+        <canvas
+          ref={compositeCanvasRef}
+          className="hidden"
+          width={600}
+          height={600}
+          aria-label="Composite Canvas"
+        />
+        
         {/* Sticker Panel */}
         {showStickers && (
           <StickerPanel

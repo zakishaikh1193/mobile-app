@@ -277,31 +277,20 @@ const ParentDashboard = () => {
           )}
 
           {/* Add child button */}
-          <motion.button
-            onClick={() => setShowCreateChild(true)}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className={`mt-10 sm:mt-24 flex items-center gap-2 sm:gap-3 py-3 sm:py-4 px-6 sm:px-10 font-bold text-lg sm:text-xl uppercase rounded-full shadow-lg transition-colors ${
-              user?.max_children === undefined || children.length < user.max_children
-                ? 'bg-cyan-500 text-white hover:bg-cyan-600 cursor-pointer' 
-                : 'bg-gray-400 text-gray-200 cursor-not-allowed'
-            }`}
-            disabled={user?.max_children !== undefined && children.length >= user.max_children}
-          >
-            <Plus />
-            <span>Add Your Child</span>
-          </motion.button>
 
-          {/* Children limit info */}
-          <div className="mt-6 bg-white/80 backdrop-blur-sm rounded-2xl p-4 text-center text-gray-700 shadow-lg">
-            <h3 className="font-bold text-lg mb-2 text-cyan-700">Children</h3>
-            <p><strong>Current:</strong> {children.length} {user?.max_children !== undefined ? `/ ${user.max_children}` : ''}</p>
-            {user?.max_children !== undefined && children.length >= user.max_children && (
-              <p className="text-red-600 font-semibold mt-2">
-                You've reached your child limit. Contact admin to increase your limit.
-              </p>
-            )}
-          </div>
+          {(user?.max_children === undefined || children.length < user.max_children) && (
+  <motion.button
+    onClick={() => setShowCreateChild(true)}
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.95 }}
+    className="mt-10 sm:mt-24 flex items-center gap-2 sm:gap-3 py-3 sm:py-4 px-6 sm:px-10 font-bold text-lg sm:text-xl uppercase rounded-full shadow-lg bg-cyan-500 text-white hover:bg-cyan-600 cursor-pointer"
+  >
+    <Plus />
+    <span>Add Your Child</span>
+  </motion.button>
+)}
+
+          
 
           {/* Logo */}
           <div className="mt-20 sm:mt-24 w-15 flex justify-center">
