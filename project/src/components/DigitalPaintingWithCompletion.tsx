@@ -58,13 +58,12 @@ const DigitalPaintingWithCompletion: React.FC<DigitalPaintingWithCompletionProps
     setTimeout(() => setShowSaved(false), 2000);
     setHasUnsavedChanges(false);
     
-    // Add to saved arts
+    // Add to saved arts in memory only
     setSavedArts(prev => [dataUrl, ...prev.slice(0, 9)]); // Keep only 10 most recent
     
-    // Save to localStorage
-    const existingArts = JSON.parse(localStorage.getItem('savedArts') || '[]');
-    const updatedArts = [dataUrl, ...existingArts.slice(0, 9)];
-    localStorage.setItem('savedArts', JSON.stringify(updatedArts));
+    // Removed localStorage storage of large base64 images
+    // Art gallery should be handled via backend storage/database
+    console.log('Artwork saved to session gallery (not persisted)');
   };
 
   const handleCanvasChange = () => {

@@ -84,10 +84,9 @@ const ChildDashboard = () => {
 
   useEffect(() => {
     if (updateTrigger > 0) {
-      const savedUser = localStorage.getItem('kodeit_user');
-      if (savedUser) {
-        window.location.reload();
-      }
+      // Removed localStorage usage - data should come from auth context
+      // Force re-render without localStorage dependency
+      console.log('Update trigger fired, refreshing data from context');
     }
   }, [updateTrigger]);
   

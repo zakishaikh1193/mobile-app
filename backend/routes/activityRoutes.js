@@ -12,9 +12,11 @@ const ACTIVITIES_PATH = path.join(UPLOAD_PATH, 'activities');
 const TEMP_PATH = path.join(UPLOAD_PATH, 'temp');
 
 // Proactively create directories on startup to ensure they exist.
+const COMPLETED_ACTIVITIES_PATH = path.join(UPLOAD_PATH, 'completed-activities');
 try {
     if (!fs.existsSync(ACTIVITIES_PATH)) fs.mkdirSync(ACTIVITIES_PATH, { recursive: true });
     if (!fs.existsSync(TEMP_PATH)) fs.mkdirSync(TEMP_PATH, { recursive: true });
+    if (!fs.existsSync(COMPLETED_ACTIVITIES_PATH)) fs.mkdirSync(COMPLETED_ACTIVITIES_PATH, { recursive: true });
 } catch (error) {
     console.error("FATAL: Could not create upload directories.", error);
     process.exit(1); // Exit if the app can't function properly.
@@ -47,6 +49,11 @@ const upload = multer({
 // Returns a clean, relative path for database storage.
 const getRelativePath = (fullPath) => {
     return path.join('uploads', 'activities', path.basename(fullPath)).replace(/\\/g, '/');
+};
+
+// Returns a clean, relative path for completed activities
+const getCompletedActivityPath = (fullPath) => {
+    return path.join('uploads', 'completed-activities', path.basename(fullPath)).replace(/\\/g, '/');
 };
 
 // Formats an activity record for the client, adding the full image URL.
@@ -160,6 +167,28 @@ router.get('/', async (req, res, next) => {
     } catch (error) {
         next(error);
     }
+});
+
+/**
+ * GET /api/activities/pending-assessments
+ * Get all pending assessments for teachers
+ */
+router.get('/pending-assessments', async (req, res, next) => {
+  try {
+    const [assessments] = await pool.query(`
+      SELECT * FROM pending_assessments
+      ORDER BY completed_at DESC
+    `);
+
+    res.json({
+      success: true,
+      assessments: assessments
+    });
+
+  } catch (error) {
+    console.error('Error fetching pending assessments:', error);
+    next(error);
+  }
 });
 
 /**
@@ -1355,7 +1384,10 @@ router.post('/complete', upload.single('completed_file'), async (req, res, next)
     // Handle file upload
     let completed_file_path = null;
     if (req.file) {
-      completed_file_path = req.file.path.replace(/\\/g, '/');
+      // Move the file from temp to completed-activities directory
+      const finalPath = path.join(COMPLETED_ACTIVITIES_PATH, req.file.filename);
+      fs.renameSync(req.file.path, finalPath);
+      completed_file_path = getCompletedActivityPath(finalPath);
       console.log('File path saved:', completed_file_path);
     } else {
       console.log('No file uploaded');
@@ -1403,28 +1435,6 @@ router.post('/complete', upload.single('completed_file'), async (req, res, next)
 
   } catch (error) {
     console.error('Error completing activity:', error);
-    next(error);
-  }
-});
-
-/**
- * GET /api/activities/pending-assessments
- * Get all pending assessments for teachers
- */
-router.get('/pending-assessments', async (req, res, next) => {
-  try {
-    const [assessments] = await pool.query(`
-      SELECT * FROM pending_assessments
-      ORDER BY completed_at DESC
-    `);
-
-    res.json({
-      success: true,
-      assessments: assessments
-    });
-
-  } catch (error) {
-    console.error('Error fetching pending assessments:', error);
     next(error);
   }
 });

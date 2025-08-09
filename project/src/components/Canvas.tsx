@@ -401,10 +401,9 @@ const Canvas = forwardRef<any, CanvasProps>(({ artwork, currentTool, currentColo
   };
 
   const saveToGallery = (dataUrl: string) => {
-    const key = 'my_arts_gallery';
-    const existing = JSON.parse(localStorage.getItem(key) || '[]');
-    const newArt = { dataUrl, date: Date.now() };
-    localStorage.setItem(key, JSON.stringify([newArt, ...existing]));
+    // Removed localStorage storage of large base64 images
+    // Art gallery should be handled via backend storage/database
+    console.log('Artwork saved (should be handled via backend API)', { dataUrl: dataUrl.substring(0, 50) + '...' });
   };
 
   const downloadImage = (dataUrl: string, filename: string) => {

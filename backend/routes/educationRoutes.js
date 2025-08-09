@@ -161,7 +161,6 @@ router.post('/lessons', [
   adminAuth,
   [
     check('title', 'Lesson title is required').not().isEmpty(),
-    check('description', 'Description is required').not().isEmpty(),
     check('unit_id', 'Unit ID is required').isInt(),
     check('lesson_number', 'Lesson number is required').isInt()
   ]
@@ -175,7 +174,6 @@ router.put('/lessons/:id', [
   adminAuth,
   [
     check('title', 'Lesson title is required').not().isEmpty(),
-    check('description', 'Description is required').not().isEmpty(),
     check('unit_id', 'Unit ID is required').isInt(),
     check('lesson_number', 'Lesson number is required').isInt()
   ]
@@ -185,6 +183,15 @@ router.put('/lessons/:id', [
 // @desc    Delete a lesson
 // @access  Private/Admin
 router.delete('/lessons/:id', auth, adminAuth, educationController.deleteLesson);
+
+// ============================================
+// ASSESSMENT CRITERIA ROUTES
+// ============================================
+
+// @route   GET /api/education/assessment-criteria
+// @desc    Get all assessment criteria
+// @access  Private/Admin
+router.get('/assessment-criteria', auth, educationController.getAssessmentCriteria);
 
 // ============================================
 // TEACHER LESSON UNLOCKING ROUTES
