@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
 import Gallery from './Gallery';
 import DigitalPaintingWithCompletion from './DigitalPaintingWithCompletion';
+import PuzzleGame from './PuzzleGame';
 import { LineArt } from '../types/lineArt';
 
 interface Activity {
@@ -62,6 +63,11 @@ const ActivityPlayerWithCompletion: React.FC = () => {
     console.log('Coloring completed with score:', score);
   };
 
+  const handleCompletePuzzle = (completionData: any) => {
+    console.log('Puzzle completed:', completionData);
+    // Handle puzzle completion - you can add navigation or other logic here
+  };
+
   const renderActivityContent = () => {
     if (!activity) return null;
 
@@ -109,6 +115,16 @@ const ActivityPlayerWithCompletion: React.FC = () => {
             <h2 className="text-3xl font-bold text-gray-800 mb-4">Letter Matching</h2>
             <p className="text-gray-600">Letter matching activity coming soon!</p>
           </div>
+        );
+
+      case 'puzzle':
+        return (
+          <PuzzleGame
+            activityId={activity.id}
+            childId={parseInt(childId || '0')}
+            onComplete={handleCompletePuzzle}
+            onBack={handleBackToActivities}
+          />
         );
 
       default:

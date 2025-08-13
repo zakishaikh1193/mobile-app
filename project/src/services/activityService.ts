@@ -3,7 +3,7 @@
 export interface Activity {
     id: number;
     title: string;
-    type: 'coloring' | 'letter_match' | 'bubble_pop' | 'counting' | 'emotion_match' | 'family_tree' | 'digital_painting' | 'forest_hunt';
+    type: 'coloring' | 'letter_match' | 'bubble_pop' | 'counting' | 'emotion_match' | 'family_tree' | 'digital_painting' | 'forest_hunt' | 'puzzle';
     description: string;
     difficulty: 'easy' | 'medium' | 'hard';
     image_path?: string;

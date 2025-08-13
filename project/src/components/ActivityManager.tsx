@@ -26,6 +26,7 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
     learning_objectives: '',
     prerequisites: '',
     estimated_duration: 10,
+    pieceCount: 9, // For puzzle games
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
@@ -100,10 +101,78 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
     setFormData({ ...formData, colors: newColors });
   };
 
+  const handlePuzzleSubmit = async () => {
+    if (!selectedFile) {
+      alert('Please select a puzzle image');
+      return;
+    }
+
+    const puzzleFormData = new FormData();
+    puzzleFormData.append('title', formData.title);
+    puzzleFormData.append('description', formData.description);
+    puzzleFormData.append('difficulty', formData.difficulty);
+    puzzleFormData.append('pieceCount', formData.pieceCount.toString());
+    puzzleFormData.append('puzzle_image', selectedFile);
+    
+    // Debug: Log FormData contents
+    console.log('Puzzle FormData contents:');
+    for (let [key, value] of puzzleFormData.entries()) {
+      console.log(key, value);
+    }
+    
+    // Add hierarchy fields
+    if (formData.grade_id && formData.grade_id.trim() !== '') {
+      puzzleFormData.append('grade_id', formData.grade_id);
+    }
+    if (formData.book_id && formData.book_id.trim() !== '') {
+      puzzleFormData.append('book_id', formData.book_id);
+    }
+    if (formData.unit_id && formData.unit_id.trim() !== '') {
+      puzzleFormData.append('unit_id', formData.unit_id);
+    }
+    if (formData.lesson_id && formData.lesson_id.trim() !== '') {
+      puzzleFormData.append('lesson_id', formData.lesson_id);
+    }
+
+    try {
+      // Use direct axios call for FormData to avoid Content-Type header issues
+      const token = localStorage.getItem('token');
+      console.log('Token being sent:', token);
+      
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/activities/upload-puzzle`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // Don't set Content-Type - let browser set it for FormData
+        },
+        body: puzzleFormData
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Puzzle activity created successfully!');
+        resetForm();
+        loadActivities();
+      } else {
+        alert(`Error: ${data.message}`);
+      }
+    } catch (error) {
+      console.error('Error creating puzzle activity:', error);
+      alert('An error occurred while creating the puzzle activity');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Create full FormData with all fields
+    // Handle puzzle creation differently
+    if (formData.type === 'puzzle') {
+      await handlePuzzleSubmit();
+      return;
+    }
+    
+    // Create full FormData with all fields for regular activities
     const submitFormData = new FormData();
     submitFormData.append('title', formData.title);
     submitFormData.append('type', formData.type);
@@ -183,6 +252,7 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
       learning_objectives: activity.learning_objectives || '',
       prerequisites: activity.prerequisites || '',
       estimated_duration: activity.estimated_duration || 10,
+      pieceCount: 9, // Default for puzzle games
     });
     // --- CHANGE THIS LINE ---
     if (activity.image_url) {
@@ -224,6 +294,7 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
       learning_objectives: '',
       prerequisites: '',
       estimated_duration: 10,
+      pieceCount: 9,
     });
     setSelectedFile(null);
     setPreviewUrl('');
@@ -321,6 +392,7 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
                     <option value="family_tree">Family Tree</option>
                     <option value="digital_painting">Digital Painting</option>
                     <option value="forest_hunt">Forest Hunt</option>
+                    <option value="puzzle">Puzzle (Jigsaw)</option>
                   </select>
                 </div>
               </div>
@@ -352,6 +424,24 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
                   <option value="hard">Hard</option>
                 </select>
               </div>
+
+              {/* Puzzle-specific fields */}
+              {formData.type === 'puzzle' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Number of Pieces
+                  </label>
+                  <select
+                    value={formData.pieceCount}
+                    onChange={(e) => setFormData({ ...formData, pieceCount: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value={9}>9 pieces (3x3) - Easy</option>
+                    <option value={16}>16 pieces (4x4) - Medium</option>
+                    <option value={25}>25 pieces (5x5) - Hard</option>
+                  </select>
+                </div>
+              )}
 
               {/* Hierarchy Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -507,7 +597,7 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Image Upload
+                  {formData.type === 'puzzle' ? 'Puzzle Image Upload' : 'Image Upload'}
                 </label>
                 <input
                   type="file"

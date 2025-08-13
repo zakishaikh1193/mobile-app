@@ -4,6 +4,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const pool = require('../models/db');
+const { auth } = require('../middleware/auth');
+const { adminAuth } = require('../middleware/admin');
 
 // --- 1. Path and Directory Setup ---
 
@@ -1588,5 +1590,155 @@ router.get('/assessment-criteria', async (req, res, next) => {
 //         next(error);
 //     }
 // });
+
+// Puzzle image upload endpoint
+router.post('/upload-puzzle', auth, upload.single('puzzle_image'), async (req, res, next) => {
+  try {
+    console.log('Puzzle upload - req.user:', req.user);
+    console.log('Puzzle upload - req.body:', req.body);
+    console.log('Puzzle upload - req.file:', req.file);
+    
+    const { title, description, difficulty, lesson_id, unit_id, book_id, grade_id, pieceCount } = req.body;
+    
+    if (!req.file) {
+      return res.status(400).json({ message: 'Puzzle image is required' });
+    }
+
+    // Validate piece count (3x3, 4x4, 5x5)
+    const validPieceCounts = [9, 16, 25];
+    const gridSize = Math.sqrt(pieceCount);
+    if (!validPieceCounts.includes(parseInt(pieceCount)) || !Number.isInteger(gridSize)) {
+      return res.status(400).json({ message: 'Piece count must be 9, 16, or 25' });
+    }
+
+    // Move the file from temp to its final destination (activities folder)
+    const finalPath = path.join(ACTIVITIES_PATH, req.file.filename);
+    try {
+      fs.renameSync(req.file.path, finalPath);
+    } catch (error) {
+      console.error('Error moving puzzle file:', error);
+      return res.status(500).json({ message: 'Error processing uploaded file' });
+    }
+    const imageDbPath = getRelativePath(finalPath);
+    
+    // Create puzzle configuration
+    const puzzleConfig = {
+      gameType: 'puzzle',
+      pieceCount: parseInt(pieceCount),
+      gridSize: gridSize,
+      imageUrl: imageDbPath,
+      difficulty: difficulty || 'medium'
+    };
+
+    // Check if user is authenticated
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: 'User authentication required' });
+    }
+
+    // Insert into activities table
+    const [result] = await pool.query(`
+      INSERT INTO activities (
+        title, description, type, difficulty, image_path, data,
+        lesson_id, unit_id, book_id, grade_id, created_by, status
+      ) VALUES (?, ?, 'puzzle', ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+    `, [
+      title, description, difficulty, imageDbPath, JSON.stringify(puzzleConfig),
+      lesson_id, unit_id, book_id, grade_id, req.user.id
+    ]);
+
+    res.status(201).json({
+      success: true,
+      message: 'Puzzle activity created successfully',
+      activityId: result.insertId,
+      puzzleConfig
+    });
+
+  } catch (error) {
+    console.error('Error creating puzzle activity:', error);
+    next(error);
+  }
+});
+
+// Get puzzle data for playing
+router.get('/puzzle/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    const [activities] = await pool.query(`
+      SELECT a.*, 
+             l.title as lesson_title,
+             u.title as unit_title,
+             b.title as book_title,
+             g.name as grade_name
+      FROM activities a
+      LEFT JOIN lessons l ON a.lesson_id = l.id
+      LEFT JOIN units u ON a.unit_id = u.id
+      LEFT JOIN books b ON a.book_id = b.id
+      LEFT JOIN grades g ON a.grade_id = g.id
+      WHERE a.id = ? AND a.type = 'puzzle' AND a.status = 'active'
+    `, [id]);
+
+    if (activities.length === 0) {
+      return res.status(404).json({ message: 'Puzzle activity not found' });
+    }
+
+    const activity = activities[0];
+    
+    // Safely parse the puzzle configuration
+    let puzzleConfig = {};
+    try {
+      if (activity.data) {
+        // If data is already an object, use it directly
+        if (typeof activity.data === 'object') {
+          puzzleConfig = activity.data;
+        } else {
+          // If data is a string, parse it as JSON
+          puzzleConfig = JSON.parse(activity.data);
+        }
+      }
+    } catch (parseError) {
+      console.error('Error parsing puzzle config:', parseError);
+      // Use default config if parsing fails
+      puzzleConfig = {
+        gameType: 'puzzle',
+        pieceCount: 9,
+        gridSize: 3,
+        difficulty: 'easy'
+      };
+    }
+
+    res.json({
+      success: true,
+      puzzle: {
+        id: activity.id,
+        title: activity.title,
+        description: activity.description,
+        difficulty: activity.difficulty,
+        imageUrl: activity.image_path,
+        config: puzzleConfig,
+        lesson: {
+          id: activity.lesson_id,
+          title: activity.lesson_title
+        },
+        unit: {
+          id: activity.unit_id,
+          title: activity.unit_title
+        },
+        book: {
+          id: activity.book_id,
+          title: activity.book_title
+        },
+        grade: {
+          id: activity.grade_id,
+          name: activity.grade_name
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching puzzle activity:', error);
+    next(error);
+  }
+});
 
 module.exports = router;
