@@ -112,13 +112,12 @@ router.post('/', upload.single('image'), async (req, res, next) => {
             `INSERT INTO activities (
                 title, type, description, difficulty, image_path, colors, 
                 grade_id, book_id, unit_id, lesson_id, learning_objectives, 
-                prerequisites, estimated_duration,
-                status, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW())`,
+                prerequisites, estimated_duration, status, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW())`,
             [
                 title, type, description, difficulty, imageDbPath, colors || '[]',
                 grade_id || null, book_id || null, unit_id || null, lesson_id || null,
-                learning_objectives || null, prerequisites || null, estimated_duration,
+                learning_objectives || null, prerequisites || null, estimated_duration
             ]
         );
 

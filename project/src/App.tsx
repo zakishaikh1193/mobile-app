@@ -28,6 +28,7 @@ import WordMatchGame from './components/WordMatchGame';
 import ForestLetterHuntGame from './components/ForestLetterHunt/Game';
 import StructuredLearning from './pages/StructuredLearning';
 import AdminChapterManagement from './pages/AdminChapterManagement';
+import PuzzleTest from './pages/PuzzleTest';
 
 // A wrapper for routes that require authentication
 const PrivateRoute: React.FC<{ children: React.ReactNode, roles?: Array<'admin' | 'teacher' | 'parent' | 'student'> }> = ({ 
@@ -295,6 +296,13 @@ const AppRoutes = () => {
         <Route path="/admin/chapters" element={
           <PrivateRoute roles={['admin']}>
             <AdminChapterManagement />
+          </PrivateRoute>
+        } />
+        
+        {/* Puzzle Test Route */}
+        <Route path="/puzzle-test" element={
+          <PrivateRoute>
+            <PuzzleTest />
           </PrivateRoute>
         } />
         

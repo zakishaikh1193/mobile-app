@@ -5,7 +5,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
 import Gallery from './Gallery';
 import DigitalPaintingWithCompletion from './DigitalPaintingWithCompletion';
-import PuzzleGame from './PuzzleGame';
+import JigsawPuzzle from './JigsawPuzzle';
+import MazePuzzle from './MazePuzzle';
 import { LineArt } from '../types/lineArt';
 
 interface Activity {
@@ -117,15 +118,25 @@ const ActivityPlayerWithCompletion: React.FC = () => {
           </div>
         );
 
-      case 'puzzle':
-        return (
-          <PuzzleGame
-            activityId={activity.id}
-            childId={parseInt(childId || '0')}
-            onComplete={handleCompletePuzzle}
-            onBack={handleBackToActivities}
-          />
-        );
+             case 'puzzle':
+         return (
+           <JigsawPuzzle
+             activityId={activity.id}
+             childId={parseInt(childId || '0')}
+             onComplete={handleCompletePuzzle}
+             onBack={handleBackToActivities}
+           />
+         );
+
+       case 'maze':
+         return (
+           <MazePuzzle
+             activityId={activity.id}
+             childId={parseInt(childId || '0')}
+             onComplete={handleCompletePuzzle}
+             onBack={handleBackToActivities}
+           />
+         );
 
       default:
         return (

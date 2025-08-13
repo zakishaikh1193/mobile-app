@@ -3,7 +3,7 @@ const pool = require('./db');
 class Content {
     static async create(title, type, description, status) {
         const [result] = await pool.query(
-            'INSERT INTO content (title, type, description, status) VALUES (?, ?, ?, ?)',
+            'INSERT INTO content_library (title, type, description, status) VALUES (?, ?, ?, ?)',
             [title, type, description, status]
         );
         return result.insertId;
@@ -18,12 +18,12 @@ class Content {
     }
 
     static async updateThumbnail(contentId, thumbnailId) {
-        await pool.query('UPDATE content SET thumbnail_id = ? WHERE id = ?', [thumbnailId, contentId]);
+        await pool.query('UPDATE content_library SET thumbnail_id = ? WHERE id = ?', [thumbnailId, contentId]);
     }
 
     static async findByType(type) {
         const [rows] = await pool.query(
-            'SELECT c.*, f.file_path as thumbnail_path FROM content c LEFT JOIN files f ON c.thumbnail_id = f.id WHERE c.type = ? ORDER BY c.created_at DESC',
+            'SELECT c.*, f.file_path as thumbnail_path FROM content_library c LEFT JOIN files f ON c.thumbnail_id = f.id WHERE c.type = ? ORDER BY c.created_at DESC',
             [type]
         );
         return rows;
@@ -31,7 +31,7 @@ class Content {
 
     static async findById(id) {
         const [rows] = await pool.query(
-            'SELECT c.*, f.file_path as thumbnail_path FROM content c LEFT JOIN files f ON c.thumbnail_id = f.id WHERE c.id = ?',
+            'SELECT c.*, f.file_path as thumbnail_path FROM content_library c LEFT JOIN files f ON c.thumbnail_id = f.id WHERE c.id = ?',
             [id]
         );
         return rows[0];

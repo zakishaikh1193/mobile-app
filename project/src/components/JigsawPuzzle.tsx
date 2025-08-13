@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, RotateCcw, Home, Volume2, VolumeX, Eye, Lightbulb, Trophy, Target, Grid3X3 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-interface PuzzlePiece {
+interface JigsawPiece {
   id: number;
   x: number;
   y: number;
@@ -15,19 +15,29 @@ interface PuzzlePiece {
   isPlaced: boolean;
   originalX: number;
   originalY: number;
+  // Jigsaw specific properties
+  row: number;
+  col: number;
+  totalRows: number;
+  totalCols: number;
+  // Connection points for interlocking
+  topConnector: 'male' | 'female' | 'flat';
+  bottomConnector: 'male' | 'female' | 'flat';
+  leftConnector: 'male' | 'female' | 'flat';
+  rightConnector: 'male' | 'female' | 'flat';
 }
 
-interface PuzzleGameProps {
+interface JigsawPuzzleProps {
   activityId: number;
   childId: number;
   onComplete?: (completionData: any) => void;
   onBack?: () => void;
 }
 
-const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete, onBack }) => {
+const JigsawPuzzle: React.FC<JigsawPuzzleProps> = ({ activityId, childId, onComplete, onBack }) => {
   const { user } = useAuth();
   const [puzzle, setPuzzle] = useState<any>(null);
-  const [pieces, setPieces] = useState<PuzzlePiece[]>([]);
+  const [pieces, setPieces] = useState<JigsawPiece[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
@@ -68,6 +78,20 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
     hard: { rows: 4, cols: 6, pieceSize: isMobile ? 80 : 100, maxHints: 3 }
   };
 
+  // Generate jigsaw connectors for interlocking pieces
+  const generateConnectors = (row: number, col: number, totalRows: number, totalCols: number) => {
+    // Create more complex interlocking pattern
+    const rowPattern = row % 3;
+    const colPattern = col % 3;
+    
+    return {
+      topConnector: (row === 0 ? 'flat' : (rowPattern === 0 ? 'male' : rowPattern === 1 ? 'female' : 'male')) as 'male' | 'female' | 'flat',
+      bottomConnector: (row === totalRows - 1 ? 'flat' : (rowPattern === 0 ? 'female' : rowPattern === 1 ? 'male' : 'female')) as 'male' | 'female' | 'flat',
+      leftConnector: (col === 0 ? 'flat' : (colPattern === 0 ? 'male' : colPattern === 1 ? 'female' : 'male')) as 'male' | 'female' | 'flat',
+      rightConnector: (col === totalCols - 1 ? 'flat' : (colPattern === 0 ? 'female' : colPattern === 1 ? 'male' : 'female')) as 'male' | 'female' | 'flat'
+    };
+  };
+
   // Fetch puzzle data
   useEffect(() => {
     const fetchPuzzle = async () => {
@@ -87,7 +111,6 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
         const data = await response.json();
         setPuzzle(data.puzzle);
         
-        // Set difficulty from puzzle data
         if (data.puzzle?.config?.difficulty) {
           setDifficulty(data.puzzle.config.difficulty);
         }
@@ -101,12 +124,9 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
     fetchPuzzle();
   }, [activityId]);
 
-  // Generate puzzle pieces
+  // Generate jigsaw puzzle pieces
   useEffect(() => {
     if (!puzzle || !canvasRef.current) return;
-
-    console.log('Puzzle data:', puzzle);
-    console.log('Image URL:', puzzle.imageUrl);
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -116,48 +136,46 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
     img.crossOrigin = 'anonymous';
     
     img.onload = () => {
-      console.log('Image loaded successfully, dimensions:', img.width, 'x', img.height);
-      
       const config = difficultyConfig[difficulty];
       const { rows, cols } = config;
       
-      // Calculate piece dimensions based on puzzle board size
+      // Calculate piece dimensions
       const pieceWidth = puzzleBoardSize.width / cols;
       const pieceHeight = puzzleBoardSize.height / rows;
       
-      // Create puzzle pieces
-      const newPieces: PuzzlePiece[] = [];
+      // Create jigsaw pieces
+      const newPieces: JigsawPiece[] = [];
       
       for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
           const id = row * cols + col;
           
-          // Create piece canvas
+          // Create piece canvas with jigsaw edges
           const pieceCanvas = document.createElement('canvas');
           const pieceCtx = pieceCanvas.getContext('2d');
           
-          pieceCanvas.width = pieceWidth;
-          pieceCanvas.height = pieceHeight;
+          // Add extra space for jigsaw connectors
+          const connectorSize = 15;
+          pieceCanvas.width = pieceWidth + connectorSize * 2;
+          pieceCanvas.height = pieceHeight + connectorSize * 2;
           
           if (pieceCtx) {
-            // Draw the image portion
-            pieceCtx.drawImage(
-              img,
-              col * (img.width / cols), row * (img.height / rows), 
-              img.width / cols, img.height / rows,
-              0, 0, pieceWidth, pieceHeight
-            );
+            // Generate connectors for this piece
+            const connectors = generateConnectors(row, col, rows, cols);
+            
+            // Draw the image portion with jigsaw edges
+            drawJigsawPiece(pieceCtx, img, row, col, rows, cols, pieceWidth, pieceHeight, connectors, connectorSize);
           }
           
           const imageData = pieceCanvas.toDataURL();
           
           // Calculate random position in pieces container
           const piecesContainer = piecesContainerRef.current?.getBoundingClientRect();
-          const maxX = piecesContainer ? piecesContainer.width - pieceWidth - 20 : 300;
-          const maxY = piecesContainer ? piecesContainer.height - pieceHeight - 20 : 200;
+          const maxX = piecesContainer ? piecesContainer.width - pieceWidth - 40 : 300;
+          const maxY = piecesContainer ? piecesContainer.height - pieceHeight - 40 : 200;
           
-          const randomX = Math.random() * Math.max(20, maxX) + 10;
-          const randomY = Math.random() * Math.max(20, maxY) + 10;
+          const randomX = Math.random() * Math.max(20, maxX) + 20;
+          const randomY = Math.random() * Math.max(20, maxY) + 20;
           
           newPieces.push({
             id,
@@ -167,30 +185,130 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
             originalY: randomY,
             correctX: col * pieceWidth,
             correctY: row * pieceHeight,
-            width: pieceWidth,
-            height: pieceHeight,
+            width: pieceWidth + connectorSize * 2,
+            height: pieceHeight + connectorSize * 2,
             imageData,
-            isPlaced: false
+            isPlaced: false,
+            row,
+            col,
+            totalRows: rows,
+            totalCols: cols,
+            ...generateConnectors(row, col, rows, cols)
           });
         }
       }
       
-      console.log('Generated pieces:', newPieces.length);
       setPieces(newPieces);
     };
 
-    img.onerror = (error) => {
-      console.error('Error loading image:', error);
-      console.error('Image URL that failed:', puzzle.imageUrl);
+    img.onerror = () => {
       setError('Failed to load puzzle image');
     };
 
-    // Construct full image URL
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
     const fullImageUrl = `${API_URL}/${puzzle.imageUrl}`;
-    console.log('Full image URL:', fullImageUrl);
     img.src = fullImageUrl;
   }, [puzzle, difficulty, puzzleBoardSize, isMobile]);
+
+  // Draw jigsaw piece with interlocking edges
+  const drawJigsawPiece = (
+    ctx: CanvasRenderingContext2D,
+    img: HTMLImageElement,
+    row: number,
+    col: number,
+    totalRows: number,
+    totalCols: number,
+    pieceWidth: number,
+    pieceHeight: number,
+    connectors: any,
+    connectorSize: number
+  ) => {
+    const imgPieceWidth = img.width / totalCols;
+    const imgPieceHeight = img.height / totalRows;
+    
+    // Create path for jigsaw piece
+    ctx.beginPath();
+    
+    // Start from top-left
+    ctx.moveTo(connectorSize, connectorSize);
+    
+    // Top edge with connector
+    if (connectors.topConnector === 'male') {
+      ctx.lineTo(pieceWidth * 0.25 + connectorSize, connectorSize);
+      ctx.quadraticCurveTo(pieceWidth * 0.35 + connectorSize, connectorSize - connectorSize, pieceWidth * 0.5 + connectorSize, connectorSize);
+      ctx.quadraticCurveTo(pieceWidth * 0.65 + connectorSize, connectorSize - connectorSize, pieceWidth * 0.75 + connectorSize, connectorSize);
+    } else if (connectors.topConnector === 'female') {
+      ctx.lineTo(pieceWidth * 0.25 + connectorSize, connectorSize);
+      ctx.quadraticCurveTo(pieceWidth * 0.35 + connectorSize, connectorSize + connectorSize, pieceWidth * 0.5 + connectorSize, connectorSize);
+      ctx.quadraticCurveTo(pieceWidth * 0.65 + connectorSize, connectorSize + connectorSize, pieceWidth * 0.75 + connectorSize, connectorSize);
+    }
+    ctx.lineTo(pieceWidth + connectorSize, connectorSize);
+    
+    // Right edge with connector
+    if (connectors.rightConnector === 'male') {
+      ctx.lineTo(pieceWidth + connectorSize, pieceHeight * 0.25 + connectorSize);
+      ctx.quadraticCurveTo(pieceWidth + connectorSize + connectorSize, pieceHeight * 0.35 + connectorSize, pieceWidth + connectorSize, pieceHeight * 0.5 + connectorSize);
+      ctx.quadraticCurveTo(pieceWidth + connectorSize + connectorSize, pieceHeight * 0.65 + connectorSize, pieceWidth + connectorSize, pieceHeight * 0.75 + connectorSize);
+    } else if (connectors.rightConnector === 'female') {
+      ctx.lineTo(pieceWidth + connectorSize, pieceHeight * 0.25 + connectorSize);
+      ctx.quadraticCurveTo(pieceWidth + connectorSize - connectorSize, pieceHeight * 0.35 + connectorSize, pieceWidth + connectorSize, pieceHeight * 0.5 + connectorSize);
+      ctx.quadraticCurveTo(pieceWidth + connectorSize - connectorSize, pieceHeight * 0.65 + connectorSize, pieceWidth + connectorSize, pieceHeight * 0.75 + connectorSize);
+    }
+    ctx.lineTo(pieceWidth + connectorSize, pieceHeight + connectorSize);
+    
+    // Bottom edge with connector
+    if (connectors.bottomConnector === 'male') {
+      ctx.lineTo(pieceWidth * 0.75 + connectorSize, pieceHeight + connectorSize);
+      ctx.quadraticCurveTo(pieceWidth * 0.65 + connectorSize, pieceHeight + connectorSize + connectorSize, pieceWidth * 0.5 + connectorSize, pieceHeight + connectorSize);
+      ctx.quadraticCurveTo(pieceWidth * 0.35 + connectorSize, pieceHeight + connectorSize + connectorSize, pieceWidth * 0.25 + connectorSize, pieceHeight + connectorSize);
+    } else if (connectors.bottomConnector === 'female') {
+      ctx.lineTo(pieceWidth * 0.75 + connectorSize, pieceHeight + connectorSize);
+      ctx.quadraticCurveTo(pieceWidth * 0.65 + connectorSize, pieceHeight + connectorSize - connectorSize, pieceWidth * 0.5 + connectorSize, pieceHeight + connectorSize);
+      ctx.quadraticCurveTo(pieceWidth * 0.35 + connectorSize, pieceHeight + connectorSize - connectorSize, pieceWidth * 0.25 + connectorSize, pieceHeight + connectorSize);
+    }
+    ctx.lineTo(connectorSize, pieceHeight + connectorSize);
+    
+    // Left edge with connector
+    if (connectors.leftConnector === 'male') {
+      ctx.lineTo(connectorSize, pieceHeight * 0.75 + connectorSize);
+      ctx.quadraticCurveTo(connectorSize - connectorSize, pieceHeight * 0.65 + connectorSize, connectorSize, pieceHeight * 0.5 + connectorSize);
+      ctx.quadraticCurveTo(connectorSize - connectorSize, pieceHeight * 0.35 + connectorSize, connectorSize, pieceHeight * 0.25 + connectorSize);
+    } else if (connectors.leftConnector === 'female') {
+      ctx.lineTo(connectorSize, pieceHeight * 0.75 + connectorSize);
+      ctx.quadraticCurveTo(connectorSize + connectorSize, pieceHeight * 0.65 + connectorSize, connectorSize, pieceHeight * 0.5 + connectorSize);
+      ctx.quadraticCurveTo(connectorSize + connectorSize, pieceHeight * 0.35 + connectorSize, connectorSize, pieceHeight * 0.25 + connectorSize);
+    }
+    ctx.lineTo(connectorSize, connectorSize);
+    
+    ctx.closePath();
+    
+    // Create clipping path
+    ctx.save();
+    ctx.clip();
+    
+    // Draw the image portion
+    ctx.drawImage(
+      img,
+      col * imgPieceWidth, row * imgPieceHeight, 
+      imgPieceWidth, imgPieceHeight,
+      0, 0, pieceWidth + connectorSize * 2, pieceHeight + connectorSize * 2
+    );
+    
+    ctx.restore();
+    
+    // Add jigsaw border
+    ctx.strokeStyle = '#1E40AF';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    
+    // Add shadow effect for better visibility
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+    ctx.shadowBlur = 5;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+    ctx.stroke();
+    ctx.shadowColor = 'transparent';
+  };
 
   // Timer
   useEffect(() => {
@@ -215,14 +333,12 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
         clearInterval(timerRef.current);
       }
       
-      // Calculate final score
       const baseScore = 100;
       const timeBonus = Math.max(0, 300 - timeSpent);
       const hintPenalty = hintsUsed * 10;
       const finalScore = Math.max(0, baseScore + timeBonus - hintPenalty);
       setScore(finalScore);
       
-      // Play completion sound
       if (audioEnabled) {
         playSound('success');
       }
@@ -230,15 +346,14 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
   }, [pieces, audioEnabled, timeSpent, hintsUsed]);
 
   const playSound = (type: string) => {
-    // Simple sound feedback
     const audio = new Audio();
     if (type === 'success') {
       audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT';
     }
-    audio.play().catch(() => {}); // Ignore errors
+    audio.play().catch(() => {});
   };
 
-  // Simplified drag handler - just update piece position
+  // Enhanced drag and drop handlers
   const handlePieceDrag = useCallback((pieceId: number, x: number, y: number) => {
     setPieces(prev => prev.map(piece => {
       if (piece.id === pieceId) {
@@ -252,48 +367,43 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
     const piece = pieces.find(p => p.id === pieceId);
     if (!piece) return;
 
-    // Check if piece is dropped on puzzle board
     const puzzleBoard = puzzleBoardRef.current?.getBoundingClientRect();
     if (puzzleBoard) {
-      // Convert client coordinates to board coordinates
       const boardX = clientX - puzzleBoard.left;
       const boardY = clientY - puzzleBoard.top;
       
-      // MUCH larger tolerance for children - 60px for mobile, 50px for desktop
-      const tolerance = isMobile ? 60 : 50;
+      // Smaller tolerance for jigsaw pieces
+      const tolerance = isMobile ? 25 : 20;
       
-      // Check if piece is within the board boundaries
       const isWithinBoard = boardX >= -tolerance && boardY >= -tolerance && 
                            boardX <= puzzleBoard.width + tolerance && 
                            boardY <= puzzleBoard.height + tolerance;
       
       if (isWithinBoard) {
-        // Check if piece is close to correct position
-    const isCorrectPosition = 
+        const isCorrectPosition = 
           Math.abs(boardX - piece.correctX) < tolerance && 
           Math.abs(boardY - piece.correctY) < tolerance;
 
-    if (isCorrectPosition) {
-          // Snap to exact position
-      setPieces(prev => prev.map(p => {
-        if (p.id === pieceId) {
-          return { 
-            ...p, 
+        if (isCorrectPosition) {
+          setPieces(prev => prev.map(p => {
+            if (p.id === pieceId) {
+              return { 
+                ...p, 
                 x: piece.correctX, 
                 y: piece.correctY, 
-            isPlaced: true 
-          };
-        }
-        return p;
-      }));
+                isPlaced: true 
+              };
+            }
+            return p;
+          }));
           
           setMovesCount(prev => prev + 1);
-      
-      if (audioEnabled) {
-        playSound('success');
-      }
+          
+          if (audioEnabled) {
+            playSound('success');
+          }
         } else {
-          // Return piece to original position
+          // Return piece to original position with animation
           setPieces(prev => prev.map(p => {
             if (p.id === pieceId) {
               return { 
@@ -306,7 +416,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
           }));
         }
       } else {
-        // Piece is outside board - return to original position
+        // Return piece to original position
         setPieces(prev => prev.map(p => {
           if (p.id === pieceId) {
             return { 
@@ -321,8 +431,11 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
     }
   }, [pieces, audioEnabled, isMobile]);
 
-  // Simplified touch event handlers for children
+  // Touch and mouse event handlers
   const handleTouchStart = useCallback((e: React.TouchEvent, pieceId: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     const touch = e.touches[0];
     const piecesContainer = piecesContainerRef.current?.getBoundingClientRect();
     if (piecesContainer) {
@@ -340,6 +453,9 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
   }, [pieces]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (draggedPiece !== null) {
       const touch = e.touches[0];
       const piecesContainer = piecesContainerRef.current?.getBoundingClientRect();
@@ -352,6 +468,9 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
   }, [draggedPiece, dragOffset, handlePieceDrag]);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (draggedPiece !== null) {
       const touch = e.changedTouches[0];
       handlePieceDrop(draggedPiece, touch.clientX, touch.clientY);
@@ -360,9 +479,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
     }
   }, [draggedPiece, handlePieceDrop]);
 
-  // Simplified mouse event handlers for children
   const handleMouseDown = useCallback((e: React.MouseEvent, pieceId: number) => {
-    // Prevent all default behaviors
     e.preventDefault();
     e.stopPropagation();
     
@@ -382,11 +499,10 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
   }, [pieces]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (draggedPiece !== null) {
-      // Prevent all default behaviors
-      e.preventDefault();
-      e.stopPropagation();
-      
       const piecesContainer = piecesContainerRef.current?.getBoundingClientRect();
       if (piecesContainer) {
         const x = e.clientX - piecesContainer.left - dragOffset.x;
@@ -397,22 +513,20 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
   }, [draggedPiece, dragOffset, handlePieceDrag]);
 
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (draggedPiece !== null) {
-      // Prevent all default behaviors
-      e.preventDefault();
-      e.stopPropagation();
-      
       handlePieceDrop(draggedPiece, e.clientX, e.clientY);
       setDraggedPiece(null);
       setDragOffset({ x: 0, y: 0 });
     }
   }, [draggedPiece, handlePieceDrop]);
 
-    // Global event listeners
+  // Global event listeners
   useEffect(() => {
-             const handleGlobalMouseMove = (e: MouseEvent) => {
+    const handleGlobalMouseMove = (e: MouseEvent) => {
       if (draggedPiece !== null) {
-        // Prevent all default behaviors
         e.preventDefault();
         e.stopPropagation();
         
@@ -425,9 +539,8 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
       }
     };
 
-             const handleGlobalMouseUp = (e: MouseEvent) => {
+    const handleGlobalMouseUp = (e: MouseEvent) => {
       if (draggedPiece !== null) {
-        // Prevent all default behaviors
         e.preventDefault();
         e.stopPropagation();
         handlePieceDrop(draggedPiece, e.clientX, e.clientY);
@@ -462,17 +575,9 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
       }
     };
 
-    const handleGlobalTouchStart = (e: TouchEvent) => {
-      // Prevent default touch behavior to avoid scrolling
-      if (draggedPiece !== null) {
-        e.preventDefault();
-      }
-    };
-
     if (draggedPiece !== null) {
       document.addEventListener('mousemove', handleGlobalMouseMove, { passive: false });
       document.addEventListener('mouseup', handleGlobalMouseUp, { passive: false });
-      document.addEventListener('touchstart', handleGlobalTouchStart, { passive: false });
       document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
       document.addEventListener('touchend', handleGlobalTouchEnd, { passive: false });
     }
@@ -480,7 +585,6 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
     return () => {
       document.removeEventListener('mousemove', handleGlobalMouseMove);
       document.removeEventListener('mouseup', handleGlobalMouseUp);
-      document.removeEventListener('touchstart', handleGlobalTouchStart);
       document.removeEventListener('touchmove', handleGlobalTouchMove);
       document.removeEventListener('touchend', handleGlobalTouchEnd);
     };
@@ -521,7 +625,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
       movesCount,
       score,
       hintsUsed,
-      accuracy: 100, // All pieces placed correctly
+      accuracy: 100,
       gameMetrics: {
         piecesPlaced: pieces.length,
         hintsUsed,
@@ -538,7 +642,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-lg text-gray-600">Loading puzzle...</p>
+          <p className="text-lg text-gray-600">Loading jigsaw puzzle...</p>
         </div>
       </div>
     );
@@ -565,15 +669,14 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
   }
 
   return (
-         <div 
-       className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 relative overflow-hidden"
-       style={{
-         touchAction: 'none',
-         overscrollBehavior: 'none',
-         WebkitOverflowScrolling: 'auto'
-       }}
-     >
-      {/* Hidden canvas for image processing */}
+    <div 
+      className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 relative overflow-hidden"
+      style={{
+        touchAction: 'none',
+        overscrollBehavior: 'none',
+        WebkitOverflowScrolling: 'auto'
+      }}
+    >
       <canvas ref={canvasRef} className="hidden" />
       
       {/* Header */}
@@ -589,20 +692,18 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
             <div>
               <h1 className="text-lg font-semibold text-gray-800">{puzzle?.title}</h1>
               <p className="text-sm text-gray-500">
-                {difficulty} • {pieces.length} pieces • {Math.floor(timeSpent / 60)}:{(timeSpent % 60).toString().padStart(2, '0')}
+                Jigsaw • {difficulty} • {pieces.length} pieces • {Math.floor(timeSpent / 60)}:{(timeSpent % 60).toString().padStart(2, '0')}
               </p>
             </div>
           </div>
           
           <div className="flex items-center space-x-2">
-            {/* Score Display */}
             {gameStarted && (
               <div className="bg-yellow-100 px-3 py-1 rounded-full">
                 <span className="text-sm font-semibold text-yellow-800">Score: {score}</span>
               </div>
             )}
             
-            {/* Audio Toggle */}
             <button
               onClick={() => setAudioEnabled(!audioEnabled)}
               className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
@@ -610,7 +711,6 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
               {audioEnabled ? <Volume2 className="w-5 h-5 text-gray-600" /> : <VolumeX className="w-5 h-5 text-gray-600" />}
             </button>
             
-            {/* Reset Button */}
             <button
               onClick={resetGame}
               className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
@@ -625,14 +725,14 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
       <div 
         ref={gameAreaRef}
         className="relative w-full h-screen pt-20 pb-24"
-          style={{ 
-            touchAction: 'none',
-            userSelect: 'none',
-            WebkitUserSelect: 'none',
-            MozUserSelect: 'none',
-            msUserSelect: 'none',
-            zIndex: 1
-          }}
+        style={{ 
+          touchAction: 'none',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          MozUserSelect: 'none',
+          msUserSelect: 'none',
+          zIndex: 1
+        }}
       >
         {/* Start Screen */}
         {!gameStarted && (
@@ -646,12 +746,11 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
                 <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-3xl">🧩</span>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Puzzle Challenge</h2>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">Jigsaw Puzzle</h2>
                 <p className="text-gray-600 mb-4">
-                  {isMobile ? 'Tap and drag pieces to the puzzle board!' : 'Drag pieces from the container to the puzzle board!'}
+                  {isMobile ? 'Tap and drag interlocking pieces to complete the puzzle!' : 'Drag interlocking pieces to complete the jigsaw puzzle!'}
                 </p>
                 
-                {/* Difficulty Selection */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Difficulty:</label>
                   <div className="flex space-x-2">
@@ -675,7 +774,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
                   onClick={startGame}
                   className="w-full bg-blue-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-600 transition-colors"
                 >
-                  Start Puzzle
+                  Start Jigsaw
                 </button>
               </div>
             </motion.div>
@@ -688,53 +787,52 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
             {/* Left Side - Puzzle Board */}
             <div className={`${isMobile ? 'flex-1' : 'flex-1'} flex items-center justify-center p-6`}>
               <div className="relative">
-                                 {/* Puzzle Board */}
-                 <div
-                   ref={puzzleBoardRef}
-                   className="relative bg-white rounded-xl shadow-2xl border-4 border-dashed border-gray-300 overflow-hidden"
-                   style={{
-                     width: isMobile ? Math.min(puzzleBoardSize.width, window.innerWidth - 40) : puzzleBoardSize.width,
-                     height: isMobile ? Math.min(puzzleBoardSize.height, window.innerHeight * 0.4) : puzzleBoardSize.height,
-                     backgroundImage: 'radial-gradient(circle, #f3f4f6 1px, transparent 1px)',
-                     backgroundSize: '20px 20px',
-                     zIndex: 5
-                   }}
-                 >
-                                     {/* Grid overlay for guidance with drop zones */}
-                   <div className="absolute inset-0 pointer-events-none">
-                     {Array.from({ length: difficultyConfig[difficulty].rows }).map((_, row) =>
-                       Array.from({ length: difficultyConfig[difficulty].cols }).map((_, col) => {
-                         const isOccupied = pieces.some(p => 
-                           p.isPlaced && 
-                           Math.abs(p.correctX - (col * (puzzleBoardSize.width / difficultyConfig[difficulty].cols))) < 5 &&
-                           Math.abs(p.correctY - (row * (puzzleBoardSize.height / difficultyConfig[difficulty].rows))) < 5
-                         );
-                         
-                         return (
-                           <div
-                             key={`${row}-${col}`}
-                             className={`absolute border-2 transition-all duration-300 ${
-                               isOccupied 
-                                 ? 'border-green-400 bg-green-50/30' 
-                                 : 'border-blue-300/50 bg-blue-50/20 hover:bg-blue-100/30'
-                             }`}
-                             style={{
-                               left: `${(col / difficultyConfig[difficulty].cols) * 100}%`,
-                               top: `${(row / difficultyConfig[difficulty].rows) * 100}%`,
-                               width: `${100 / difficultyConfig[difficulty].cols}%`,
-                               height: `${100 / difficultyConfig[difficulty].rows}%`
-                             }}
-                           >
-                             {!isOccupied && (
-                               <div className="absolute inset-0 flex items-center justify-center">
-                                 <div className="w-4 h-4 border-2 border-dashed border-blue-400/50 rounded"></div>
-                               </div>
-                             )}
-                           </div>
-                         );
-                       })
-                     )}
-                   </div>
+                <div
+                  ref={puzzleBoardRef}
+                  className="relative bg-white rounded-xl shadow-2xl border-4 border-dashed border-gray-300 overflow-hidden"
+                  style={{
+                    width: isMobile ? Math.min(puzzleBoardSize.width, window.innerWidth - 40) : puzzleBoardSize.width,
+                    height: isMobile ? Math.min(puzzleBoardSize.height, window.innerHeight * 0.4) : puzzleBoardSize.height,
+                    backgroundImage: 'radial-gradient(circle, #f3f4f6 1px, transparent 1px)',
+                    backgroundSize: '20px 20px',
+                    zIndex: 5
+                  }}
+                >
+                  {/* Grid overlay for guidance */}
+                  <div className="absolute inset-0 pointer-events-none">
+                    {Array.from({ length: difficultyConfig[difficulty].rows }).map((_, row) =>
+                      Array.from({ length: difficultyConfig[difficulty].cols }).map((_, col) => {
+                        const isOccupied = pieces.some(p => 
+                          p.isPlaced && 
+                          Math.abs(p.correctX - (col * (puzzleBoardSize.width / difficultyConfig[difficulty].cols))) < 5 &&
+                          Math.abs(p.correctY - (row * (puzzleBoardSize.height / difficultyConfig[difficulty].rows))) < 5
+                        );
+                        
+                        return (
+                          <div
+                            key={`${row}-${col}`}
+                            className={`absolute border-2 transition-all duration-300 ${
+                              isOccupied 
+                                ? 'border-green-400 bg-green-50/30' 
+                                : 'border-blue-300/50 bg-blue-50/20 hover:bg-blue-100/30'
+                            }`}
+                            style={{
+                              left: `${(col / difficultyConfig[difficulty].cols) * 100}%`,
+                              top: `${(row / difficultyConfig[difficulty].rows) * 100}%`,
+                              width: `${100 / difficultyConfig[difficulty].cols}%`,
+                              height: `${100 / difficultyConfig[difficulty].rows}%`
+                            }}
+                          >
+                            {!isOccupied && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-4 h-4 border-2 border-dashed border-blue-400/50 rounded"></div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
 
                   {/* Placed pieces */}
                   {pieces.filter(p => p.isPlaced).map((piece) => (
@@ -752,7 +850,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
                     >
                       <img
                         src={piece.imageData}
-                        alt={`Puzzle piece ${piece.id}`}
+                        alt={`Jigsaw piece ${piece.id}`}
                         className="w-full h-full object-cover shadow-lg"
                         style={{
                           border: '2px solid #10B981',
@@ -763,11 +861,10 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
                   ))}
                 </div>
 
-                {/* Board Label */}
                 <div className="text-center mt-4">
                   <div className="inline-flex items-center space-x-2 bg-blue-100 px-4 py-2 rounded-full">
                     <Target className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-800">Puzzle Board</span>
+                    <span className="text-sm font-medium text-blue-800">Jigsaw Board</span>
                   </div>
                 </div>
               </div>
@@ -776,97 +873,93 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
             {/* Right Side - Pieces Container */}
             <div className={`${isMobile ? 'h-1/2' : 'w-80'} bg-white/80 backdrop-blur-sm border-l border-gray-200 p-4`}>
               <div className="h-full flex flex-col">
-                {/* Container Header */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-2">
                     <Grid3X3 className="w-5 h-5 text-gray-600" />
-                    <h3 className="font-semibold text-gray-800">Puzzle Pieces</h3>
+                    <h3 className="font-semibold text-gray-800">Jigsaw Pieces</h3>
                   </div>
                   <span className="text-sm text-gray-500">
                     {pieces.filter(p => !p.isPlaced).length} remaining
                   </span>
                 </div>
 
-                                 {/* Pieces Container */}
-                 <div
-                   ref={piecesContainerRef}
-                                       className="flex-1 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border-2 border-dashed border-blue-300 p-4 relative"
-                   style={{ 
-                     minHeight: isMobile ? '200px' : '400px',
-                     touchAction: 'none',
-                     userSelect: 'none',
-                     WebkitUserSelect: 'none',
-                     MozUserSelect: 'none',
-                     msUserSelect: 'none',
-                     zIndex: 10
-                   }}
-                 >
-                   {/* Container background pattern */}
-                   <div className="absolute inset-0 opacity-10">
-                     <div className="absolute inset-0" style={{
-                       backgroundImage: 'radial-gradient(circle, #3B82F6 1px, transparent 1px)',
-                       backgroundSize: '20px 20px'
-                     }}></div>
-                   </div>
-                                                         {/* Unplaced pieces */}
-                    {pieces.filter(p => !p.isPlaced).map((piece) => (
-            <motion.div
-              key={piece.id}
-                        data-piece-id={piece.id}
-              initial={{ scale: 0, rotate: 180 }}
-              animate={{ 
-                scale: 1, 
-                rotate: 0,
-                x: piece.x,
-                y: piece.y
-              }}
-              exit={{ scale: 0, rotate: -180 }}
-                        className="absolute cursor-grab active:cursor-grabbing"
-              style={{
-                width: piece.width,
-                height: piece.height,
-                          touchAction: 'none',
+                <div
+                  ref={piecesContainerRef}
+                  className="flex-1 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border-2 border-dashed border-blue-300 p-4 relative"
+                  style={{ 
+                    minHeight: isMobile ? '200px' : '400px',
+                    touchAction: 'none',
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
+                    MozUserSelect: 'none',
+                    msUserSelect: 'none',
+                    zIndex: 10
+                  }}
+                >
+                  <div className="absolute inset-0 opacity-10">
+                    <div className="absolute inset-0" style={{
+                      backgroundImage: 'radial-gradient(circle, #3B82F6 1px, transparent 1px)',
+                      backgroundSize: '20px 20px'
+                    }}></div>
+                  </div>
+                  
+                  {pieces.filter(p => !p.isPlaced).map((piece) => (
+                    <motion.div
+                      key={piece.id}
+                      data-piece-id={piece.id}
+                      initial={{ scale: 0, rotate: 180 }}
+                      animate={{ 
+                        scale: 1, 
+                        rotate: 0,
+                        x: piece.x,
+                        y: piece.y
+                      }}
+                      exit={{ scale: 0, rotate: -180 }}
+                      className="absolute cursor-grab active:cursor-grabbing"
+                      style={{
+                        width: piece.width,
+                        height: piece.height,
+                        touchAction: 'none',
+                        userSelect: 'none',
+                        WebkitUserSelect: 'none',
+                        MozUserSelect: 'none',
+                        msUserSelect: 'none',
+                        zIndex: draggedPiece === piece.id ? 50 : 20
+                      }}
+                      onMouseDown={(e) => handleMouseDown(e, piece.id)}
+                      onTouchStart={(e) => {
+                        e.nativeEvent.preventDefault();
+                        e.nativeEvent.stopPropagation();
+                        handleTouchStart(e, piece.id);
+                      }}
+                      onTouchMove={(e) => {
+                        e.nativeEvent.preventDefault();
+                        e.nativeEvent.stopPropagation();
+                        handleTouchMove(e);
+                      }}
+                      onTouchEnd={(e) => {
+                        e.nativeEvent.preventDefault();
+                        e.nativeEvent.stopPropagation();
+                        handleTouchEnd(e);
+                      }}
+                    >
+                      <img
+                        src={piece.imageData}
+                        alt={`Jigsaw piece ${piece.id}`}
+                        className="w-full h-full object-cover shadow-lg rounded-sm hover:shadow-xl transition-shadow"
+                        style={{
+                          border: '2px solid #E5E7EB',
+                          pointerEvents: 'none',
                           userSelect: 'none',
                           WebkitUserSelect: 'none',
                           MozUserSelect: 'none',
-                          msUserSelect: 'none',
-                          zIndex: draggedPiece === piece.id ? 50 : 20
+                          msUserSelect: 'none'
                         }}
-                        onMouseDown={(e) => handleMouseDown(e, piece.id)}
-               onTouchStart={(e) => {
-                          e.nativeEvent.preventDefault();
-                          e.nativeEvent.stopPropagation();
-                          handleTouchStart(e, piece.id);
-               }}
-               onTouchMove={(e) => {
-                          e.nativeEvent.preventDefault();
-                          e.nativeEvent.stopPropagation();
-                          handleTouchMove(e);
-               }}
-               onTouchEnd={(e) => {
-                          e.nativeEvent.preventDefault();
-                          e.nativeEvent.stopPropagation();
-                          handleTouchEnd(e);
-               }}
-            >
-                             <img
-                 src={piece.imageData}
-                 alt={`Puzzle piece ${piece.id}`}
-                         className="w-full h-full object-cover shadow-lg rounded-sm hover:shadow-xl transition-shadow"
-                 style={{
-                           border: '2px solid #E5E7EB',
-                           pointerEvents: 'none',
-                           userSelect: 'none',
-                           WebkitUserSelect: 'none',
-                           MozUserSelect: 'none',
-                           msUserSelect: 'none'
-                         }}
-                         draggable={false}
-               />
-            </motion.div>
-          ))}
+                        draggable={false}
+                      />
+                    </motion.div>
+                  ))}
 
-                  {/* Empty state */}
                   {pieces.filter(p => !p.isPlaced).length === 0 && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="text-center text-gray-400">
@@ -877,9 +970,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
                   )}
                 </div>
 
-                {/* Game Controls */}
                 <div className="mt-4 flex space-x-2">
-                  {/* Preview Button */}
                   <button
                     onClick={() => setShowPreview(!showPreview)}
                     className="flex-1 p-3 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors flex items-center justify-center space-x-2"
@@ -889,7 +980,6 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
                     <span className="text-sm font-medium text-blue-800">Preview</span>
                   </button>
                   
-                  {/* Hint Button */}
                   <button
                     onClick={useHint}
                     disabled={hintsUsed >= difficultyConfig[difficulty].maxHints}
@@ -937,7 +1027,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
         {showHint && (
           <div className="absolute inset-0 z-20 bg-yellow-100/80 flex items-center justify-center">
             <div className="bg-yellow-500 text-white px-6 py-3 rounded-full shadow-lg">
-              <p className="text-lg font-semibold">💡 Hint: Look for matching edges!</p>
+              <p className="text-lg font-semibold">💡 Hint: Look for matching interlocking edges!</p>
             </div>
           </div>
         )}
@@ -957,9 +1047,9 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Trophy className="w-10 h-10 text-green-500" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Puzzle Complete!</h2>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Jigsaw Complete!</h2>
               <p className="text-gray-600 mb-4">
-                Great job! You solved the puzzle in {Math.floor(timeSpent / 60)}:{(timeSpent % 60).toString().padStart(2, '0')}
+                Great job! You solved the jigsaw puzzle in {Math.floor(timeSpent / 60)}:{(timeSpent % 60).toString().padStart(2, '0')}
               </p>
               
               {/* Score Display */}
@@ -994,4 +1084,5 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ activityId, childId, onComplete
   );
 };
 
-export default PuzzleGame;
+export default JigsawPuzzle;
+        

@@ -98,7 +98,7 @@ const AuthPage: React.FC = () => {
           aria-label={isMuted ? "Unmute background music" : "Mute background music"}
         >
           <OptimizedImage
-            src={isMuted ? '/unmute.png' : '/mute.png'}
+                            src={isMuted ? '/unmute.png' : '/mute-icon.png'}
             alt={isMuted ? 'Unmute' : 'Mute'}
             className="w-full h-full object-contain"
             lazy={false} // Important UI element, load immediately

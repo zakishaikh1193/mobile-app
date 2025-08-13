@@ -18,7 +18,8 @@
     "formidable": "^3.5.4",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
-    "mysql2": "^3.6.0"
+    "mysql2": "^3.6.0",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
