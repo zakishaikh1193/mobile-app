@@ -10,8 +10,6 @@ interface Activity {
   description: string;
   difficulty: string;
   estimated_duration: number;
-  max_attempts: number;
-  passing_score: number;
   image_path: string;
   colors: string[];
   data: any;
@@ -290,7 +288,6 @@ const TopicActivities: React.FC<TopicActivitiesProps> = ({
                       <Clock className="w-3 h-3 mr-1" />
                       <span>{activity.estimated_duration} min</span>
                     </div>
-                    <span>Attempts: {activity.attempts_count}/{activity.max_attempts}</span>
                   </div>
 
                   {/* Progress Bar */}
@@ -300,16 +297,6 @@ const TopicActivities: React.FC<TopicActivitiesProps> = ({
                       style={{ width: `${activity.progress_value || 0}%` }}
                     ></div>
                   </div>
-
-                  {/* Score Display */}
-                  {activity.score > 0 && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">Score:</span>
-                      <span className="text-sm font-bold text-blue-600">
-                        {activity.score}/{activity.passing_score}
-                      </span>
-                    </div>
-                  )}
 
                   {/* Teacher Feedback */}
                   {activity.teacher_feedback && (

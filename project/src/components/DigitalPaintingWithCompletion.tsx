@@ -3,8 +3,8 @@ import { lineArtData } from '../data/lineArt';
 import { LineArt, Tool } from '../types/lineArt';
 import Canvas from './Canvas';
 import Toolbar from './Toolbar';
-import ActivityCompletionButton from './ActivityCompletionButton';
 import { Brush, Droplet, Eraser, Type, Zap, RotateCcw } from 'lucide-react';
+import api from '../services/api';
 
 const COLORS = [
   '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD',
@@ -22,7 +22,7 @@ const GRADIENTS = [
   'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
   'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
   'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-  'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+  'linear-gradient(135deg,rgb(255, 255, 255) 0%,rgb(0, 0, 0) 100%)',
 ];
 
 const BRUSH_STYLES = [
@@ -32,13 +32,15 @@ const BRUSH_STYLES = [
   { value: 'calligraphy', label: 'Calligraphy' },
 ];
 
-interface DigitalPaintingProps {
+interface DigitalPaintingWithCompletionProps {
   onComplete: (score: number) => void;
   lineArt?: LineArt;
+  activityId?: number;
+  childId?: string;
 }
 
-const DigitalPainting: React.FC<DigitalPaintingProps> = (props) => {
-  const { onComplete, lineArt } = props;
+const DigitalPaintingWithCompletion: React.FC<DigitalPaintingWithCompletionProps> = (props) => {
+  const { onComplete, lineArt, activityId, childId } = props;
   const art = lineArt || lineArtData[0];
   const [currentTool, setCurrentTool] = useState<Tool>('brush');
   const [currentColor, setCurrentColor] = useState(COLORS[0]);
@@ -69,20 +71,11 @@ const DigitalPainting: React.FC<DigitalPaintingProps> = (props) => {
   };
 
   const saveEntireContainer = () => {
-    // Use html2canvas to capture the entire container
-    const container = document.querySelector('.digital-painting-container');
-    if (container) {
-      import('html2canvas').then(({ default: html2canvas }) => {
-        html2canvas(container as HTMLElement, {
-          backgroundColor: '#ffffff',
-          scale: 2, // Higher quality
-          useCORS: true,
-          allowTaint: true
-        }).then(canvas => {
-          const dataURL = canvas.toDataURL('image/png');
-          handleSave(dataURL);
-        });
-      });
+    // Use the Canvas component's save method which properly composites layers
+    if (canvasRef.current) {
+      canvasRef.current.handleSave();
+    } else {
+      alert('❌ Could not save artwork. Please try again.');
     }
   };
 
@@ -98,26 +91,82 @@ const DigitalPainting: React.FC<DigitalPaintingProps> = (props) => {
     }
   };
 
-  // Removed localStorage loading of saved arts
-  // Art gallery should be loaded from backend/database
-  React.useEffect(() => {
-    // Start with empty gallery - should load from backend API
-    setSavedArts([]);
-  }, []);
-
-  // Undo handler
   const handleUndo = () => {
-    if (canvasRef.current?.undo) {
+    if (canvasRef.current) {
       canvasRef.current.undo();
     }
   };
 
+  const handleCompleteActivity = async () => {
+    if (!activityId || !childId) {
+      onComplete(100);
+      return;
+    }
+  
+    try {
+      // Get the composite canvas from the Canvas component
+      if (!canvasRef.current) {
+        alert('❌ Could not access canvas. Please try again.');
+        return;
+      }
+
+      // Use the Canvas component's composite functionality
+      const compositeCanvas = canvasRef.current.compositeLayers ? canvasRef.current.compositeLayers() : null;
+      
+      if (!compositeCanvas) {
+        alert('❌ Could not create composite image. Please try again.');
+        return;
+      }
+
+      console.log('Composite canvas created, dimensions:', compositeCanvas.width, 'x', compositeCanvas.height);
+
+      // Convert composite canvas to blob
+      compositeCanvas.toBlob(async (blob: Blob | null) => {
+        if (!blob) {
+          alert('❌ Could not capture your artwork. Please try again.');
+          return;
+        }
+
+        console.log('Artwork blob created, size:', blob.size);
+
+        // Create a file from the blob
+        const file = new File([blob], 'completed-activity.png', { type: 'image/png' });
+
+        const formData = new FormData();
+        formData.append('child_id', childId);
+        formData.append('activity_id', activityId.toString());
+        formData.append('time_spent_seconds', '180');
+        formData.append('completed_file', file);
+
+        const config = {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        };
+
+        try {
+          const response = await api.post('/activities/complete', formData, config);
+          
+          if (response.data.success) {
+            alert('🎉 Activity completed successfully! Your work has been submitted for teacher review.');
+            onComplete(100);
+          } else {
+            alert(`❌ ${response.data.message || 'Failed to complete activity. Please try again.'}`);
+          }
+        } catch (error: any) {
+          console.error('API Error:', error.response?.data || error.message);
+          alert(`❌ Error: ${error.response?.data?.message || 'Failed to complete activity. Please try again.'}`);
+        }
+      }, 'image/png', 0.9);
+  
+    } catch (error) {
+      console.error('Error in handleCompleteActivity:', error);
+      alert('❌ An unexpected error occurred. Please try again.');
+    }
+  };
+
   return (
-    <div className="digital-painting-container flex flex-col lg:flex-row items-center justify-center gap-2 lg:gap-4 p-2 lg:p-4 h-screen bg-gradient-to-br from-indigo-50 to-purple-50 overflow-hidden">
-      <div className="flex flex-col items-center mb-2 lg:mb-0 lg:w-48 flex-shrink-0">
-        <img src={art.referenceImage} alt="Reference" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-48 lg:h-48 object-cover rounded-2xl shadow-lg border-2 border-purple-200" />
-        <span className="font-bold text-xs sm:text-sm lg:text-lg text-purple-700 mt-1 lg:mt-2">Reference</span>
-      </div>
+    <div className="digital-painting-container flex flex-col lg:flex-row h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-pink-50">
       <div className="flex-1 flex flex-col items-center w-full max-w-full lg:max-w-4xl h-full">
         {/* Tool Panel - Responsive */}
         <div className="bg-orange-100 rounded-2xl shadow-xl p-2 sm:p-3 flex flex-col items-center gap-2 mb-2 lg:mb-4 w-full max-w-sm mx-auto" style={{ border: '2px solid #f6d365' }}>
@@ -185,7 +234,15 @@ const DigitalPainting: React.FC<DigitalPaintingProps> = (props) => {
             >
               💾
             </button>
+            <button
+              className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center shadow bg-blue-200 hover:bg-blue-300 transition-all"
+              onClick={handleCompleteActivity}
+              aria-label="Complete Activity"
+            >
+              ✅
+            </button>
           </div>
+          
           {/* Color Palette - Responsive Grid */}
           <div className="grid grid-cols-5 gap-1 sm:gap-2 justify-center mb-2 w-full">
             {COLORS.slice(0, 15).map((color) => (
@@ -198,6 +255,7 @@ const DigitalPainting: React.FC<DigitalPaintingProps> = (props) => {
               />
             ))}
           </div>
+          
           {/* Brush/Eraser Size Slider - Responsive */}
           <div className="flex flex-col items-center w-full mb-2">
             <label htmlFor="size-slider" className="text-xs sm:text-sm font-medium mb-1">Size: {brushSize}</label>
@@ -225,6 +283,7 @@ const DigitalPainting: React.FC<DigitalPaintingProps> = (props) => {
               </select>
             </div>
           </div>
+          
           {/* Gradients/Patterns Row - Responsive */}
           <div className="grid grid-cols-5 gap-1 sm:gap-2 justify-center w-full">
             {GRADIENTS.map((grad, idx) => {
@@ -249,92 +308,22 @@ const DigitalPainting: React.FC<DigitalPaintingProps> = (props) => {
             </button>
           </div>
         </div>
+        
         {/* Canvas - Responsive */}
         <div className="flex-1 w-full flex items-center justify-center">
-          {art.svgContent.trim().startsWith('<svg') ? (
-            <div className="w-full max-w-[calc(100vw-2rem)] sm:max-w-[calc(100vw-4rem)] lg:max-w-[500px] h-full max-h-[calc(100vh-200px)]">
-              <Canvas
-                artwork={art}
-                currentTool={currentTool}
-                currentColor={currentColor}
-                brushSize={brushSize}
-                brushStyle={brushStyle}
-                onSave={handleSave}
-                onChange={handleCanvasChange}
-                ref={canvasRef}
-              />
-            </div>
-          ) : (
-            <div className="relative bg-white rounded-3xl shadow-2xl p-2 sm:p-3 w-full max-w-[calc(100vw-2rem)] sm:max-w-[calc(100vw-4rem)] lg:max-w-[500px] h-full max-h-[calc(100vh-200px)] aspect-square">
-              <img
-                src={art.svgContent}
-                alt="Line Art"
-                className="absolute top-0 left-0 w-full h-full object-contain pointer-events-none select-none"
-                style={{ zIndex: 1 }}
-              />
-              <div className="absolute top-0 left-0 w-full h-full" style={{ zIndex: 2 }}>
-                <Canvas
-                  artwork={{ ...art, svgContent: '' }}
-                  currentTool={currentTool}
-                  currentColor={currentColor}
-                  brushSize={brushSize}
-                  brushStyle={brushStyle}
-                  onSave={handleSave}
-                  ref={canvasRef}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-        
-        {/* My Arts Section */}
-        {showMyArts && (
-          <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl p-4 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-purple-700">My Arts Gallery</h2>
-                <button
-                  onClick={() => setShowMyArts(false)}
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
-                >
-                  ✕
-                </button>
-              </div>
-              
-              {savedArts.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <p className="text-lg">No saved artworks yet!</p>
-                  <p className="text-sm">Start painting and your artworks will appear here.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {savedArts.map((art, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={art}
-                        alt={`Saved Art ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 hover:border-purple-300 transition-all"
-                      />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                        <button
-                          onClick={() => {
-                            const link = document.createElement('a');
-                            link.href = art;
-                            link.download = `my-art-${index + 1}.png`;
-                            link.click();
-                          }}
-                          className="bg-white text-purple-600 px-3 py-1 rounded-full text-sm font-medium hover:bg-purple-50"
-                        >
-                          Download
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+          <div className="w-full max-w-[calc(100vw-2rem)] sm:max-w-[calc(100vw-4rem)] lg:max-w-[500px] h-full max-h-[calc(100vh-200px)]">
+            <Canvas
+              artwork={art}
+              currentTool={currentTool}
+              currentColor={currentColor}
+              brushSize={brushSize}
+              brushStyle={brushStyle}
+              onSave={handleSave}
+              onChange={handleCanvasChange}
+              ref={canvasRef}
+            />
           </div>
-        )}
+        </div>
         
         {showSaved && (
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-green-600 font-bold text-sm sm:text-base animate-pulse bg-white/80 px-4 py-2 rounded-full shadow-lg">
@@ -346,4 +335,4 @@ const DigitalPainting: React.FC<DigitalPaintingProps> = (props) => {
   );
 };
 
-export default DigitalPainting; 
+export default DigitalPaintingWithCompletion; 

@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   LogOut, Users, BookOpen, Settings, BarChart3, 
   MessageSquare, Upload, Plus, Edit, Trash2, 
-  School, UserCheck, FileText, TrendingUp
+  School, UserCheck, FileText, TrendingUp, Puzzle
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import KodeitLogo from '../components/KodeitLogo';
@@ -13,6 +13,7 @@ import AnimatedButton from '../components/AnimatedButton';
 import AudioButton from '../components/AudioButton';
 import ActivityManager from '../components/ActivityManager';
 import BookAssignment from './admin/BookAssignment';
+import AdminPuzzleUpload from '../components/AdminPuzzleUpload';
 import axios from 'axios';
 
 // AddContentForm component
@@ -146,6 +147,7 @@ const AdminPortal: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [contentLibrary, setContentLibrary] = useState<any[]>([]);
   const [showAddContent, setShowAddContent] = useState(false);
+  const [showPuzzleUpload, setShowPuzzleUpload] = useState(false);
   const [editContentId, setEditContentId] = useState<number | null>(null);
   const [editInitialValues, setEditInitialValues] = useState<any>(null);
   const API_URL = import.meta.env.VITE_API_URL;
@@ -567,10 +569,16 @@ const AdminPortal: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">Content Library</h2>
-        <AnimatedButton className="flex items-center space-x-2" onClick={() => { setShowAddContent(true); setEditContentId(null); setEditInitialValues(null); }}>
-          <Plus className="h-4 w-4" />
-          <span>Add Content</span>
-        </AnimatedButton>
+        <div className="flex space-x-3">
+          <AnimatedButton className="flex items-center space-x-2" onClick={() => setShowPuzzleUpload(true)}>
+            <Puzzle className="h-4 w-4" />
+            <span>Upload Puzzle</span>
+          </AnimatedButton>
+          <AnimatedButton className="flex items-center space-x-2" onClick={() => { setShowAddContent(true); setEditContentId(null); setEditInitialValues(null); }}>
+            <Plus className="h-4 w-4" />
+            <span>Add Content</span>
+          </AnimatedButton>
+        </div>
       </div>
 
       <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
@@ -639,6 +647,16 @@ const AdminPortal: React.FC = () => {
           onClose={() => { setShowAddContent(false); setEditContentId(null); setEditInitialValues(null); }}
           onSubmit={handleAddContent}
           initialValues={editInitialValues}
+        />
+      )}
+      {showPuzzleUpload && (
+        <AdminPuzzleUpload
+          onClose={() => setShowPuzzleUpload(false)}
+          onSuccess={() => {
+            setShowPuzzleUpload(false);
+            // Refresh content library to show new puzzle
+            fetchContent();
+          }}
         />
       )}
     </div>

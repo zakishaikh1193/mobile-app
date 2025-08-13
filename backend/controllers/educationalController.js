@@ -176,8 +176,6 @@ exports.getTopicActivities = async (req, res) => {
         a.description,
         a.difficulty,
         a.estimated_duration,
-        a.max_attempts,
-        a.passing_score,
         a.image_path,
         a.colors,
         a.data,

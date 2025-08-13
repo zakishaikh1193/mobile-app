@@ -22,9 +22,11 @@ import {
   Star,
   Award,
   Target,
-  TrendingUp
+  TrendingUp,
+  ClipboardList
 } from 'lucide-react';
 import api from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
 interface TeacherBook {
   book_id: number;
@@ -77,6 +79,7 @@ interface EnrolledStudent {
 }
 
 const TeacherDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [books, setBooks] = useState<TeacherBook[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [enrolledStudents, setEnrolledStudents] = useState<EnrolledStudent[]>([]);
@@ -298,6 +301,13 @@ const TeacherDashboard: React.FC = () => {
               <p className="text-gray-600 text-lg">Manage your assigned books and student enrollments</p>
             </div>
             <div className="flex items-center space-x-3">
+              <button
+                onClick={() => navigate('/teacher/assessment-dashboard')}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <ClipboardList className="h-5 w-5" />
+                <span>Assessment Dashboard</span>
+              </button>
               <div className="bg-white rounded-full p-2 shadow-lg">
                 <GraduationCap className="h-8 w-8 text-blue-500" />
               </div>

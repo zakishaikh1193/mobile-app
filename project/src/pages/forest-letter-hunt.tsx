@@ -43,21 +43,15 @@ const ForestLetterHuntPage: React.FC = () => {
     gamesPlayed: 0
   });
 
-  // Load settings and progress from localStorage
+  // Removed localStorage storage for game settings and progress
+  // Game state should be handled via backend or kept in session only
   useEffect(() => {
-    const savedSettings = localStorage.getItem('forestLetterHunt_settings');
-    const savedProgress = localStorage.getItem('forestLetterHunt_progress');
-    if (savedSettings) setSettings(JSON.parse(savedSettings));
-    if (savedProgress) setProgress(JSON.parse(savedProgress));
+    // Start with default settings - should load from backend API
+    console.log('Forest Letter Hunt: Using default settings (not persisted)');
   }, []);
 
-  // Save settings and progress to localStorage
-  useEffect(() => {
-    localStorage.setItem('forestLetterHunt_settings', JSON.stringify(settings));
-  }, [settings]);
-  useEffect(() => {
-    localStorage.setItem('forestLetterHunt_progress', JSON.stringify(progress));
-  }, [progress]);
+  // Game settings and progress are now session-only
+  // No localStorage persistence to avoid storage bloat
 
   const monkeyWalkRef = useRef<HTMLAudioElement | null>(null);
   const jungleRef = useRef<HTMLAudioElement | null>(null);

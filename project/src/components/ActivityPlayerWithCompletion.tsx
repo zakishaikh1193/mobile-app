@@ -4,8 +4,8 @@ import { ArrowLeft, Play, Clock, Target, Users } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
 import Gallery from './Gallery';
-import DigitalPainting from './DigitalPainting';
-import SimpleCompletionButton from './SimpleCompletionButton';
+import DigitalPaintingWithCompletion from './DigitalPaintingWithCompletion';
+import PuzzleGame from './PuzzleGame';
 import { LineArt } from '../types/lineArt';
 
 interface Activity {
@@ -17,11 +17,10 @@ interface Activity {
   image_url?: string;
   colors?: string[];
   estimated_duration: number;
-
   lesson_id?: number;
 }
 
-const ActivityPlayer: React.FC = () => {
+const ActivityPlayerWithCompletion: React.FC = () => {
   const { activityId, childId } = useParams<{ activityId: string; childId: string }>();
   const navigate = useNavigate();
   const [activity, setActivity] = useState<Activity | null>(null);
@@ -52,7 +51,6 @@ const ActivityPlayer: React.FC = () => {
   };
 
   const handleBackToActivities = () => {
-    // Navigate back to lesson activities
     navigate(`/lesson-activities/${activity?.lesson_id}/${childId}`);
   };
 
@@ -62,8 +60,12 @@ const ActivityPlayer: React.FC = () => {
 
   const handleCompleteColoring = (score: number) => {
     setSelectedArtwork(null);
-    // Here you can add logic to save progress, show completion message, etc.
     console.log('Coloring completed with score:', score);
+  };
+
+  const handleCompletePuzzle = (completionData: any) => {
+    console.log('Puzzle completed:', completionData);
+    // Handle puzzle completion - you can add navigation or other logic here
   };
 
   const renderActivityContent = () => {
@@ -74,19 +76,18 @@ const ActivityPlayer: React.FC = () => {
         return (
           <div className="w-full">
             {selectedArtwork ? (
-              // Show the DigitalPainting component when an artwork is selected
-              <DigitalPainting 
+              <DigitalPaintingWithCompletion 
                 lineArt={selectedArtwork}
                 onComplete={handleCompleteColoring}
+                activityId={activity.id}
+                childId={childId}
               />
             ) : (
-              // Show the activity info and gallery when no artwork is selected
               <>
                 <div className="text-center mb-8">
                   <h2 className="text-3xl font-bold text-gray-800 mb-4">{activity.title}</h2>
                   <p className="text-gray-600 text-lg mb-6">{activity.description}</p>
                   
-                  {/* Activity Info */}
                   <div className="flex items-center justify-center space-x-6 text-sm text-gray-500 mb-8">
                     <div className="flex items-center space-x-1">
                       <Clock className="h-4 w-4" />
@@ -96,11 +97,9 @@ const ActivityPlayer: React.FC = () => {
                       <Target className="h-4 w-4" />
                       <span className="capitalize">{activity.difficulty}</span>
                     </div>
-                   
                   </div>
                 </div>
 
-                {/* Coloring Gallery */}
                 <Gallery 
                   artworks={getColoringArtworks(activity)}
                   onSelectArtwork={handleArtworkSelect}
@@ -118,52 +117,14 @@ const ActivityPlayer: React.FC = () => {
           </div>
         );
 
-      case 'bubble_pop':
+      case 'puzzle':
         return (
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">Bubble Pop</h2>
-            <p className="text-gray-600">Bubble pop activity coming soon!</p>
-          </div>
-        );
-
-      case 'counting':
-        return (
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">Counting Games</h2>
-            <p className="text-gray-600">Counting activity coming soon!</p>
-          </div>
-        );
-
-      case 'emotion_match':
-        return (
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">Emotion Matching</h2>
-            <p className="text-gray-600">Emotion matching activity coming soon!</p>
-          </div>
-        );
-
-      case 'family_tree':
-        return (
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">Family Tree</h2>
-            <p className="text-gray-600">Family tree activity coming soon!</p>
-          </div>
-        );
-
-      case 'digital_painting':
-        return (
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">Digital Painting</h2>
-            <p className="text-gray-600">Digital painting activity coming soon!</p>
-          </div>
-        );
-
-      case 'forest_hunt':
-        return (
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">Forest Hunt</h2>
-            <p className="text-gray-600">Forest hunt activity coming soon!</p>
-          </div>
+          <PuzzleGame
+            activityId={activity.id}
+            childId={parseInt(childId || '0')}
+            onComplete={handleCompletePuzzle}
+            onBack={handleBackToActivities}
+          />
         );
 
       default:
@@ -176,10 +137,7 @@ const ActivityPlayer: React.FC = () => {
     }
   };
 
-  // Convert activity data to LineArt format for Gallery component
   const getColoringArtworks = (activity: Activity): LineArt[] => {
-    // For now, create a single artwork from the activity data
-    // In the future, you can fetch multiple artworks from the database
     return [{
       id: activity.id.toString(),
       title: activity.title,
@@ -245,7 +203,6 @@ const ActivityPlayer: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       <div className="max-w-7xl mx-auto p-6">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -262,7 +219,6 @@ const ActivityPlayer: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Activity Content */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -275,4 +231,4 @@ const ActivityPlayer: React.FC = () => {
   );
 };
 
-export default ActivityPlayer;
+export default ActivityPlayerWithCompletion; 

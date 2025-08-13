@@ -13,8 +13,6 @@ interface Activity {
   image_url?: string;
   colors?: string[];
   estimated_duration: number;
-  max_attempts: number;
-  passing_score: number;
 }
 
 interface ActivityType {
@@ -226,10 +224,7 @@ const LessonActivities: React.FC = () => {
                        <span className="font-semibold text-gray-700">{activity.estimated_duration} min</span>
                      </div>
                      
-                     <div className="flex items-center justify-between text-sm">
-                       <span className="text-gray-500">Attempts:</span>
-                       <span className="font-semibold text-gray-700">{activity.max_attempts}</span>
-                     </div>
+                    
                    </div>
                    
                    <div className="mt-6">

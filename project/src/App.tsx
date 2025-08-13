@@ -9,6 +9,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ChildDashboard from './pages/ChildDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
+import TeacherAssessmentDashboard from './pages/TeacherAssessmentDashboard';
 import AdminPortal from './pages/AdminPortal';
 import GradesManagement from './pages/admin/GradesManagement';
 import BooksManagement from './pages/admin/BooksManagement';
@@ -20,7 +21,7 @@ import TeacherPortal from './pages/TeacherPortal';
 import LetterPath from './components/LetterPath';
 import StudentBookSelector from './components/StudentBookSelector';
 import LessonActivities from './components/LessonActivities';
-import ActivityPlayer from './components/ActivityPlayer';
+import ActivityPlayerWithCompletion from './components/ActivityPlayerWithCompletion';
 import LetterMatchingGame from './pages/LetterMatchingGame';
 import EducationalGame from './pages/EducationalGame';
 import WordMatchGame from './components/WordMatchGame';
@@ -167,6 +168,7 @@ const AppRoutes = () => {
               <Route path="portal" element={<TeacherPortal />} />
               <Route path="classes" element={<div>My Classes</div>} />
               <Route path="assignments" element={<div>Assignments</div>} />
+              <Route path="assessment-dashboard" element={<TeacherAssessmentDashboard />} />
             </Routes>
           </PrivateRoute>
         } />
@@ -204,7 +206,7 @@ const AppRoutes = () => {
         {/* Activity Player Routes */}
         <Route path="/activity/:activityId/:childId" element={
           <PrivateRoute>
-            <ActivityPlayer />
+            <ActivityPlayerWithCompletion />
           </PrivateRoute>
         } />
         

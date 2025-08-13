@@ -472,12 +472,15 @@ exports.deleteLesson = async (req, res) => {
     `, [id]);
 
     if (activities[0].count > 0) {
-      return res.status(400).json({ 
-        message: 'Cannot delete lesson - it has associated activities' 
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete lesson with existing activities'
       });
     }
 
-    await db.query('DELETE FROM lessons WHERE id = ?', [id]);
+    await db.query(`
+      DELETE FROM lessons WHERE id = ?
+    `, [id]);
 
     res.json({
       success: true,
@@ -485,6 +488,40 @@ exports.deleteLesson = async (req, res) => {
     });
   } catch (error) {
     console.error('Error deleting lesson:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ============================================
+// ASSESSMENT CRITERIA MANAGEMENT
+// ============================================
+
+// @desc    Get all assessment criteria
+// @route   GET /api/education/assessment-criteria
+// @access  Private/Admin
+exports.getAssessmentCriteria = async (req, res) => {
+  try {
+    const [criteria] = await db.query(`
+      SELECT 
+        id,
+        name,
+        description,
+        level_order,
+        color,
+        is_active,
+        created_at,
+        updated_at
+      FROM assessment_criteria
+      WHERE is_active = 1
+      ORDER BY level_order
+    `);
+
+    res.json({
+      success: true,
+      criteria
+    });
+  } catch (error) {
+    console.error('Error getting assessment criteria:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

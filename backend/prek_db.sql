@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Aug 07, 2025 at 07:02 AM
+-- Generation Time: Aug 12, 2025 at 11:04 AM
 -- Server version: 9.1.0
 -- PHP Version: 8.1.31
 
@@ -50,8 +50,6 @@ CREATE TABLE IF NOT EXISTS `activities` (
   `subject_id` int DEFAULT NULL,
   `grade_id` int DEFAULT NULL,
   `estimated_duration` int DEFAULT '10',
-  `max_attempts` int DEFAULT '3',
-  `passing_score` int DEFAULT '70',
   `is_adaptive` tinyint(1) DEFAULT '0',
   `adaptive_rules` json DEFAULT NULL,
   `unit_id` int DEFAULT NULL,
@@ -70,17 +68,29 @@ CREATE TABLE IF NOT EXISTS `activities` (
   KEY `unit_id` (`unit_id`),
   KEY `lesson_id` (`lesson_id`),
   KEY `book_id` (`book_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
 
 --
--- Dumping data for table `activities`
+-- Table structure for table `assessment_criteria`
 --
 
-INSERT INTO `activities` (`id`, `title`, `type`, `description`, `difficulty`, `image_path`, `colors`, `data`, `status`, `created_at`, `updated_at`, `topic_id`, `created_by`, `is_approved`, `learning_objectives`, `prerequisites`, `chapter_id`, `book_id`, `subject_id`, `grade_id`, `estimated_duration`, `max_attempts`, `passing_score`, `is_adaptive`, `adaptive_rules`, `unit_id`, `lesson_id`) VALUES
-(1, 'dsfsdfsdf', 'coloring', 'ssdfsf', 'easy', NULL, '[\"#FF6B6B\", \"#4ECDC4\", \"#45B7D1\", \"#96CEB4\", \"#FFEAA7\", \"#DDA0DD\"]', NULL, 'deleted', '2025-08-06 07:04:18', '2025-08-06 07:04:23', NULL, NULL, 0, 'dsfsdf', 'sdfsdf', NULL, 1, NULL, 1, 10, 3, 70, 0, NULL, 2, 2),
-(2, 'fsf', 'coloring', 'sdsdfs', 'easy', NULL, '[\"#FF6B6B\", \"#4ECDC4\", \"#45B7D1\", \"#96CEB4\", \"#FFEAA7\", \"#DDA0DD\"]', NULL, 'deleted', '2025-08-06 07:05:12', '2025-08-06 07:10:16', NULL, NULL, 0, 'sfdsf', 'sdfsdf', NULL, 1, NULL, 1, 10, 3, 70, 0, NULL, 2, 2),
-(3, 'fsdsdfsdf', 'coloring', 'sdfssd', 'easy', NULL, '[\"#FF6B6B\", \"#4ECDC4\", \"#45B7D1\", \"#96CEB4\", \"#FFEAA7\", \"#DDA0DD\"]', NULL, 'deleted', '2025-08-06 07:08:27', '2025-08-06 07:10:19', NULL, NULL, 0, 'sdas', 'sdas', NULL, 1, NULL, 1, 10, 3, 70, 0, NULL, 2, 2),
-(4, 'dsasdasasd', 'coloring', 'asdad', 'easy', 'uploads/activities/image-1754470064916-275234445.png', '[\"#FF6B6B\", \"#4ECDC4\", \"#45B7D1\", \"#96CEB4\", \"#FFEAA7\", \"#DDA0DD\"]', NULL, 'active', '2025-08-06 08:47:44', '2025-08-06 08:47:44', NULL, NULL, 0, 'cxzx', 'cscs', NULL, 1, NULL, 1, 10, 3, 70, 0, NULL, 2, 2);
+DROP TABLE IF EXISTS `assessment_criteria`;
+CREATE TABLE IF NOT EXISTS `assessment_criteria` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) NOT NULL,
+  `description` text,
+  `level_order` int NOT NULL DEFAULT '1',
+  `color` varchar(7) DEFAULT '#000000',
+  `is_active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_criteria_name` (`name`),
+  KEY `idx_criteria_active` (`is_active`),
+  KEY `idx_criteria_order` (`level_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
 -- --------------------------------------------------------
 
@@ -103,14 +113,7 @@ CREATE TABLE IF NOT EXISTS `books` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_grade_book` (`grade_id`,`title`,`academic_year`),
   KEY `idx_books_active` (`is_active`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb3;
-
---
--- Dumping data for table `books`
---
-
-INSERT INTO `books` (`id`, `grade_id`, `title`, `description`, `cover_image`, `order_number`, `is_active`, `academic_year`, `created_at`, `updated_at`) VALUES
-(1, 1, 'All About My Family', 'All About My Family', NULL, 1, 1, '2024-2025', '2025-08-05 14:01:09', '2025-08-05 14:01:09');
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
 -- --------------------------------------------------------
 
@@ -138,17 +141,7 @@ CREATE TABLE IF NOT EXISTS `children` (
   KEY `parent_id` (`parent_id`),
   KEY `idx_children_parent` (`parent_id`),
   KEY `idx_children_active` (`is_active`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `children`
---
-
-INSERT INTO `children` (`id`, `parent_id`, `first_name`, `username`, `email`, `password`, `age`, `gender`, `avatar`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, 10, 'Zaki', 'zaki_11_', 'zaki_11_@child.local', 'not_used', 3, 'boy', '/avatar/boy4.png', 1, '2025-08-01 06:38:21', '2025-08-01 06:38:21'),
-(2, 10, 'Zaki', 'zaki11', 'zaki11@child.local', 'not_used', 4, 'boy', '/avatar/boy4.png', 1, '2025-08-01 06:39:33', '2025-08-01 06:39:33'),
-(3, 12, 'Kid', 'kid', 'kid@child.local', 'not_used', 4, 'girl', '/avatar/girl1.png', 1, '2025-08-01 09:58:06', '2025-08-01 09:58:06'),
-(4, 10, 'new', 'new', 'new@child.local', 'not_used', 4, 'girl', '/avatar/girl1.png', 1, '2025-08-01 10:47:57', '2025-08-01 10:47:57');
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -166,17 +159,21 @@ CREATE TABLE IF NOT EXISTS `child_progress` (
   `book_id` int DEFAULT NULL,
   `grade_id` int DEFAULT NULL,
   `progress_value` int DEFAULT '0',
-  `score` int DEFAULT '0',
   `completed` tinyint(1) DEFAULT '0',
+  `assessment_criteria_id` int DEFAULT NULL,
   `completed_at` timestamp NULL DEFAULT NULL,
   `time_spent` int DEFAULT '0',
   `attempts_count` int DEFAULT '0',
   `last_attempt_at` timestamp NULL DEFAULT NULL,
   `teacher_feedback` text,
-  `teacher_score` int DEFAULT NULL,
+  `teacher_notes` text,
   `is_assessed` tinyint(1) DEFAULT '0',
   `assessed_by` int DEFAULT NULL,
   `assessed_at` timestamp NULL DEFAULT NULL,
+  `completion_file_path` varchar(500) DEFAULT NULL,
+  `completion_data` json DEFAULT NULL,
+  `time_spent_seconds` int DEFAULT '0',
+  `status` enum('in_progress','completed','assessed','returned') DEFAULT 'in_progress',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -187,7 +184,59 @@ CREATE TABLE IF NOT EXISTS `child_progress` (
   KEY `assessed_by` (`assessed_by`),
   KEY `idx_child_progress_hierarchy` (`grade_id`,`book_id`,`unit_id`,`lesson_id`),
   KEY `idx_child_progress_child` (`child_id`),
-  KEY `idx_child_progress_activity` (`activity_id`)
+  KEY `idx_child_progress_activity` (`activity_id`),
+  KEY `idx_child_progress_assessment` (`assessment_criteria_id`),
+  KEY `idx_child_progress_status` (`status`),
+  KEY `idx_child_progress_assessed` (`assessed_at`),
+  KEY `idx_child_progress_hierarchy_status` (`grade_id`,`book_id`,`unit_id`,`lesson_id`,`status`),
+  KEY `idx_child_progress_child_status` (`child_id`,`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `completed_activities`
+--
+
+DROP TABLE IF EXISTS `completed_activities`;
+CREATE TABLE IF NOT EXISTS `completed_activities` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `child_id` int NOT NULL,
+  `activity_id` int NOT NULL,
+  `lesson_id` int DEFAULT NULL,
+  `unit_id` int DEFAULT NULL,
+  `book_id` int DEFAULT NULL,
+  `grade_id` int DEFAULT NULL,
+  `completed_file_path` varchar(500) NOT NULL,
+  `file_type` enum('image','video','audio','document') DEFAULT 'image',
+  `file_size` int DEFAULT NULL,
+  `completion_data` json DEFAULT NULL,
+  `time_spent_seconds` int DEFAULT '0',
+  `completed_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `status` enum('submitted','assessed','returned') DEFAULT 'submitted',
+  `assessed_by` int DEFAULT NULL,
+  `assessed_at` timestamp NULL DEFAULT NULL,
+  `assessment_criteria_id` int DEFAULT NULL,
+  `teacher_feedback` text,
+  `teacher_notes` text,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_child_activity_completion` (`child_id`,`activity_id`),
+  KEY `idx_completed_activities_child` (`child_id`),
+  KEY `idx_completed_activities_activity` (`activity_id`),
+  KEY `idx_completed_activities_lesson` (`lesson_id`),
+  KEY `idx_completed_activities_unit` (`unit_id`),
+  KEY `idx_completed_activities_book` (`book_id`),
+  KEY `idx_completed_activities_grade` (`grade_id`),
+  KEY `idx_completed_activities_status` (`status`),
+  KEY `idx_completed_activities_assessed_by` (`assessed_by`),
+  KEY `idx_completed_activities_criteria` (`assessment_criteria_id`),
+  KEY `idx_completed_activities_submitted` (`completed_at`),
+  KEY `idx_completed_activities_assessed` (`assessed_at`),
+  KEY `idx_completed_activities_hierarchy` (`grade_id`,`book_id`,`unit_id`,`lesson_id`),
+  KEY `idx_completed_activities_type_status` (`activity_id`,`status`),
+  KEY `idx_completed_activities_child_status` (`child_id`,`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
 -- --------------------------------------------------------
@@ -206,14 +255,7 @@ CREATE TABLE IF NOT EXISTS `grades` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_grade_name` (`name`,`academic_year`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb3;
-
---
--- Dumping data for table `grades`
---
-
-INSERT INTO `grades` (`id`, `name`, `description`, `academic_year`, `created_at`, `updated_at`) VALUES
-(1, 'Grade 1', 'Grade 1', '2024-2025', '2025-08-05 14:00:47', '2025-08-05 14:00:47');
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
 -- --------------------------------------------------------
 
@@ -240,14 +282,7 @@ CREATE TABLE IF NOT EXISTS `lessons` (
   KEY `idx_lessons_unlock` (`is_unlocked`,`unlocked_at`),
   KEY `idx_lessons_unit` (`unit_id`,`lesson_number`),
   KEY `idx_lessons_active` (`is_active`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb3;
-
---
--- Dumping data for table `lessons`
---
-
-INSERT INTO `lessons` (`id`, `unit_id`, `title`, `description`, `lesson_number`, `is_active`, `is_unlocked`, `unlocked_by`, `unlocked_at`, `created_at`, `updated_at`) VALUES
-(2, 2, 'My Feelings', 'My Feelings', 1, 1, 0, NULL, NULL, '2025-08-06 06:44:37', '2025-08-06 06:44:37');
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
 -- --------------------------------------------------------
 
@@ -257,22 +292,61 @@ INSERT INTO `lessons` (`id`, `unit_id`, `title`, `description`, `lesson_number`,
 --
 DROP VIEW IF EXISTS `letterpath_data`;
 CREATE TABLE IF NOT EXISTS `letterpath_data` (
-`unit_id` int
-,`unit_title` varchar(255)
-,`unit_description` text
-,`level_number` int
+`book_id` int
+,`book_title` varchar(255)
+,`completed_activities` bigint
+,`completed_at` timestamp
+,`completion_score` decimal(5,2)
+,`grade_id` int
+,`grade_name` varchar(50)
 ,`lesson_id` int
 ,`lesson_title` varchar(255)
 ,`lesson_unlocked` tinyint(1)
+,`level_number` int
+,`status` varchar(9)
+,`total_activities` bigint
+,`unit_description` text
+,`unit_id` int
+,`unit_title` varchar(255)
+);
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `pending_assessments`
+-- (See below for the actual view)
+--
+DROP VIEW IF EXISTS `pending_assessments`;
+CREATE TABLE IF NOT EXISTS `pending_assessments` (
+`activity_description` text
+,`activity_id` int
+,`activity_title` varchar(255)
+,`activity_type` enum('coloring','letter_match','bubble_pop','counting','emotion_match','family_tree','digital_painting','forest_hunt')
+,`assessed_at` timestamp
+,`assessment_criteria` varchar(50)
+,`assessor_name` varchar(50)
 ,`book_id` int
 ,`book_title` varchar(255)
+,`child_avatar` varchar(255)
+,`child_id` int
+,`child_name` varchar(50)
+,`child_username` varchar(50)
+,`completed_at` timestamp
+,`completed_file_path` varchar(500)
+,`completion_data` json
+,`completion_id` int
+,`criteria_color` varchar(7)
+,`file_type` enum('image','video','audio','document')
 ,`grade_id` int
 ,`grade_name` varchar(50)
-,`total_activities` bigint
-,`completed_activities` bigint
-,`completion_score` decimal(5,2)
-,`completed_at` timestamp
-,`status` varchar(9)
+,`lesson_id` int
+,`lesson_title` varchar(255)
+,`status` enum('submitted','assessed','returned')
+,`teacher_feedback` text
+,`teacher_notes` text
+,`time_spent_seconds` int
+,`unit_id` int
+,`unit_title` varchar(255)
 );
 
 -- --------------------------------------------------------
@@ -283,9 +357,9 @@ CREATE TABLE IF NOT EXISTS `letterpath_data` (
 --
 DROP VIEW IF EXISTS `student_books`;
 CREATE TABLE IF NOT EXISTS `student_books` (
-`book_id` int
+`book_description` text
+,`book_id` int
 ,`book_title` varchar(255)
-,`book_description` text
 ,`grade_name` varchar(50)
 ,`student_id` int
 );
@@ -312,15 +386,7 @@ CREATE TABLE IF NOT EXISTS `student_book_enrollments` (
   KEY `idx_student_book_student` (`student_id`),
   KEY `idx_student_book_book` (`book_id`),
   KEY `idx_student_book_enrolled_by` (`enrolled_by`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb3;
-
---
--- Dumping data for table `student_book_enrollments`
---
-
-INSERT INTO `student_book_enrollments` (`id`, `student_id`, `book_id`, `enrolled_by`, `academic_year`, `enrollment_date`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, 1, 1, 9, '2024-2025', '2025-08-06 11:16:33', 1, '2025-08-06 11:16:33', '2025-08-06 11:16:33'),
-(2, 2, 1, 9, '2024-2025', '2025-08-06 11:16:33', 1, '2025-08-06 11:16:33', '2025-08-06 11:16:33');
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
 -- --------------------------------------------------------
 
@@ -330,18 +396,18 @@ INSERT INTO `student_book_enrollments` (`id`, `student_id`, `book_id`, `enrolled
 --
 DROP VIEW IF EXISTS `student_enrolled_content`;
 CREATE TABLE IF NOT EXISTS `student_enrolled_content` (
-`student_id` int
-,`first_name` varchar(50)
-,`username` varchar(50)
-,`book_id` int
+`book_id` int
 ,`book_title` varchar(255)
+,`first_name` varchar(50)
 ,`grade_name` varchar(50)
-,`unit_id` int
-,`unit_title` varchar(255)
 ,`lesson_id` int
-,`lesson_title` varchar(255)
 ,`lesson_number` int
+,`lesson_title` varchar(255)
+,`student_id` int
+,`unit_id` int
 ,`unit_number` int
+,`unit_title` varchar(255)
+,`username` varchar(50)
 );
 
 -- --------------------------------------------------------
@@ -410,16 +476,29 @@ CREATE TABLE IF NOT EXISTS `student_unit_enrollments` (
   KEY `idx_student_unit_student` (`student_id`),
   KEY `idx_student_unit_unit` (`unit_id`),
   KEY `idx_student_unit_enrolled_by` (`enrolled_by`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb3;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
 
 --
--- Dumping data for table `student_unit_enrollments`
+-- Stand-in structure for view `teacher_assessment_summary`
+-- (See below for the actual view)
 --
-
-INSERT INTO `student_unit_enrollments` (`id`, `student_id`, `unit_id`, `enrolled_by`, `enrollment_date`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, 1, 2, 9, '2025-08-06 11:16:46', 1, '2025-08-06 11:16:46', '2025-08-06 11:16:46'),
-(2, 2, 2, 9, '2025-08-06 11:16:46', 1, '2025-08-06 11:16:46', '2025-08-06 11:16:46'),
-(3, 4, 2, 9, '2025-08-06 12:42:57', 1, '2025-08-06 12:42:57', '2025-08-06 12:42:57');
+DROP VIEW IF EXISTS `teacher_assessment_summary`;
+CREATE TABLE IF NOT EXISTS `teacher_assessment_summary` (
+`advanced_count` bigint
+,`avg_time_spent` decimal(14,4)
+,`completed_assessments` bigint
+,`developing_count` bigint
+,`emerging_count` bigint
+,`first_assessment` timestamp
+,`last_assessment` timestamp
+,`pending_assessments` bigint
+,`proficient_count` bigint
+,`teacher_id` int
+,`teacher_name` varchar(50)
+,`total_submissions` bigint
+);
 
 -- --------------------------------------------------------
 
@@ -441,14 +520,7 @@ CREATE TABLE IF NOT EXISTS `teacher_book_assignments` (
   UNIQUE KEY `unique_teacher_book` (`teacher_id`,`book_id`,`academic_year`),
   KEY `idx_teacher_book_teacher` (`teacher_id`),
   KEY `idx_teacher_book_book` (`book_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb3;
-
---
--- Dumping data for table `teacher_book_assignments`
---
-
-INSERT INTO `teacher_book_assignments` (`id`, `teacher_id`, `book_id`, `academic_year`, `assigned_at`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, 9, 1, '2024-2025', '2025-08-06 09:53:36', 1, '2025-08-06 09:53:36', '2025-08-06 09:54:24');
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
 -- --------------------------------------------------------
 
@@ -458,17 +530,17 @@ INSERT INTO `teacher_book_assignments` (`id`, `teacher_id`, `book_id`, `academic
 --
 DROP VIEW IF EXISTS `teacher_book_summary`;
 CREATE TABLE IF NOT EXISTS `teacher_book_summary` (
-`teacher_id` int
+`book_description` text
 ,`book_id` int
 ,`book_title` varchar(255)
-,`book_description` text
-,`grade_name` varchar(50)
-,`grade_id` int
 ,`enrolled_students` bigint
-,`total_units` bigint
-,`unlocked_units` bigint
+,`grade_id` int
+,`grade_name` varchar(50)
+,`teacher_id` int
 ,`total_lessons` bigint
+,`total_units` bigint
 ,`unlocked_lessons` bigint
+,`unlocked_units` bigint
 );
 
 -- --------------------------------------------------------
@@ -515,14 +587,7 @@ CREATE TABLE IF NOT EXISTS `units` (
   KEY `idx_units_book` (`book_id`,`unit_number`),
   KEY `unlocked_by` (`unlocked_by`),
   KEY `idx_units_active` (`is_active`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb3;
-
---
--- Dumping data for table `units`
---
-
-INSERT INTO `units` (`id`, `book_id`, `title`, `description`, `unit_number`, `is_active`, `is_unlocked`, `unlocked_by`, `unlocked_at`, `created_at`, `updated_at`) VALUES
-(2, 1, 'All About Me', 'All About Me', 1, 1, 1, 8, '2025-08-06 11:25:24', '2025-08-06 06:44:16', '2025-08-06 11:25:24');
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
 -- --------------------------------------------------------
 
@@ -571,17 +636,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   UNIQUE KEY `email` (`email`),
   UNIQUE KEY `email_2` (`email`),
   UNIQUE KEY `username_2` (`username`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `users`
---
-
-INSERT INTO `users` (`id`, `username`, `email`, `password`, `created_at`, `updated_at`, `role`, `first_name`, `last_name`, `is_active`, `avatar`, `max_children`) VALUES
-(8, 'admin1', 'info@bylinelearning.com', '$2b$10$U0wXs2mwUNm3OTBCAEFeNOhvYEUjJcWag7YIwxUgaz9F9CFqx7j1m', '2025-07-31 10:35:52', '2025-07-31 10:35:52', 'admin', 'admin', 'Byline', 1, NULL, 0),
-(9, 'teacher1', 'Teacher@demo.com', '$2b$10$6euwgrA8R2Ep7qthKtH1A.RZruzyhuOI9Trbc4rLSiz7S23dEUsz6', '2025-07-31 10:36:53', '2025-07-31 10:36:53', 'teacher', 'Teacher', 'User', 1, NULL, 0),
-(10, 'parent1', 'Parent@demo.com', '$2b$10$R.y3YD.ctqLjxLYTzT5/eOcPsWAWQaLdXFyTgK/LP8w1FkY21yCU.', '2025-07-31 10:53:40', '2025-08-01 08:19:59', 'parent', 'Parent', 'User', 1, NULL, 3),
-(12, 'parent2', 'parent2@demo.com', '$2b$10$260bm/VYlXxw2mzfKFhtIOqgyUwJbhOIhRwFAhJHWSNR2txas1iM.', '2025-08-01 09:48:00', '2025-08-01 09:48:00', 'parent', 'Parent', '2', 1, NULL, 1);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -592,6 +647,16 @@ DROP TABLE IF EXISTS `letterpath_data`;
 
 DROP VIEW IF EXISTS `letterpath_data`;
 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `letterpath_data`  AS SELECT `u`.`id` AS `unit_id`, `u`.`title` AS `unit_title`, `u`.`description` AS `unit_description`, `u`.`unit_number` AS `level_number`, `l`.`id` AS `lesson_id`, `l`.`title` AS `lesson_title`, `l`.`is_unlocked` AS `lesson_unlocked`, `b`.`id` AS `book_id`, `b`.`title` AS `book_title`, `g`.`id` AS `grade_id`, `g`.`name` AS `grade_name`, count(`a`.`id`) AS `total_activities`, count((case when (`cp`.`completed` = 1) then 1 end)) AS `completed_activities`, `uc`.`completion_score` AS `completion_score`, `uc`.`completed_at` AS `completed_at`, (case when (`uc`.`completed_at` is not null) then 'completed' when (`u`.`is_unlocked` = 1) then 'available' else 'locked' end) AS `status` FROM ((((((`units` `u` join `books` `b` on((`u`.`book_id` = `b`.`id`))) join `grades` `g` on((`b`.`grade_id` = `g`.`id`))) left join `lessons` `l` on((`u`.`id` = `l`.`unit_id`))) left join `activities` `a` on(((`u`.`id` = `a`.`unit_id`) and (`a`.`status` = 'active')))) left join `child_progress` `cp` on((`a`.`id` = `cp`.`activity_id`))) left join `unit_completions` `uc` on((`u`.`id` = `uc`.`unit_id`))) GROUP BY `u`.`id`, `uc`.`child_id` ;
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `pending_assessments`
+--
+DROP TABLE IF EXISTS `pending_assessments`;
+
+DROP VIEW IF EXISTS `pending_assessments`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `pending_assessments`  AS SELECT `ca`.`id` AS `completion_id`, `c`.`id` AS `child_id`, `c`.`first_name` AS `child_name`, `c`.`username` AS `child_username`, `c`.`avatar` AS `child_avatar`, `a`.`id` AS `activity_id`, `a`.`title` AS `activity_title`, `a`.`type` AS `activity_type`, `a`.`description` AS `activity_description`, `l`.`id` AS `lesson_id`, `l`.`title` AS `lesson_title`, `u`.`id` AS `unit_id`, `u`.`title` AS `unit_title`, `b`.`id` AS `book_id`, `b`.`title` AS `book_title`, `g`.`id` AS `grade_id`, `g`.`name` AS `grade_name`, `ca`.`completed_file_path` AS `completed_file_path`, `ca`.`file_type` AS `file_type`, `ca`.`completion_data` AS `completion_data`, `ca`.`time_spent_seconds` AS `time_spent_seconds`, `ca`.`completed_at` AS `completed_at`, `ca`.`status` AS `status`, `ca`.`teacher_feedback` AS `teacher_feedback`, `ca`.`teacher_notes` AS `teacher_notes`, `ac`.`name` AS `assessment_criteria`, `ac`.`color` AS `criteria_color`, `u_assessor`.`first_name` AS `assessor_name`, `ca`.`assessed_at` AS `assessed_at` FROM ((((((((`completed_activities` `ca` join `children` `c` on((`ca`.`child_id` = `c`.`id`))) join `activities` `a` on((`ca`.`activity_id` = `a`.`id`))) left join `lessons` `l` on((`ca`.`lesson_id` = `l`.`id`))) left join `units` `u` on((`ca`.`unit_id` = `u`.`id`))) left join `books` `b` on((`ca`.`book_id` = `b`.`id`))) left join `grades` `g` on((`ca`.`grade_id` = `g`.`id`))) left join `assessment_criteria` `ac` on((`ca`.`assessment_criteria_id` = `ac`.`id`))) left join `users` `u_assessor` on((`ca`.`assessed_by` = `u_assessor`.`id`))) WHERE (`ca`.`status` in ('submitted','assessed')) ORDER BY `ca`.`completed_at` DESC ;
 
 -- --------------------------------------------------------
 
@@ -612,6 +677,16 @@ DROP TABLE IF EXISTS `student_enrolled_content`;
 
 DROP VIEW IF EXISTS `student_enrolled_content`;
 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `student_enrolled_content`  AS SELECT `c`.`id` AS `student_id`, `c`.`first_name` AS `first_name`, `c`.`username` AS `username`, `sbe`.`book_id` AS `book_id`, `b`.`title` AS `book_title`, `g`.`name` AS `grade_name`, `sue`.`unit_id` AS `unit_id`, `u`.`title` AS `unit_title`, `sle`.`lesson_id` AS `lesson_id`, `l`.`title` AS `lesson_title`, `l`.`lesson_number` AS `lesson_number`, `u`.`unit_number` AS `unit_number` FROM (((((((`children` `c` left join `student_book_enrollments` `sbe` on(((`c`.`id` = `sbe`.`student_id`) and (`sbe`.`is_active` = 1)))) left join `books` `b` on((`sbe`.`book_id` = `b`.`id`))) left join `grades` `g` on((`b`.`grade_id` = `g`.`id`))) left join `student_unit_enrollments` `sue` on(((`c`.`id` = `sue`.`student_id`) and (`sue`.`is_active` = 1)))) left join `units` `u` on((`sue`.`unit_id` = `u`.`id`))) left join `student_lesson_enrollments` `sle` on(((`c`.`id` = `sle`.`student_id`) and (`sle`.`is_active` = 1)))) left join `lessons` `l` on((`sle`.`lesson_id` = `l`.`id`))) WHERE (`c`.`is_active` = 1) ;
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `teacher_assessment_summary`
+--
+DROP TABLE IF EXISTS `teacher_assessment_summary`;
+
+DROP VIEW IF EXISTS `teacher_assessment_summary`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `teacher_assessment_summary`  AS SELECT `u_assessor`.`id` AS `teacher_id`, `u_assessor`.`first_name` AS `teacher_name`, count(`ca`.`id`) AS `total_submissions`, count((case when (`ca`.`status` = 'submitted') then 1 end)) AS `pending_assessments`, count((case when (`ca`.`status` = 'assessed') then 1 end)) AS `completed_assessments`, count((case when (`ca`.`assessment_criteria_id` = 1) then 1 end)) AS `emerging_count`, count((case when (`ca`.`assessment_criteria_id` = 2) then 1 end)) AS `developing_count`, count((case when (`ca`.`assessment_criteria_id` = 3) then 1 end)) AS `proficient_count`, count((case when (`ca`.`assessment_criteria_id` = 4) then 1 end)) AS `advanced_count`, avg(`ca`.`time_spent_seconds`) AS `avg_time_spent`, min(`ca`.`assessed_at`) AS `first_assessment`, max(`ca`.`assessed_at`) AS `last_assessment` FROM (`completed_activities` `ca` left join `users` `u_assessor` on((`ca`.`assessed_by` = `u_assessor`.`id`))) WHERE (`ca`.`status` = 'assessed') GROUP BY `u_assessor`.`id`, `u_assessor`.`first_name` ;
 
 -- --------------------------------------------------------
 
@@ -678,7 +753,22 @@ ALTER TABLE `child_progress`
   ADD CONSTRAINT `child_progress_ibfk_4` FOREIGN KEY (`unit_id`) REFERENCES `units` (`id`),
   ADD CONSTRAINT `child_progress_ibfk_5` FOREIGN KEY (`book_id`) REFERENCES `books` (`id`),
   ADD CONSTRAINT `child_progress_ibfk_6` FOREIGN KEY (`grade_id`) REFERENCES `grades` (`id`),
-  ADD CONSTRAINT `child_progress_ibfk_7` FOREIGN KEY (`assessed_by`) REFERENCES `users` (`id`);
+  ADD CONSTRAINT `child_progress_ibfk_7` FOREIGN KEY (`assessed_by`) REFERENCES `users` (`id`),
+  ADD CONSTRAINT `child_progress_ibfk_8` FOREIGN KEY (`assessment_criteria_id`) REFERENCES `assessment_criteria` (`id`),
+  ADD CONSTRAINT `child_progress_ibfk_9` FOREIGN KEY (`assessed_by`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `completed_activities`
+--
+ALTER TABLE `completed_activities`
+  ADD CONSTRAINT `completed_activities_ibfk_1` FOREIGN KEY (`child_id`) REFERENCES `children` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `completed_activities_ibfk_2` FOREIGN KEY (`activity_id`) REFERENCES `activities` (`id`),
+  ADD CONSTRAINT `completed_activities_ibfk_3` FOREIGN KEY (`lesson_id`) REFERENCES `lessons` (`id`),
+  ADD CONSTRAINT `completed_activities_ibfk_4` FOREIGN KEY (`unit_id`) REFERENCES `units` (`id`),
+  ADD CONSTRAINT `completed_activities_ibfk_5` FOREIGN KEY (`book_id`) REFERENCES `books` (`id`),
+  ADD CONSTRAINT `completed_activities_ibfk_6` FOREIGN KEY (`grade_id`) REFERENCES `grades` (`id`),
+  ADD CONSTRAINT `completed_activities_ibfk_7` FOREIGN KEY (`assessed_by`) REFERENCES `users` (`id`),
+  ADD CONSTRAINT `completed_activities_ibfk_8` FOREIGN KEY (`assessment_criteria_id`) REFERENCES `assessment_criteria` (`id`);
 
 --
 -- Constraints for table `lessons`

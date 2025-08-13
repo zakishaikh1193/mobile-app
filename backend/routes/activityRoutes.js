@@ -4,6 +4,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const pool = require('../models/db');
+const { auth } = require('../middleware/auth');
+const { adminAuth } = require('../middleware/admin');
 
 // --- 1. Path and Directory Setup ---
 
@@ -12,9 +14,11 @@ const ACTIVITIES_PATH = path.join(UPLOAD_PATH, 'activities');
 const TEMP_PATH = path.join(UPLOAD_PATH, 'temp');
 
 // Proactively create directories on startup to ensure they exist.
+const COMPLETED_ACTIVITIES_PATH = path.join(UPLOAD_PATH, 'completed-activities');
 try {
     if (!fs.existsSync(ACTIVITIES_PATH)) fs.mkdirSync(ACTIVITIES_PATH, { recursive: true });
     if (!fs.existsSync(TEMP_PATH)) fs.mkdirSync(TEMP_PATH, { recursive: true });
+    if (!fs.existsSync(COMPLETED_ACTIVITIES_PATH)) fs.mkdirSync(COMPLETED_ACTIVITIES_PATH, { recursive: true });
 } catch (error) {
     console.error("FATAL: Could not create upload directories.", error);
     process.exit(1); // Exit if the app can't function properly.
@@ -47,6 +51,11 @@ const upload = multer({
 // Returns a clean, relative path for database storage.
 const getRelativePath = (fullPath) => {
     return path.join('uploads', 'activities', path.basename(fullPath)).replace(/\\/g, '/');
+};
+
+// Returns a clean, relative path for completed activities
+const getCompletedActivityPath = (fullPath) => {
+    return path.join('uploads', 'completed-activities', path.basename(fullPath)).replace(/\\/g, '/');
 };
 
 // Formats an activity record for the client, adding the full image URL.
@@ -84,7 +93,7 @@ router.post('/', upload.single('image'), async (req, res, next) => {
         const {
             title, type, description, difficulty = 'easy', colors, grade_id,
             book_id, unit_id, lesson_id, learning_objectives, prerequisites,
-            estimated_duration = 10, max_attempts = 3, passing_score = 70
+            estimated_duration = 10
         } = req.body;
 
         if (!req.file) {
@@ -103,14 +112,13 @@ router.post('/', upload.single('image'), async (req, res, next) => {
             `INSERT INTO activities (
                 title, type, description, difficulty, image_path, colors, 
                 grade_id, book_id, unit_id, lesson_id, learning_objectives, 
-                prerequisites, estimated_duration, max_attempts, passing_score,
+                prerequisites, estimated_duration,
                 status, created_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW())`,
             [
                 title, type, description, difficulty, imageDbPath, colors || '[]',
                 grade_id || null, book_id || null, unit_id || null, lesson_id || null,
                 learning_objectives || null, prerequisites || null, estimated_duration,
-                max_attempts, passing_score
             ]
         );
 
@@ -161,6 +169,28 @@ router.get('/', async (req, res, next) => {
     } catch (error) {
         next(error);
     }
+});
+
+/**
+ * GET /api/activities/pending-assessments
+ * Get all pending assessments for teachers
+ */
+router.get('/pending-assessments', async (req, res, next) => {
+  try {
+    const [assessments] = await pool.query(`
+      SELECT * FROM pending_assessments
+      ORDER BY completed_at DESC
+    `);
+
+    res.json({
+      success: true,
+      assessments: assessments
+    });
+
+  } catch (error) {
+    console.error('Error fetching pending assessments:', error);
+    next(error);
+  }
 });
 
 /**
@@ -1273,7 +1303,7 @@ router.get('/lesson/:lessonId', async (req, res, next) => {
         const [activities] = await pool.query(`
             SELECT 
                 id, title, type, description, difficulty, image_path, colors,
-                estimated_duration, max_attempts, passing_score, status
+                estimated_duration, status
             FROM activities 
             WHERE lesson_id = ? AND status = 'active'
             ORDER BY type, title
@@ -1312,6 +1342,224 @@ router.get('/lesson/:lessonId', async (req, res, next) => {
 });
 
 /**
+ * POST /api/activities/complete
+ * Save a completed activity
+ */
+router.post('/complete', upload.single('completed_file'), async (req, res, next) => {
+  try {
+    console.log('Received completion request:', req.body);
+    console.log('File uploaded:', req.file);
+    
+    const { 
+      child_id, 
+      activity_id, 
+      completion_data,
+      time_spent_seconds 
+    } = req.body;
+
+    // Validate required fields
+    if (!child_id || !activity_id) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Child ID and Activity ID are required' 
+      });
+    }
+
+    // Fetch activity details including hierarchy IDs
+    const [activityRows] = await pool.query(`
+      SELECT 
+        id, lesson_id, unit_id, book_id, grade_id
+      FROM activities 
+      WHERE id = ? AND status = 'active'
+    `, [activity_id]);
+
+    if (activityRows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Activity not found' 
+      });
+    }
+
+    const activity = activityRows[0];
+    const { lesson_id, unit_id, book_id, grade_id } = activity;
+
+    // Handle file upload
+    let completed_file_path = null;
+    if (req.file) {
+      // Move the file from temp to completed-activities directory
+      const finalPath = path.join(COMPLETED_ACTIVITIES_PATH, req.file.filename);
+      fs.renameSync(req.file.path, finalPath);
+      completed_file_path = getCompletedActivityPath(finalPath);
+      console.log('File path saved:', completed_file_path);
+    } else {
+      console.log('No file uploaded');
+    }
+
+    // Insert into completed_activities table
+    const [result] = await pool.query(`
+      INSERT INTO completed_activities (
+        child_id, activity_id, lesson_id, unit_id, book_id, grade_id,
+        completed_file_path, completion_data, time_spent_seconds, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'submitted')
+    `, [
+      child_id, activity_id, lesson_id, unit_id, 
+      book_id, grade_id, completed_file_path, 
+      completion_data ? JSON.stringify(completion_data) : null,
+      time_spent_seconds || 0
+    ]);
+
+    // Update child_progress
+    await pool.query(`
+      INSERT INTO child_progress (
+        child_id, activity_id, lesson_id, unit_id, book_id, grade_id,
+        completed, completed_at, completion_file_path, completion_data,
+        time_spent_seconds, status
+      ) VALUES (?, ?, ?, ?, ?, ?, 1, NOW(), ?, ?, ?, 'completed')
+      ON DUPLICATE KEY UPDATE
+        completed = 1,
+        completed_at = NOW(),
+        completion_file_path = VALUES(completion_file_path),
+        completion_data = VALUES(completion_data),
+        time_spent_seconds = VALUES(time_spent_seconds),
+        status = 'completed'
+    `, [
+      child_id, activity_id, lesson_id, unit_id,
+      book_id, grade_id, completed_file_path,
+      completion_data ? JSON.stringify(completion_data) : null,
+      time_spent_seconds || 0
+    ]);
+
+    res.json({
+      success: true,
+      message: 'Activity completed successfully',
+      completion_id: result.insertId
+    });
+
+  } catch (error) {
+    console.error('Error completing activity:', error);
+    next(error);
+  }
+});
+
+/**
+ * GET /api/activities/completed/:childId
+ * Get completed activities for a specific child
+ */
+router.get('/completed/:childId', async (req, res, next) => {
+  try {
+    const { childId } = req.params;
+
+    const [completed] = await pool.query(`
+      SELECT 
+        ca.*,
+        a.title as activity_title,
+        a.type as activity_type,
+        a.description as activity_description,
+        ac.name as assessment_criteria,
+        ac.color as criteria_color,
+        u.first_name as assessor_name
+      FROM completed_activities ca
+      JOIN activities a ON ca.activity_id = a.id
+      LEFT JOIN assessment_criteria ac ON ca.assessment_criteria_id = ac.id
+      LEFT JOIN users u ON ca.assessed_by = u.id
+      WHERE ca.child_id = ?
+      ORDER BY ca.completed_at DESC
+    `, [childId]);
+
+    res.json({
+      success: true,
+      completed_activities: completed
+    });
+
+  } catch (error) {
+    console.error('Error fetching completed activities:', error);
+    next(error);
+  }
+});
+
+/**
+ * PUT /api/activities/assess/:completionId
+ * Teacher assesses a completed activity
+ */
+router.put('/assess/:completionId', async (req, res, next) => {
+  try {
+    const { completionId } = req.params;
+    const { 
+      assessment_criteria_id, 
+      teacher_feedback, 
+      teacher_notes,
+      assessed_by 
+    } = req.body;
+
+    if (!assessment_criteria_id || !assessed_by) {
+      return res.status(400).json({
+        success: false,
+        error: 'Assessment criteria and assessor are required'
+      });
+    }
+
+    // Update completed_activities
+    await pool.query(`
+      UPDATE completed_activities 
+      SET 
+        assessment_criteria_id = ?,
+        teacher_feedback = ?,
+        teacher_notes = ?,
+        assessed_by = ?,
+        assessed_at = NOW(),
+        status = 'assessed'
+      WHERE id = ?
+    `, [assessment_criteria_id, teacher_feedback, teacher_notes, assessed_by, completionId]);
+
+    // Update child_progress
+    await pool.query(`
+      UPDATE child_progress 
+      SET 
+        assessment_criteria_id = ?,
+        teacher_feedback = ?,
+        teacher_notes = ?,
+        assessed_by = ?,
+        assessed_at = NOW(),
+        status = 'assessed'
+      WHERE child_id = (SELECT child_id FROM completed_activities WHERE id = ?)
+      AND activity_id = (SELECT activity_id FROM completed_activities WHERE id = ?)
+    `, [assessment_criteria_id, teacher_feedback, teacher_notes, assessed_by, completionId, completionId]);
+
+    res.json({
+      success: true,
+      message: 'Assessment saved successfully'
+    });
+
+  } catch (error) {
+    console.error('Error assessing activity:', error);
+    next(error);
+  }
+});
+
+/**
+ * GET /api/activities/assessment-criteria
+ * Get all assessment criteria
+ */
+router.get('/assessment-criteria', async (req, res, next) => {
+  try {
+    const [criteria] = await pool.query(`
+      SELECT * FROM assessment_criteria 
+      WHERE is_active = 1 
+      ORDER BY level_order
+    `);
+
+    res.json({
+      success: true,
+      criteria: criteria
+    });
+
+  } catch (error) {
+    console.error('Error fetching assessment criteria:', error);
+    next(error);
+  }
+});
+
+/**
  * Get a single activity by ID
  * GET /api/activities/:activityId
  */
@@ -1342,5 +1590,155 @@ router.get('/lesson/:lessonId', async (req, res, next) => {
 //         next(error);
 //     }
 // });
+
+// Puzzle image upload endpoint
+router.post('/upload-puzzle', auth, upload.single('puzzle_image'), async (req, res, next) => {
+  try {
+    console.log('Puzzle upload - req.user:', req.user);
+    console.log('Puzzle upload - req.body:', req.body);
+    console.log('Puzzle upload - req.file:', req.file);
+    
+    const { title, description, difficulty, lesson_id, unit_id, book_id, grade_id, pieceCount } = req.body;
+    
+    if (!req.file) {
+      return res.status(400).json({ message: 'Puzzle image is required' });
+    }
+
+    // Validate piece count (3x3, 4x4, 5x5)
+    const validPieceCounts = [9, 16, 25];
+    const gridSize = Math.sqrt(pieceCount);
+    if (!validPieceCounts.includes(parseInt(pieceCount)) || !Number.isInteger(gridSize)) {
+      return res.status(400).json({ message: 'Piece count must be 9, 16, or 25' });
+    }
+
+    // Move the file from temp to its final destination (activities folder)
+    const finalPath = path.join(ACTIVITIES_PATH, req.file.filename);
+    try {
+      fs.renameSync(req.file.path, finalPath);
+    } catch (error) {
+      console.error('Error moving puzzle file:', error);
+      return res.status(500).json({ message: 'Error processing uploaded file' });
+    }
+    const imageDbPath = getRelativePath(finalPath);
+    
+    // Create puzzle configuration
+    const puzzleConfig = {
+      gameType: 'puzzle',
+      pieceCount: parseInt(pieceCount),
+      gridSize: gridSize,
+      imageUrl: imageDbPath,
+      difficulty: difficulty || 'medium'
+    };
+
+    // Check if user is authenticated
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: 'User authentication required' });
+    }
+
+    // Insert into activities table
+    const [result] = await pool.query(`
+      INSERT INTO activities (
+        title, description, type, difficulty, image_path, data,
+        lesson_id, unit_id, book_id, grade_id, created_by, status
+      ) VALUES (?, ?, 'puzzle', ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+    `, [
+      title, description, difficulty, imageDbPath, JSON.stringify(puzzleConfig),
+      lesson_id, unit_id, book_id, grade_id, req.user.id
+    ]);
+
+    res.status(201).json({
+      success: true,
+      message: 'Puzzle activity created successfully',
+      activityId: result.insertId,
+      puzzleConfig
+    });
+
+  } catch (error) {
+    console.error('Error creating puzzle activity:', error);
+    next(error);
+  }
+});
+
+// Get puzzle data for playing
+router.get('/puzzle/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    const [activities] = await pool.query(`
+      SELECT a.*, 
+             l.title as lesson_title,
+             u.title as unit_title,
+             b.title as book_title,
+             g.name as grade_name
+      FROM activities a
+      LEFT JOIN lessons l ON a.lesson_id = l.id
+      LEFT JOIN units u ON a.unit_id = u.id
+      LEFT JOIN books b ON a.book_id = b.id
+      LEFT JOIN grades g ON a.grade_id = g.id
+      WHERE a.id = ? AND a.type = 'puzzle' AND a.status = 'active'
+    `, [id]);
+
+    if (activities.length === 0) {
+      return res.status(404).json({ message: 'Puzzle activity not found' });
+    }
+
+    const activity = activities[0];
+    
+    // Safely parse the puzzle configuration
+    let puzzleConfig = {};
+    try {
+      if (activity.data) {
+        // If data is already an object, use it directly
+        if (typeof activity.data === 'object') {
+          puzzleConfig = activity.data;
+        } else {
+          // If data is a string, parse it as JSON
+          puzzleConfig = JSON.parse(activity.data);
+        }
+      }
+    } catch (parseError) {
+      console.error('Error parsing puzzle config:', parseError);
+      // Use default config if parsing fails
+      puzzleConfig = {
+        gameType: 'puzzle',
+        pieceCount: 9,
+        gridSize: 3,
+        difficulty: 'easy'
+      };
+    }
+
+    res.json({
+      success: true,
+      puzzle: {
+        id: activity.id,
+        title: activity.title,
+        description: activity.description,
+        difficulty: activity.difficulty,
+        imageUrl: activity.image_path,
+        config: puzzleConfig,
+        lesson: {
+          id: activity.lesson_id,
+          title: activity.lesson_title
+        },
+        unit: {
+          id: activity.unit_id,
+          title: activity.unit_title
+        },
+        book: {
+          id: activity.book_id,
+          title: activity.book_title
+        },
+        grade: {
+          id: activity.grade_id,
+          name: activity.grade_name
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching puzzle activity:', error);
+    next(error);
+  }
+});
 
 module.exports = router;
