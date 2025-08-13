@@ -18,7 +18,7 @@ export const useAudio = () => {
   return context;
 };
 
-export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const AudioProvider = ({ children }: { children: ReactNode }) => {
   const [isMuted, setIsMuted] = useState(() => {
     const saved = localStorage.getItem('audioMuted');
     return saved ? JSON.parse(saved) : false;
@@ -106,8 +106,12 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     toggleMute,
     speak,
     playSound,
-    stopAllAudio
+    stopAllAudio,
   };
 
-  return <AudioContext.Provider value={value}>{children}</AudioContext.Provider>;
+  return (
+    <AudioContext.Provider value={value}>
+      {children}
+    </AudioContext.Provider>
+  );
 };

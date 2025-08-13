@@ -3,7 +3,7 @@
 export interface Activity {
     id: number;
     title: string;
-    type: 'coloring' | 'letter_match' | 'bubble_pop' | 'counting' | 'emotion_match' | 'family_tree' | 'digital_painting' | 'forest_hunt' | 'puzzle';
+    type: 'coloring' | 'letter_match' | 'bubble_pop' | 'counting' | 'emotion_match' | 'family_tree' | 'digital_painting' | 'forest_hunt' | 'puzzle' | 'maze';
     description: string;
     difficulty: 'easy' | 'medium' | 'hard';
     image_path?: string;
@@ -31,7 +31,7 @@ export interface Activity {
   }
   
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL;
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
   const API_ENDPOINT = `${API_BASE_URL}/api/activities`;
   
   class ActivityService {

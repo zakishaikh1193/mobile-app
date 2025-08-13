@@ -34,6 +34,8 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
     emotionSet: ['happy', 'sad', 'angry', 'surprised'], // For emotion matching
     familyMembers: ['father', 'mother', 'sister', 'brother'], // For family tree
     forestLetters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', // For forest hunt
+    mazeSize: 15, // For maze puzzle
+    mazeTheme: 'space', // For maze puzzle
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
@@ -46,35 +48,59 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
 
   useEffect(() => {
     loadActivities();
-    loadHierarchyData();
+    // Load hierarchy data only if user is authenticated
+    const token = localStorage.getItem('token');
+    if (token) {
+      loadHierarchyData();
+    }
   }, []);
 
     const loadHierarchyData = async () => {
     try {
       console.log('Loading hierarchy data...');
       
-      // Load grades
-      const gradesResponse = await api.get('/education/grades');
-      console.log('Grades response:', gradesResponse.data);
-      setGrades(gradesResponse.data.grades || []);
+      // Load grades - skip if not authenticated
+      try {
+        const gradesResponse = await api.get('/education/grades');
+        console.log('Grades response:', gradesResponse.data);
+        setGrades(gradesResponse.data.grades || []);
+      } catch (error) {
+        console.log('Grades not available:', error);
+        setGrades([]);
+      }
      
-      // Load books
-      const booksResponse = await api.get('/education/books');
-      console.log('Books response:', booksResponse.data);
-      setBooks(booksResponse.data.books || []);
+      // Load books - skip if not authenticated
+      try {
+        const booksResponse = await api.get('/education/books');
+        console.log('Books response:', booksResponse.data);
+        setBooks(booksResponse.data.books || []);
+      } catch (error) {
+        console.log('Books not available:', error);
+        setBooks([]);
+      }
 
-      // Load units
-      const unitsResponse = await api.get('/education/units');
-      console.log('Units response:', unitsResponse.data);
-      setUnits(unitsResponse.data.units || []);
+      // Load units - skip if not authenticated
+      try {
+        const unitsResponse = await api.get('/education/units');
+        console.log('Units response:', unitsResponse.data);
+        setUnits(unitsResponse.data.units || []);
+      } catch (error) {
+        console.log('Units not available:', error);
+        setUnits([]);
+      }
 
-      // Load lessons
-      const lessonsResponse = await api.get('/education/lessons');
-      console.log('Lessons response:', lessonsResponse.data);
-      setLessons(lessonsResponse.data.lessons || []);
+      // Load lessons - skip if not authenticated
+      try {
+        const lessonsResponse = await api.get('/education/lessons');
+        console.log('Lessons response:', lessonsResponse.data);
+        setLessons(lessonsResponse.data.lessons || []);
+      } catch (error) {
+        console.log('Lessons not available:', error);
+        setLessons([]);
+      }
     } catch (error) {
       console.error('Error loading hierarchy data:', error);
-      setError('Failed to load hierarchy data. Please check your connection.');
+      // Don't set error for hierarchy data, just use empty arrays
     }
   };
 
@@ -88,7 +114,8 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
       setActivities(data);
     } catch (error) {
       console.error('Error loading activities:', error);
-      setError('Failed to load activities. Please try again.');
+      // Don't set error for activities, just use empty array
+      setActivities([]);
     } finally {
       setLoading(false);
     }
@@ -255,6 +282,8 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
       emotionSet: activityData.emotionSet || ['happy', 'sad', 'angry', 'surprised'],
       familyMembers: activityData.familyMembers || ['father', 'mother', 'sister', 'brother'],
       forestLetters: activityData.forestLetters || 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+      mazeSize: activityData.mazeSize || 15,
+      mazeTheme: activityData.mazeTheme || 'space',
     });
     
     if (activity.image_url) {
@@ -305,6 +334,8 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
       emotionSet: ['happy', 'sad', 'angry', 'surprised'],
       familyMembers: ['father', 'mother', 'sister', 'brother'],
       forestLetters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+      mazeSize: 15,
+      mazeTheme: 'space',
     });
     setSelectedFile(null);
     setPreviewUrl('');
@@ -389,6 +420,13 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
       description: 'Complete jigsaw puzzles',
       requirements: ['Puzzle image', 'Piece count', 'Difficulty level'],
       fields: ['pieceCount', 'image']
+    },
+    maze: {
+      icon: Target,
+      title: 'Maze Puzzle Activity',
+      description: 'Navigate through mazes to reach the goal',
+      requirements: ['Maze size', 'Theme selection', 'Difficulty level'],
+      fields: ['mazeSize', 'mazeTheme']
     }
   };
 
@@ -660,6 +698,52 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
           </div>
         );
 
+      case 'maze':
+        return (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Maze Size
+              </label>
+              <select
+                value={formData.mazeSize || 15}
+                onChange={(e) => setFormData({ ...formData, mazeSize: parseInt(e.target.value) })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value={10}>10x10 - Easy</option>
+                <option value={15}>15x15 - Medium</option>
+                <option value={20}>20x20 - Hard</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Theme
+              </label>
+              <select
+                value={formData.mazeTheme || 'space'}
+                onChange={(e) => setFormData({ ...formData, mazeTheme: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="space">🚀 Space (Rocket to Earth)</option>
+                <option value="jungle">🌴 Jungle Adventure</option>
+                <option value="castle">🏰 Castle Quest</option>
+                <option value="ocean">🌊 Ocean Explorer</option>
+              </select>
+            </div>
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h4 className="font-medium text-blue-800 mb-2">Maze Puzzle Requirements:</h4>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>• Clear maze layout with walls and paths</li>
+                <li>• Starting position (player) and goal position</li>
+                <li>• Keyboard controls (arrow keys/WASD)</li>
+                <li>• Visual feedback for movement</li>
+                <li>• Completion detection and celebration</li>
+                <li>• Progressive difficulty levels</li>
+              </ul>
+            </div>
+          </div>
+        );
+
       default:
         return null;
     }
@@ -819,6 +903,7 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
                     <option value="digital_painting">🖌️ Digital Painting</option>
                     <option value="forest_hunt">🌲 Forest Hunt</option>
                     <option value="puzzle">🧩 Puzzle (Jigsaw)</option>
+                    <option value="maze">🚀 Maze Puzzle</option>
                   </select>
                 </div>
 

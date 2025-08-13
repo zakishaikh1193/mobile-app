@@ -91,13 +91,6 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
       setIsLoaded(true);
     };
 
-    const handleError = () => {
-      if (!isMounted) return;
-      console.error(`Failed to load image: ${src}`);
-      setImageSrc(placeholderSrc || '');
-      setIsLoaded(false);
-    };
-
     // Set up event listeners before setting src
     img.src = src;
     const loadEvent = 'decode' in img ? 'decode' : 'load';
@@ -105,10 +98,20 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
     if (loadEvent === 'decode' && typeof img.decode === 'function') {
       img.decode()
         .then(handleLoad)
-        .catch(handleError);
+        .catch(() => {
+          if (!isMounted) return;
+          console.log('🖼️ Image failed to load, using placeholder');
+          setImageSrc(placeholderSrc || '');
+          setIsLoaded(false);
+        });
     } else {
       img.onload = handleLoad;
-      img.onerror = handleError;
+      img.onerror = () => {
+        if (!isMounted) return;
+        console.log('🖼️ Image failed to load, using placeholder');
+        setImageSrc(placeholderSrc || '');
+        setIsLoaded(false);
+      };
     }
 
     // Cleanup function

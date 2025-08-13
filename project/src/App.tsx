@@ -317,18 +317,15 @@ function App() {
   console.log('App rendering...');
   
   return (
-    // Note: React.StrictMode is typically in main.tsx. If it's also there, you can remove it from here.
-    <React.StrictMode>
-      <Router>
-        <AuthProvider>
-          <ContentLibraryProvider>
-            <AudioProvider>
-              <AppRoutes />
-            </AudioProvider>
-          </ContentLibraryProvider>
-        </AuthProvider>
-      </Router>
-    </React.StrictMode>
+    <Router>
+      <AuthProvider>
+        <ContentLibraryProvider>
+          <AudioProvider>
+            <AppRoutes />
+          </AudioProvider>
+        </ContentLibraryProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 

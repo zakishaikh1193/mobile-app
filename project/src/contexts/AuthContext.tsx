@@ -89,13 +89,13 @@ export const useAuth = () => {
   return context;
 };
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [parentUser, setParentUser] = useState<User | null>(null); // Store parent data when switching to child
   const [parentToken, setParentToken] = useState<string | null>(null); // Store parent token
-  const navigate = useNavigate();
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -103,16 +103,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.setItem('token', token);
     localStorage.setItem('userId', userData.id.toString()); // Store user ID
     setUser(userData);
+    
+    // Set pending navigation instead of calling navigate directly
     if (userData.role === 'admin') {
-      navigate('/admin/dashboard');
+      setPendingNavigation('/admin/dashboard');
     } else if (userData.role === 'teacher') {
-      navigate('/teacher/dashboard');
+      setPendingNavigation('/teacher/dashboard');
     } else if (userData.role === 'parent') {
-      navigate('/parent/dashboard');
+      setPendingNavigation('/parent/dashboard');
     } else {
-      navigate('/student/dashboard');
+      setPendingNavigation('/student/dashboard');
     }
-  }, [navigate]);
+  }, []);
+
+  // Navigation handler component
+  const NavigationHandler: React.FC = () => {
+    const navigate = useNavigate();
+    
+    useEffect(() => {
+      if (pendingNavigation) {
+        navigate(pendingNavigation);
+        setPendingNavigation(null);
+      }
+    }, [pendingNavigation, navigate]);
+    
+    return null;
+  };
 
   const loadUser = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -204,7 +220,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('token');
     localStorage.removeItem('userId'); // Clear user ID
     setUser(null);
-    navigate('/login');
+    setPendingNavigation('/login');
   };
 
   const updateUser = (userData: Partial<User>): void => {
@@ -336,7 +352,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.log('Successfully switched back to parent user');
       
       // Navigate to parent dashboard
-      navigate('/parent/dashboard');
+      setPendingNavigation('/parent/dashboard');
       
       return true;
       
@@ -413,6 +429,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   return (
     <AuthContext.Provider value={value}>
+      <NavigationHandler />
       {!loading && children}
     </AuthContext.Provider>
   );
