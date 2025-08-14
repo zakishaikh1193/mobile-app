@@ -3,7 +3,7 @@
 export interface Activity {
     id: number;
     title: string;
-    type: 'coloring' | 'letter_match' | 'bubble_pop' | 'counting' | 'emotion_match' | 'family_tree' | 'digital_painting' | 'forest_hunt' | 'puzzle' | 'maze';
+    type: 'coloring' | 'letter_match' | 'bubble_pop' | 'counting' | 'emotion_match' | 'family_tree' | 'digital_painting' | 'forest_hunt' | 'puzzle' | 'maze' | 'memory_match';
     description: string;
     difficulty: 'easy' | 'medium' | 'hard';
     image_path?: string;
@@ -133,39 +133,68 @@ export interface Activity {
     // Update activity (for admin)
     async updateActivity(id: number, activityData: FormData): Promise<{ success: boolean; error?: string }> {
       try {
+        const token = localStorage.getItem('token');
+        const headers: HeadersInit = {};
+        
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        console.log('Sending update request to:', `${API_ENDPOINT}/${id}`);
+        console.log('Headers:', headers);
+        
         const response = await fetch(`${API_ENDPOINT}/${id}`, {
           method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-          },
+          headers,
           body: activityData,
         });
   
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        
         const result = await response.json();
+        console.log('Response body:', result);
+        
         if (!response.ok) {
-          return { success: false, error: result.error || 'Failed to update activity' };
+          return { success: false, error: result.error || `HTTP ${response.status}: Failed to update activity` };
         }
         return { success: true };
       } catch (error) {
         console.error('Error updating activity:', error);
-        return { success: false, error: 'A network error occurred.' };
+        return { success: false, error: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}` };
       }
     }
     
     // Delete activity is fine, but let's make it consistent
     async deleteActivity(id: number): Promise<{ success: boolean; error?: string }> {
       try {
+        const token = localStorage.getItem('token');
+        const headers: HeadersInit = {};
+        
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        console.log('Sending delete request to:', `${API_ENDPOINT}/${id}`);
+        console.log('Headers:', headers);
+        
         const response = await fetch(`${API_ENDPOINT}/${id}`, {
           method: 'DELETE',
+          headers,
         });
+        
+        console.log('Delete response status:', response.status);
+        
         const result = await response.json();
+        console.log('Delete response body:', result);
+        
         if (!response.ok) {
-          return { success: false, error: result.error || 'Failed to delete activity' };
+          return { success: false, error: result.error || `HTTP ${response.status}: Failed to delete activity` };
         }
         return { success: true };
       } catch (error) {
           console.error('Error deleting activity:', error);
-          return { success: false, error: 'A network error occurred.' };
+          return { success: false, error: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}` };
       }
     }
 

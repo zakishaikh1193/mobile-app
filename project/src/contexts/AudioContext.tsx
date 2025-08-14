@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface AudioContextType {
   isMuted: boolean;
@@ -19,10 +19,22 @@ export const useAudio = () => {
 };
 
 export const AudioProvider = ({ children }: { children: ReactNode }) => {
-  const [isMuted, setIsMuted] = useState(() => {
-    const saved = localStorage.getItem('audioMuted');
-    return saved ? JSON.parse(saved) : false;
-  });
+  console.log('AudioProvider rendering...');
+  
+  // Use simple initialization
+  const [isMuted, setIsMuted] = useState(false);
+
+  // Load saved mute state from localStorage after component mounts
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('audioMuted');
+      if (saved) {
+        setIsMuted(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('AudioProvider localStorage error:', error);
+    }
+  }, []);
 
   const speak = (text: string) => {
     if (isMuted || !('speechSynthesis' in window)) return;

@@ -141,18 +141,22 @@ const AddContentForm: React.FC<{
 };
 
 const AdminPortal: React.FC = () => {
+  console.log('AdminPortal rendering...');
+  
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   if (!user) return null;
-  const [activeTab, setActiveTab] = useState('overview');
-  const [contentLibrary, setContentLibrary] = useState<any[]>([]);
-  const [showAddContent, setShowAddContent] = useState(false);
-  const [showPuzzleUpload, setShowPuzzleUpload] = useState(false);
-  const [editContentId, setEditContentId] = useState<number | null>(null);
-  const [editInitialValues, setEditInitialValues] = useState<any>(null);
+  
+  const [activeTab, setActiveTab] = useState(() => 'overview');
+  const [contentLibrary, setContentLibrary] = useState<any[]>(() => []);
+  const [showAddContent, setShowAddContent] = useState(() => false);
+  const [showPuzzleUpload, setShowPuzzleUpload] = useState(() => false);
+  const [editContentId, setEditContentId] = useState<number | null>(() => null);
+  const [editInitialValues, setEditInitialValues] = useState<any>(() => null);
   const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
+    console.log('AdminPortal useEffect - component mounted');
     fetchContent();
   }, []);
 

@@ -35,25 +35,29 @@ interface JigsawPuzzleProps {
 }
 
 const JigsawPuzzle: React.FC<JigsawPuzzleProps> = ({ activityId, childId, onComplete, onBack }) => {
+  console.log('JigsawPuzzle rendering...');
+  
+
+  
   const { user } = useAuth();
-  const [puzzle, setPuzzle] = useState<any>(null);
-  const [pieces, setPieces] = useState<JigsawPiece[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [gameStarted, setGameStarted] = useState(false);
-  const [gameCompleted, setGameCompleted] = useState(false);
-  const [timeSpent, setTimeSpent] = useState(0);
-  const [movesCount, setMovesCount] = useState(0);
-  const [audioEnabled, setAudioEnabled] = useState(true);
-  const [draggedPiece, setDraggedPiece] = useState<number | null>(null);
-  const [showHint, setShowHint] = useState(false);
-  const [hintsUsed, setHintsUsed] = useState(0);
-  const [showPreview, setShowPreview] = useState(false);
-  const [score, setScore] = useState(0);
-  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
-  const [puzzleBoardSize, setPuzzleBoardSize] = useState({ width: 400, height: 300 });
-  const [isMobile, setIsMobile] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [puzzle, setPuzzle] = useState<any>(() => null);
+  const [pieces, setPieces] = useState<JigsawPiece[]>(() => []);
+  const [loading, setLoading] = useState(() => true);
+  const [error, setError] = useState<string | null>(() => null);
+  const [gameStarted, setGameStarted] = useState(() => false);
+  const [gameCompleted, setGameCompleted] = useState(() => false);
+  const [timeSpent, setTimeSpent] = useState(() => 0);
+  const [movesCount, setMovesCount] = useState(() => 0);
+  const [audioEnabled, setAudioEnabled] = useState(() => true);
+  const [draggedPiece, setDraggedPiece] = useState<number | null>(() => null);
+  const [showHint, setShowHint] = useState(() => false);
+  const [hintsUsed, setHintsUsed] = useState(() => 0);
+  const [showPreview, setShowPreview] = useState(() => false);
+  const [score, setScore] = useState(() => 0);
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>(() => 'easy');
+  const [puzzleBoardSize, setPuzzleBoardSize] = useState(() => ({ width: 400, height: 300 }));
+  const [isMobile, setIsMobile] = useState(() => false);
+  const [dragOffset, setDragOffset] = useState(() => ({ x: 0, y: 0 }));
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameAreaRef = useRef<HTMLDivElement>(null);

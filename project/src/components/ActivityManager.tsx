@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, Plus, Edit, Trash2, Save, X, Palette, Puzzle, BookOpen, Target, Users, Heart, Leaf, Paintbrush, Search } from 'lucide-react';
+import { Upload, Plus, Edit, Trash2, Save, X, Palette, Puzzle, BookOpen, Target, Users, Heart, Leaf, Paintbrush, Search, Brain } from 'lucide-react';
 import { activityService, Activity } from '../services/activityService';
 import api from '../services/api';
 
@@ -9,12 +9,14 @@ interface ActivityManagerProps {
 }
 
 const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
-  const [formData, setFormData] = useState({
+  console.log('ActivityManager rendering...');
+  
+  const [activities, setActivities] = useState<Activity[]>(() => []);
+  const [loading, setLoading] = useState(() => true);
+  const [error, setError] = useState<string | null>(() => null);
+  const [showCreateForm, setShowCreateForm] = useState(() => false);
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(() => null);
+  const [formData, setFormData] = useState(() => ({
     title: '',
     type: 'coloring' as Activity['type'],
     description: '',
@@ -36,17 +38,19 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
     forestLetters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', // For forest hunt
     mazeSize: 15, // For maze puzzle
     mazeTheme: 'space', // For maze puzzle
-  });
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
+    theme: 'animals', // For memory match
+  }));
+  const [selectedFile, setSelectedFile] = useState<File | null>(() => null);
+  const [previewUrl, setPreviewUrl] = useState<string>(() => '');
   
   // Hierarchy data state
-  const [grades, setGrades] = useState<any[]>([]);
-  const [books, setBooks] = useState<any[]>([]);
-  const [units, setUnits] = useState<any[]>([]);
-  const [lessons, setLessons] = useState<any[]>([]);
+  const [grades, setGrades] = useState<any[]>(() => []);
+  const [books, setBooks] = useState<any[]>(() => []);
+  const [units, setUnits] = useState<any[]>(() => []);
+  const [lessons, setLessons] = useState<any[]>(() => []);
 
   useEffect(() => {
+    console.log('ActivityManager useEffect - component mounted');
     loadActivities();
     // Load hierarchy data only if user is authenticated
     const token = localStorage.getItem('token');
@@ -218,7 +222,14 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
     try {
       if (editingActivity) {
         console.log('Updating activity:', editingActivity.id);
+        console.log('FormData contents for update:');
+        for (let [key, value] of submitFormData.entries()) {
+          console.log(key, value);
+        }
+        
         const result = await activityService.updateActivity(editingActivity.id, submitFormData);
+        console.log('Update result:', result);
+        
         if (result.success) {
           alert('Activity updated successfully!');
           resetForm();
@@ -249,6 +260,7 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
 
   const handleEdit = (activity: Activity) => {
     console.log('Editing activity:', activity);
+    console.log('Activity type:', activity.type);
     setEditingActivity(activity);
     
     // Parse activity-specific data from the data field
@@ -262,7 +274,7 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
       }
     }
     
-    setFormData({
+    const newFormData = {
       title: activity.title,
       type: activity.type,
       description: activity.description,
@@ -284,7 +296,11 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
       forestLetters: activityData.forestLetters || 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
       mazeSize: activityData.mazeSize || 15,
       mazeTheme: activityData.mazeTheme || 'space',
-    });
+      theme: activityData.theme || 'animals',
+    };
+    
+    console.log('Setting formData:', newFormData);
+    setFormData(newFormData);
     
     if (activity.image_url) {
       setPreviewUrl(activity.image_url);
@@ -336,6 +352,7 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
       forestLetters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
       mazeSize: 15,
       mazeTheme: 'space',
+      theme: 'animals',
     });
     setSelectedFile(null);
     setPreviewUrl('');
@@ -421,12 +438,20 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
       requirements: ['Puzzle image', 'Piece count', 'Difficulty level'],
       fields: ['pieceCount', 'image']
     },
+
     maze: {
       icon: Target,
       title: 'Maze Puzzle Activity',
       description: 'Navigate through mazes to reach the goal',
       requirements: ['Maze size', 'Theme selection', 'Difficulty level'],
       fields: ['mazeSize', 'mazeTheme']
+    },
+    memory_match: {
+      icon: Brain,
+      title: 'Memory Match Activity',
+      description: 'Match pairs of cards to improve memory',
+      requirements: ['Card pairs', 'Theme selection', 'Difficulty level'],
+      fields: ['theme', 'difficulty']
     }
   };
 
@@ -744,6 +769,37 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
           </div>
         );
 
+      case 'memory_match':
+        return (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Theme
+              </label>
+              <select
+                value={formData.theme || 'animals'}
+                onChange={(e) => setFormData({ ...formData, theme: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="animals">🐾 Animals</option>
+                <option value="fruits">🍎 Fruits</option>
+                <option value="objects">🎯 Objects</option>
+              </select>
+            </div>
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <h4 className="font-medium text-purple-800 mb-2">Memory Match Requirements:</h4>
+              <ul className="text-sm text-purple-700 space-y-1">
+                <li>• Card pairs with matching images</li>
+                <li>• Three difficulty levels (6, 8, 12 pairs)</li>
+                <li>• Theme-based card sets</li>
+                <li>• Flip animation and sound effects</li>
+                <li>• Progress tracking and scoring</li>
+                <li>• Hint system for assistance</li>
+              </ul>
+            </div>
+          </div>
+        );
+
       default:
         return null;
     }
@@ -751,7 +807,40 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
 
   // Render activity type icon and info
   const renderActivityTypeInfo = () => {
+    console.log('renderActivityTypeInfo - formData.type:', formData.type);
+    console.log('renderActivityTypeInfo - available configs:', Object.keys(activityConfigs));
+    
+    // Handle empty or invalid activity types
+    if (!formData.type || formData.type.trim() === '') {
+      console.log('renderActivityTypeInfo - empty type detected');
+      return (
+        <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg mb-4">
+          <BookOpen className="w-8 h-8 text-blue-600" />
+          <div>
+            <h3 className="font-semibold text-gray-800">Activity</h3>
+            <p className="text-sm text-gray-600">Select an activity type to see details</p>
+          </div>
+        </div>
+      );
+    }
+    
     const config = activityConfigs[formData.type as keyof typeof activityConfigs];
+    console.log('renderActivityTypeInfo - config found:', !!config, 'for type:', formData.type);
+    
+    // Safety check - if config is undefined, show a default
+    if (!config) {
+      console.log('renderActivityTypeInfo - no config found for type:', formData.type);
+      return (
+        <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg mb-4">
+          <BookOpen className="w-8 h-8 text-blue-600" />
+          <div>
+            <h3 className="font-semibold text-gray-800">Unknown Activity Type</h3>
+            <p className="text-sm text-gray-600">Type: {formData.type}</p>
+          </div>
+        </div>
+      );
+    }
+    
     const IconComponent = config.icon;
     
     return (
@@ -816,7 +905,9 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
         {/* Activities List */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {activities.map((activity) => {
-            const config = activityConfigs[activity.type as keyof typeof activityConfigs];
+            // Handle empty or invalid activity types
+            const activityType = activity.type && activity.type.trim() !== '' ? activity.type : 'unknown';
+            const config = activityConfigs[activityType as keyof typeof activityConfigs];
             const IconComponent = config?.icon || BookOpen;
             
             return (
@@ -825,7 +916,7 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
                   <div className="flex items-center space-x-2">
                     <IconComponent className="w-6 h-6 text-blue-600" />
                     <span className="text-sm font-medium text-gray-600 capitalize">
-                      {activity.type.replace('_', ' ')}
+                      {activityType === 'unknown' ? 'Unknown Type' : activityType.replace('_', ' ')}
                     </span>
         </div>
                   <div className="flex space-x-2">
@@ -903,7 +994,9 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
                     <option value="digital_painting">🖌️ Digital Painting</option>
                     <option value="forest_hunt">🌲 Forest Hunt</option>
                     <option value="puzzle">🧩 Puzzle (Jigsaw)</option>
+
                     <option value="maze">🚀 Maze Puzzle</option>
+                    <option value="memory_match">🧠 Memory Match</option>
                   </select>
                 </div>
 

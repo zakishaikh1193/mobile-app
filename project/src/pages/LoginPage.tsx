@@ -3,14 +3,15 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAudio } from '../contexts/AudioContext';
 import AudioButton from '../components/AudioButton';
-import OptimizedImage from '../components/OptimizedImage';
+
 
 const LoginPage: React.FC = () => {
-  const [formData, setFormData] = useState({ email: '', password: '' });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  
+  const [formData, setFormData] = useState(() => ({ email: '', password: '' }));
+  const [loading, setLoading] = useState(() => false);
+  const [error, setError] = useState(() => '');
+  const [showPassword, setShowPassword] = useState(() => false);
+  const [isMuted, setIsMuted] = useState(() => false);
 
   const { login } = useAuth();
   const { speak } = useAudio();
@@ -72,17 +73,14 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className="relative min-h-screen font-sans overflow-hidden flex items-start justify-center p-4 pt-28">
-      {/* Background Image Layer with OptimizedImage */}
+      {/* Background Image Layer */}
       <div className="absolute inset-0 w-full h-full z-0">
-        <OptimizedImage
+        <img
           src="/loginbackground.webp"
           alt="Background"
-          isBackground
           className="w-full h-full object-cover"
-          containerClassName="absolute inset-0 w-full h-full"
-        >
-          <div className="absolute inset-0 w-full h-full bg-white/1 backdrop-blur-sm"></div>
-        </OptimizedImage>
+        />
+        <div className="absolute inset-0 w-full h-full bg-white/1 backdrop-blur-sm"></div>
       </div>
 
       {/* Container for top buttons */}
@@ -92,12 +90,7 @@ const LoginPage: React.FC = () => {
           className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md focus:outline-none p-2.5"
           aria-label={isMuted ? "Unmute background music" : "Mute background music"}
         >
-          <OptimizedImage
-            src={isMuted ? '/unmute.png' : '/mute.png'}
-            alt={isMuted ? 'Unmute' : 'Mute'}
-            className="w-full h-full object-contain"
-            lazy={false}
-          />
+          
         </button>
         <AudioButton />
       </div>

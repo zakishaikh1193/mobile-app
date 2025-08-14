@@ -902,6 +902,7 @@ const BubblePopActivity: React.FC<{ activity: any; onComplete: (score: number) =
     y: Math.random() * 60 + 20
   })));
   const { speak, playSound } = useAudio();
+  const navigate = useNavigate();
 
   useEffect(() => {
     speak(`${activity.instruction} Pop all the bubbles with the letter ${activity.data.targetLetter}!`);
@@ -939,6 +940,16 @@ const BubblePopActivity: React.FC<{ activity: any; onComplete: (score: number) =
       </motion.h2>
       <p className="text-lg text-gray-600 mb-4">{activity.instruction}</p>
       <p className="text-2xl font-bold text-purple-600 mb-8">Target Letter: {activity.data.targetLetter}</p>
+      
+      {/* Link to Bubble Pop Sheets */}
+      <div className="mb-6">
+        <AnimatedButton
+          onClick={() => navigate('/bubble-pop-sheets')}
+          className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-300 shadow-lg"
+        >
+          🖨️ Get Printable Activity Sheets
+        </AnimatedButton>
+      </div>
       
       <div className="relative h-96 bg-gradient-to-b from-blue-200 to-blue-400 rounded-3xl overflow-hidden">
         {bubbles.map((bubble: any) => (

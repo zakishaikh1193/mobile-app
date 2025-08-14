@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
 // Create a simple in-memory content store
 const initialContent = [
@@ -22,7 +22,15 @@ export const useContentLibrary = () => {
 };
 
 export const ContentLibraryProvider = ({ children }: { children: ReactNode }) => {
+  console.log('ContentLibraryProvider rendering...');
+  
+  // Use direct initialization instead of lazy initialization
   const [contentLibrary, setContentLibrary] = useState(initialContent);
+
+  // Add a useEffect to ensure React is fully initialized
+  useEffect(() => {
+    console.log('ContentLibraryProvider mounted successfully');
+  }, []);
 
   const contextValue = {
     contentLibrary,

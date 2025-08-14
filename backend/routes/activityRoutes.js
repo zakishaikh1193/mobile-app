@@ -88,7 +88,7 @@ const processActivityForResponse = (activity) => {
  * CREATE a new activity
  * POST /api/activities
  */
-router.post('/', upload.single('image'), async (req, res, next) => {
+router.post('/', auth, adminAuth, upload.single('image'), async (req, res, next) => {
     try {
         const {
             title, type, description, difficulty = 'easy', colors, grade_id,
@@ -230,11 +230,16 @@ router.get('/:id', async (req, res, next) => {
  * UPDATE an existing activity by ID
  * PUT /api/activities/:id
  */
-router.put('/:id', upload.single('image'), async (req, res, next) => {
+router.put('/:id', auth, adminAuth, upload.single('image'), async (req, res, next) => {
     try {
+        console.log('Activity update request received for ID:', req.params.id);
+        console.log('Request body:', req.body);
+        console.log('Request file:', req.file);
+        
         const { id } = req.params;
         const [existingRows] = await pool.query('SELECT image_path FROM activities WHERE id = ?', [id]);
         if (existingRows.length === 0) {
+            console.log('Activity not found with ID:', id);
             return res.status(404).json({ error: 'Activity not found' });
         }
 
@@ -252,13 +257,19 @@ router.put('/:id', upload.single('image'), async (req, res, next) => {
         delete updateFields.id; // Prevent updating the primary key
         const fieldEntries = Object.entries(updateFields);
         if (fieldEntries.length === 0) {
+            console.log('No fields to update');
             return res.status(400).json({ error: 'No fields to update' });
         }
 
         const setClause = fieldEntries.map(([key]) => `${key} = ?`).join(', ');
         const values = fieldEntries.map(([, val]) => val);
 
-        await pool.query(`UPDATE activities SET ${setClause}, updated_at = NOW() WHERE id = ?`, [...values, id]);
+        console.log('Update query:', `UPDATE activities SET ${setClause}, updated_at = NOW() WHERE id = ?`);
+        console.log('Update values:', [...values, id]);
+
+        const [updateResult] = await pool.query(`UPDATE activities SET ${setClause}, updated_at = NOW() WHERE id = ?`, [...values, id]);
+        
+        console.log('Update result:', updateResult);
         
         // If update was successful and a new image was uploaded, delete the old one.
         if (req.file && oldImagePath) {
@@ -270,6 +281,7 @@ router.put('/:id', upload.single('image'), async (req, res, next) => {
 
         res.json({ message: 'Activity updated successfully' });
     } catch (error) {
+        console.error('Error in activity update:', error);
         if (req.file) {
             fs.unlink(req.file.path, (err) => {
                 if(err) console.error("Error deleting temp file on update failure:", err);
@@ -284,7 +296,7 @@ router.put('/:id', upload.single('image'), async (req, res, next) => {
  * DELETE an activity by ID (Soft Delete)
  * DELETE /api/activities/:id
  */
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', auth, adminAuth, async (req, res, next) => {
     try {
         const { id } = req.params;
         const [result] = await pool.query(

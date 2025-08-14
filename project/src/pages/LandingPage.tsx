@@ -3,7 +3,7 @@ import { motion, Variants } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import FloatingClouds from './FloatingClouds';
-import OptimizedImage from '../components/OptimizedImage';
+
 
 // BubblyHeading Component (kept for reuse)
 const BubblyHeading: React.FC<{ text: string; className?: string; colorConfig: Record<string, string> }> = ({ text, className, colorConfig }) => {
@@ -69,20 +69,15 @@ const LandingPage: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center justify-center font-sans min-h-screen w-full p-4 relative overflow-hidden">
-      {/* Background with optimized image and blur placeholder */}
+      {/* Background with image */}
       <div className="absolute inset-0 w-full h-full">
-        <OptimizedImage
+        <img
           src="/background.webp"
           alt="Background"
-          isBackground
           className="w-full h-full object-cover"
-          containerClassName="absolute inset-0 w-full h-full"
-          // Using a subtle blue tint for the placeholder that matches the background
-          blurDataURL="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxMDAgMTAwJz48cmVjdCB3aWR0aD0nMTAwJyBoZWlnaHQ9JzEwMCcgZmlsbD0nI2VjZjBmZScvPjwvc3ZnPg=="
-        >
-          {/* Thin white layer, almost fully transparent */}
-          <div className="absolute inset-0 w-full h-full "></div>
-        </OptimizedImage>
+        />
+        {/* Thin white layer, almost fully transparent */}
+        <div className="absolute inset-0 w-full h-full "></div>
       </div>
 
       <audio ref={audioRef} src="/music.mp3" loop autoPlay muted={isMuted} />
@@ -92,28 +87,18 @@ const LandingPage: React.FC = () => {
         onClick={toggleMute}
         className="absolute top-4 right-4 z-50 w-10 md:w-12"
       >
-        <OptimizedImage
+        <img
           src={isMuted ? '/unmute.png' : '/mute-icon.png'}
           alt={isMuted ? 'Unmute Background Music' : 'Mute Background Music'}
           className="w-8 h-8 md:w-10 md:h-10"
-          width={40}
-          height={40}
-          lazy={false}
-          // Simple gray placeholder for the mute icon
-          blurDataURL="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCc+PHBhdGggZmlsbD0nI2QxZDFkMScgZD0nTTEyIDJDNi40OCAyIDIgNi40OCAyIDEydjEwaDEwYzUuNTIgMCAxMC00LjQ4IDEwLTEwUzE3LjUyIDIgMTIgMnonLz48L3N2Zz4="
         />
       </button>
 
       {/* Logo */}
-      <OptimizedImage
+      <img
         src="/KODEIT_Logo_2.png"
         alt="Kodeit Preschool Learning official logo"
         className="absolute top-4 left-4 w-20 md:w-24 h-auto z-50 object-contain"
-        width={96}
-        height={96 * 0.3} // Assuming the logo has a 3.2:1 aspect ratio
-        lazy={false} // Preload logo as it's above the fold
-        // Simple light blue placeholder for the logo
-        blurDataURL="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMTAwIDEwMCc+PHJlY3Qgd2lkdGg9JzEwMCUnIGhlaWdodD0nMTAwJScgZmlsbD0nI2UzZjJmZicvPjwvc3ZnPg=="
       />
 
       <FloatingClouds count={8} />

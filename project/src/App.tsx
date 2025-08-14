@@ -1,9 +1,10 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AudioProvider } from './contexts/AudioContext';
 import './index.css';
 import { ContentLibraryProvider, ContentLibraryDebug } from './contexts/ContentLibraryContext';
+
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -25,10 +26,14 @@ import ActivityPlayerWithCompletion from './components/ActivityPlayerWithComplet
 import LetterMatchingGame from './pages/LetterMatchingGame';
 import EducationalGame from './pages/EducationalGame';
 import WordMatchGame from './components/WordMatchGame';
-import ForestLetterHuntGame from './components/ForestLetterHunt/Game';
+import ForestLetterHuntGame from './pages/forest-letter-hunt';
 import StructuredLearning from './pages/StructuredLearning';
 import AdminChapterManagement from './pages/AdminChapterManagement';
 import PuzzleTest from './pages/PuzzleTest';
+import WorkingMazePuzzle from './components/WorkingMazePuzzle';
+import JigsawPuzzle from './components/JigsawPuzzle';
+import ARZone from './pages/ARZone';
+import BubblePopSheets from './pages/BubblePopSheets';
 
 // A wrapper for routes that require authentication
 const PrivateRoute: React.FC<{ children: React.ReactNode, roles?: Array<'admin' | 'teacher' | 'parent' | 'student'> }> = ({ 
@@ -38,25 +43,24 @@ const PrivateRoute: React.FC<{ children: React.ReactNode, roles?: Array<'admin' 
   const { user, loading } = useAuth();
   const location = useLocation();
   
-  if (loading) {
+  // Check if there's a token in localStorage
+  const token = localStorage.getItem('token');
+  
+  // Show loading while authentication is in progress
+  if (loading || (token && !user)) {
     return <div className="flex items-center justify-center min-h-screen">
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
     </div>;
   }
-  
-  // Check if there's a token in localStorage
-  const token = localStorage.getItem('token');
   
   // If no token, redirect to login
   if (!token) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   
-  // If we have a token but no user yet, show loading (auth in progress)
+  // If we have a token but no user after loading, redirect to login
   if (!user) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
-    </div>;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
   
   // Check if user has the required role
@@ -71,6 +75,18 @@ const PrivateRoute: React.FC<{ children: React.ReactNode, roles?: Array<'admin' 
   }
   
   return <>{children}</>;
+};
+
+// Wrapper component for maze puzzle to handle route parameters
+const MazeWrapper: React.FC = () => {
+  const { childId } = useParams<{ childId: string }>();
+  return (
+    <WorkingMazePuzzle 
+      activityId={1} 
+      childId={parseInt(childId || '1')} 
+      onBack={() => window.history.back()} 
+    />
+  );
 };
 
 // A wrapper for public routes that should redirect if user is already authenticated
@@ -155,8 +171,9 @@ const AppRoutes = () => {
                 <Route path="books" element={<BooksManagement />} />
                 <Route path="lessons" element={<LessonsManagement />} />
                 <Route path="units" element={<UnitsManagement />} />
-              <Route path="users" element={<div>User Management</div>} />
-              <Route path="content" element={<div>Content Management</div>} />
+              <Route path="users" element={<div>User Management - Coming Soon</div>} />
+              <Route path="content" element={<div>Content Management - Coming Soon</div>} />
+              <Route path="chapters" element={<AdminChapterManagement />} />
             </Routes>
           </PrivateRoute>
         } />
@@ -167,8 +184,8 @@ const AppRoutes = () => {
             <Routes>
               <Route path="dashboard" element={<TeacherDashboard />} />
               <Route path="portal" element={<TeacherPortal />} />
-              <Route path="classes" element={<div>My Classes</div>} />
-              <Route path="assignments" element={<div>Assignments</div>} />
+              <Route path="classes" element={<div>My Classes - Coming Soon</div>} />
+              <Route path="assignments" element={<div>Assignments - Coming Soon</div>} />
               <Route path="assessment-dashboard" element={<TeacherAssessmentDashboard />} />
             </Routes>
           </PrivateRoute>
@@ -218,7 +235,7 @@ const AppRoutes = () => {
               <Route path="dashboard" element={<ChildDashboard />} />
               <Route path="letter-path" element={<LetterPath />} />
               <Route path="activities" element={<LearningHub />} />
-              <Route path="progress" element={<div>My Progress</div>} />
+              <Route path="progress" element={<div>My Progress - Coming Soon</div>} />
             </Routes>
           </PrivateRoute>
         } />
@@ -226,14 +243,14 @@ const AppRoutes = () => {
         {/* Legacy Routes (for backward compatibility) */}
         <Route path="/auth" element={<Navigate to="/login" />} />
         <Route path="/parent-dashboard" element={
-          <PrivateRoute roles={['admin', 'teacher']}>
-            <div>ParentDashboard</div>
+          <PrivateRoute roles={['admin', 'teacher', 'parent']}>
+            <ParentDashboard />
           </PrivateRoute>
         } />
         
         <Route path="/child-dashboard/:childId" 
           element={
-            <PrivateRoute roles={['teacher', 'admin']}>
+            <PrivateRoute roles={['teacher', 'admin', 'parent', 'student']}>
               <ChildDashboard />
             </PrivateRoute>
           } 
@@ -252,11 +269,11 @@ const AppRoutes = () => {
           </PrivateRoute>
         } />
         
-        {/* <Route path="/forest-letter-hunt/:childId" element={
+        <Route path="/forest-letter-hunt/:childId" element={
           <PrivateRoute>
             <ForestLetterHuntGame />
           </PrivateRoute>
-        } /> */}
+        } />
         
         <Route path="/educational-game/:childId" element={
           <PrivateRoute>
@@ -278,11 +295,11 @@ const AppRoutes = () => {
         
         <Route path="/ar-zone/:childId" element={
           <PrivateRoute>
-            <div>AR Zone - Coming Soon!</div>
+            <ARZone />
           </PrivateRoute>
         } />
         
-        <Route path="/learning/:hubId/:childId" element={
+        <Route path="/learning/:hubType/:childId" element={
           <PrivateRoute>
             <LearningHub />
           </PrivateRoute>
@@ -306,6 +323,20 @@ const AppRoutes = () => {
           </PrivateRoute>
         } />
         
+        {/* Working Maze Puzzle Route */}
+        <Route path="/working-maze/:childId" element={
+          <PrivateRoute>
+            <MazeWrapper />
+          </PrivateRoute>
+        } />
+        
+        {/* Bubble Pop Learning Sheets Route */}
+        <Route path="/bubble-pop-sheets" element={
+          <PrivateRoute>
+            <BubblePopSheets />
+          </PrivateRoute>
+        } />
+        
         {/* 404 Route */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
@@ -314,8 +345,6 @@ const AppRoutes = () => {
 }
 
 function App() {
-  console.log('App rendering...');
-  
   return (
     <Router>
       <AuthProvider>

@@ -6,7 +6,8 @@ import api from '../services/api';
 import Gallery from './Gallery';
 import DigitalPaintingWithCompletion from './DigitalPaintingWithCompletion';
 import JigsawPuzzle from './JigsawPuzzle';
-import MazePuzzle from './MazePuzzle';
+import WorkingMazePuzzle from './WorkingMazePuzzle';
+import BubblePopLearning from './BubblePopLearning';
 import { LineArt } from '../types/lineArt';
 
 interface Activity {
@@ -130,7 +131,17 @@ const ActivityPlayerWithCompletion: React.FC = () => {
 
        case 'maze':
          return (
-           <MazePuzzle
+           <WorkingMazePuzzle
+             activityId={activity.id}
+             childId={parseInt(childId || '0')}
+             onComplete={handleCompletePuzzle}
+             onBack={handleBackToActivities}
+           />
+         );
+
+       case 'bubble_pop':
+         return (
+           <BubblePopLearning
              activityId={activity.id}
              childId={parseInt(childId || '0')}
              onComplete={handleCompletePuzzle}

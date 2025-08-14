@@ -90,6 +90,9 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  console.log('AuthProvider rendering...');
+  
+  // Use simple useState calls without lazy initializers
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,20 +107,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('userId', userData.id.toString()); // Store user ID
     setUser(userData);
     
-    // Set pending navigation instead of calling navigate directly
-    if (userData.role === 'admin') {
-      setPendingNavigation('/admin/dashboard');
-    } else if (userData.role === 'teacher') {
-      setPendingNavigation('/teacher/dashboard');
-    } else if (userData.role === 'parent') {
-      setPendingNavigation('/parent/dashboard');
+    // Check if there's a saved path to return to
+    const savedPath = localStorage.getItem('lastPath');
+    if (savedPath && savedPath !== '/login' && savedPath !== '/register') {
+      setPendingNavigation(savedPath);
+      localStorage.removeItem('lastPath'); // Clear saved path
     } else {
-      setPendingNavigation('/student/dashboard');
+      // Set default navigation based on role
+      if (userData.role === 'admin') {
+        setPendingNavigation('/admin/dashboard');
+      } else if (userData.role === 'teacher') {
+        setPendingNavigation('/teacher/dashboard');
+      } else if (userData.role === 'parent') {
+        setPendingNavigation('/parent/dashboard');
+      } else {
+        setPendingNavigation('/student/dashboard');
+      }
     }
   }, []);
 
-  // Navigation handler component
-  const NavigationHandler: React.FC = () => {
+  // Navigation handler effect - use a separate component to avoid hook issues
+  const NavigationHandler = () => {
     const navigate = useNavigate();
     
     useEffect(() => {
@@ -133,6 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const loadUser = useCallback(async () => {
     const token = localStorage.getItem('token');
     console.log('AuthContext - loadUser called, token:', token ? 'exists' : 'not found');
+    
     if (!token) {
       console.log('AuthContext - no token found, setting loading to false');
       setLoading(false);
@@ -145,10 +156,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log('AuthContext - profile loaded successfully:', userData);
       localStorage.setItem('userId', userData.id.toString()); // Store user ID
       setUser(userData);
-    } catch (error) {
+      
+      // Store current path for refresh preservation
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/login' && currentPath !== '/register') {
+        localStorage.setItem('lastPath', currentPath);
+      }
+    } catch (error: any) {
       console.error('AuthContext - error loading user:', error);
-      localStorage.removeItem('token');
-      localStorage.removeItem('userId'); // Clear user ID on error
+      // Only clear token if it's an authentication error, not network error
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('userId'); // Clear user ID on error
+      }
     } finally {
       console.log('AuthContext - loadUser finished, setting loading to false');
       setLoading(false);
@@ -158,6 +178,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     loadUser();
   }, [loadUser]);
+
+  // Save current path for refresh preservation
+  useEffect(() => {
+    const saveCurrentPath = () => {
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/login' && currentPath !== '/register' && user) {
+        localStorage.setItem('lastPath', currentPath);
+      }
+    };
+
+    // Save path on mount and when user changes
+    saveCurrentPath();
+
+    // Save path when URL changes
+    window.addEventListener('popstate', saveCurrentPath);
+    return () => window.removeEventListener('popstate', saveCurrentPath);
+  }, [user]);
 
   const login = async (email: string, password: string): Promise<void> => {
     setLoading(true);
@@ -217,10 +254,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = (): void => {
+    console.log('Logout function called');
     localStorage.removeItem('token');
     localStorage.removeItem('userId'); // Clear user ID
     setUser(null);
     setPendingNavigation('/login');
+    console.log('Logout completed, navigating to login');
   };
 
   const updateUser = (userData: Partial<User>): void => {

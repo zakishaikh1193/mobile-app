@@ -7,7 +7,7 @@ import { useAuth, type Child } from '../contexts/AuthContext';
 import { useAudio } from '../contexts/AudioContext';
 import { authAPI } from '../services/api';
 import AudioButton from '../components/AudioButton';
-import OptimizedImage from '../components/OptimizedImage';
+
 import { avatars } from '../assets/avatars';
 
 const ParentDashboard = () => {
@@ -192,14 +192,12 @@ const ParentDashboard = () => {
 
   return (
     <div className="relative w-full min-h-screen font-sans overflow-hidden">
-      {/* Background with optimized image */}
+      {/* Background with image */}
       <div className="absolute inset-0 w-full h-full">
-        <OptimizedImage
+        <img
           src="/ParentDashboardBackground.webp"
           alt="Background"
-          isBackground
           className="w-full h-full object-cover"
-          containerClassName="absolute inset-0 w-full h-full"
         />
       </div>
 
@@ -244,15 +242,10 @@ const ParentDashboard = () => {
                     >
                       <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/90 rounded-full shadow-md flex items-center justify-center border-4 border-cyan-500 p-1">
                         <div className="w-20 h-20 md:w-24 md:h-24">
-                          <OptimizedImage
+                          <img
                             src={child.avatar || avatars.girl[0]}
                             alt={child.first_name}
                             className="w-full h-full object-cover rounded-full"
-                            width={96}
-                            height={96}
-                            // Simple gray placeholder for the child avatar
-                            blurDataURL="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMjQgMjQnPjxwYXRoIGZpbGw9JyNkMWQxZDEnIGQ9J00xMiAyQzYuNDggMiAyIDYuNDggMiAxMnYxMGgxMGM1LjUyIDAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6Jy8+PC9zdmc+"
-                            placeholderSrc={avatars.girl[0]} // Fallback avatar
                           />
                         </div>
                       </div>
@@ -294,14 +287,12 @@ const ParentDashboard = () => {
 
           {/* Logo */}
           <div className="mt-20 sm:mt-24 w-15 flex justify-center">
-  <OptimizedImage
+  <img
     src="/KODEIT_Logo_2.png"
     alt="Kodeit Logo"
     className="w-15 h-10 md:w-8 md:h-8 object-contain"
     style={{ width: "100px", height: "80px" }}
-    lazy={false}
-    blurDataURL="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMTAwIDEwMCc+PHJlY3Qgd2lkdGg9JzEwMCUnIGhlaWdodD0nMTAwJScgZmlsbD0nI2UzZjJmZicvPjwvc3ZnPg=="
-/>
+  />
           </div>
         </main>
       </div>
@@ -391,12 +382,10 @@ const ParentDashboard = () => {
                         onClick={() => handleAvatarSelect(avatar)}
                         className={`w-16 h-16 rounded-full overflow-hidden ${childForm.avatar === avatar ? 'ring-2 ring-brand-accent' : ''}`}
                       >
-                        <OptimizedImage
+                        <img
                           src={avatar}
                           alt="Avatar"
                           className="w-full h-full object-cover"
-                          width={64}
-                          height={64}
                         />
                       </button>
                     ))}

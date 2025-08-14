@@ -6,6 +6,9 @@ import api from '../services/api';
 import Gallery from './Gallery';
 import DigitalPainting from './DigitalPainting';
 import SimpleCompletionButton from './SimpleCompletionButton';
+import WorkingMazePuzzle from './WorkingMazePuzzle';
+import JigsawPuzzle from './JigsawPuzzle';
+import BubblePopLearning from './BubblePopLearning';
 import { LineArt } from '../types/lineArt';
 
 interface Activity {
@@ -163,6 +166,51 @@ const ActivityPlayer: React.FC = () => {
           <div className="text-center">
             <h2 className="text-3xl font-bold text-gray-800 mb-4">Forest Hunt</h2>
             <p className="text-gray-600">Forest hunt activity coming soon!</p>
+          </div>
+        );
+
+      case 'maze':
+        return (
+          <div className="w-full">
+            <WorkingMazePuzzle 
+              activityId={parseInt(activityId || '1')}
+              childId={parseInt(childId || '1')}
+              onComplete={(completionData) => {
+                console.log('Maze completed:', completionData);
+                // Handle completion logic here
+              }}
+              onBack={handleBackToActivities}
+            />
+          </div>
+        );
+
+      case 'puzzle':
+        return (
+          <div className="w-full">
+            <JigsawPuzzle 
+              activityId={parseInt(activityId || '1')}
+              childId={parseInt(childId || '1')}
+              onComplete={(completionData) => {
+                console.log('Jigsaw completed:', completionData);
+                // Handle completion logic here
+              }}
+              onBack={handleBackToActivities}
+            />
+          </div>
+        );
+
+      case 'bubble_pop':
+        return (
+          <div className="w-full">
+            <BubblePopLearning 
+              activityId={parseInt(activityId || '1')}
+              childId={parseInt(childId || '1')}
+              onComplete={(completionData) => {
+                console.log('Bubble Pop completed:', completionData);
+                // Handle completion logic here
+              }}
+              onBack={handleBackToActivities}
+            />
           </div>
         );
 
