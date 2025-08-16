@@ -32,6 +32,7 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
     pieceCount: 9, // For puzzle games
     letterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', // For letter matching
     bubbleCount: 20, // For bubble pop
+    bubblePopGameType: 'alphabet' as 'alphabet' | 'number' | 'shape' | 'color' | 'word', // For bubble pop game type
     numberRange: 10, // For counting
     emotionSet: ['happy', 'sad', 'angry', 'surprised'], // For emotion matching
     familyMembers: ['father', 'mother', 'sister', 'brother'], // For family tree
@@ -172,6 +173,7 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
       activityData.letterSet = formData.letterSet;
     } else if (formData.type === 'bubble_pop') {
       activityData.bubbleCount = formData.bubbleCount;
+      activityData.bubblePopGameType = formData.bubblePopGameType;
     } else if (formData.type === 'counting') {
       activityData.numberRange = formData.numberRange;
     } else if (formData.type === 'emotion_match') {
@@ -290,6 +292,7 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
       pieceCount: activityData.pieceCount || 9,
       letterSet: activityData.letterSet || 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
       bubbleCount: activityData.bubbleCount || 20,
+      bubblePopGameType: activityData.bubblePopGameType || 'alphabet',
       numberRange: activityData.numberRange || 10,
       emotionSet: activityData.emotionSet || ['happy', 'sad', 'angry', 'surprised'],
       familyMembers: activityData.familyMembers || ['father', 'mother', 'sister', 'brother'],
@@ -346,6 +349,7 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
       pieceCount: 9,
       letterSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
       bubbleCount: 20,
+      bubblePopGameType: 'alphabet',
       numberRange: 10,
       emotionSet: ['happy', 'sad', 'angry', 'surprised'],
       familyMembers: ['father', 'mother', 'sister', 'brother'],
@@ -519,6 +523,22 @@ const ActivityManager: React.FC<ActivityManagerProps> = ({ onClose }) => {
       case 'bubble_pop':
         return (
           <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Bubble Pop Game Type
+              </label>
+              <select
+                value={formData.bubblePopGameType}
+                onChange={(e) => setFormData({ ...formData, bubblePopGameType: e.target.value as 'alphabet' | 'number' | 'shape' | 'color' | 'word' })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="alphabet">🔤 Alphabet - Learn letters A-Z</option>
+                <option value="number">🔢 Numbers - Learn numbers 1-20</option>
+                <option value="shape">🔷 Shapes - Learn geometric shapes</option>
+                <option value="color">🎨 Colors - Learn color names</option>
+                <option value="word">📝 Words - Learn simple words</option>
+              </select>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Number of Bubbles

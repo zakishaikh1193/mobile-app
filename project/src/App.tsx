@@ -34,6 +34,12 @@ import WorkingMazePuzzle from './components/WorkingMazePuzzle';
 import JigsawPuzzle from './components/JigsawPuzzle';
 import ARZone from './pages/ARZone';
 import BubblePopSheets from './pages/BubblePopSheets';
+import BubblePopGameSelection from './pages/BubblePopGameSelection';
+import AdminBubblePopManagement from './components/AdminBubblePopManagement';
+import BubblePopDemo from './pages/BubblePopDemo';
+import BubblePopTest from './pages/BubblePopTest';
+import CreateBubblePopActivity from './pages/CreateBubblePopActivity';
+import BubblePopNavigation from './pages/BubblePopNavigation';
 
 // A wrapper for routes that require authentication
 const PrivateRoute: React.FC<{ children: React.ReactNode, roles?: Array<'admin' | 'teacher' | 'parent' | 'student'> }> = ({ 
@@ -336,6 +342,52 @@ const AppRoutes = () => {
             <BubblePopSheets />
           </PrivateRoute>
         } />
+        
+        {/* Enhanced Bubble Pop Game Selection Route */}
+        <Route path="/bubble-pop-games" element={
+          <PrivateRoute>
+            <BubblePopGameSelection />
+          </PrivateRoute>
+        } />
+        
+        {/* Admin Bubble Pop Management Route */}
+        <Route path="/admin/bubble-pop-management" element={
+          <PrivateRoute roles={['admin']}>
+            <AdminBubblePopManagement />
+          </PrivateRoute>
+        } />
+        
+        {/* Bubble Pop Demo Route */}
+        <Route path="/bubble-pop-demo" element={
+          <PrivateRoute>
+            <BubblePopDemo />
+          </PrivateRoute>
+        } />
+        
+        {/* Bubble Pop Test Route */}
+        <Route path="/bubble-pop-test" element={
+          <PrivateRoute>
+            <BubblePopTest />
+          </PrivateRoute>
+        } />
+        
+        {/* Create Bubble Pop Activity Route */}
+        <Route path="/create-bubble-pop-activity" element={
+          <PrivateRoute>
+            <CreateBubblePopActivity />
+          </PrivateRoute>
+        } />
+        
+        {/* Bubble Pop Navigation Route */}
+        <Route path="/bubble-pop-hub" element={
+          <PrivateRoute>
+            <BubblePopNavigation />
+          </PrivateRoute>
+        } />
+        
+        {/* Public Test Routes */}
+        <Route path="/test-bubble-pop" element={<BubblePopTest />} />
+        <Route path="/test-bubble-pop-demo" element={<BubblePopDemo />} />
         
         {/* 404 Route */}
         <Route path="*" element={<Navigate to="/" />} />

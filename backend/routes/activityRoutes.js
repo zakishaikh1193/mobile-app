@@ -70,6 +70,16 @@ const processActivityForResponse = (activity) => {
         }
     }
     
+    // Parse activity data
+    let parsedData = null;
+    if (activity.data) {
+        try {
+            parsedData = typeof activity.data === 'string' ? JSON.parse(activity.data) : activity.data;
+        } catch (e) {
+            parsedData = null; // Default to null on parse error
+        }
+    }
+    
     // Construct full URL for images
     const baseUrl = process.env.NODE_ENV === 'production' 
         ? 'https://prek-backend.bylinelms.com' 
@@ -79,6 +89,7 @@ const processActivityForResponse = (activity) => {
         ...activity,
         image_url: activity.image_path ? `${baseUrl}/${activity.image_path.replace(/\\/g, '/')}` : null,
         colors: parsedColors,
+        data: parsedData
     };
 };
 
@@ -93,7 +104,7 @@ router.post('/', auth, adminAuth, upload.single('image'), async (req, res, next)
         const {
             title, type, description, difficulty = 'easy', colors, grade_id,
             book_id, unit_id, lesson_id, learning_objectives, prerequisites,
-            estimated_duration = 10
+            estimated_duration = 10, bubblePopGameType, bubbleCount
         } = req.body;
 
         if (!req.file) {
@@ -101,6 +112,15 @@ router.post('/', auth, adminAuth, upload.single('image'), async (req, res, next)
         }
         if (!title || !type || !description) {
             return res.status(400).json({ error: 'Title, type, and description are required.' });
+        }
+
+        // Prepare activity data for JSON storage
+        let activityData = null;
+        if (type === 'bubble_pop') {
+            activityData = JSON.stringify({
+                bubblePopGameType: bubblePopGameType || 'alphabet',
+                bubbleCount: bubbleCount || 20
+            });
         }
 
         // Move the file from temp to its final destination
@@ -112,12 +132,13 @@ router.post('/', auth, adminAuth, upload.single('image'), async (req, res, next)
             `INSERT INTO activities (
                 title, type, description, difficulty, image_path, colors, 
                 grade_id, book_id, unit_id, lesson_id, learning_objectives, 
-                prerequisites, estimated_duration, status, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW())`,
+                prerequisites, estimated_duration, data, status, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW())`,
             [
                 title, type, description, difficulty, imageDbPath, colors || '[]',
                 grade_id || null, book_id || null, unit_id || null, lesson_id || null,
-                learning_objectives || null, prerequisites || null, estimated_duration
+                learning_objectives || null, prerequisites || null, estimated_duration,
+                activityData
             ]
         );
 

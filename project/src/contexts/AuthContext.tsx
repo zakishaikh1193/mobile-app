@@ -126,19 +126,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // Navigation handler effect - use a separate component to avoid hook issues
-  const NavigationHandler = () => {
-    const navigate = useNavigate();
-    
-    useEffect(() => {
-      if (pendingNavigation) {
-        navigate(pendingNavigation);
-        setPendingNavigation(null);
-      }
-    }, [pendingNavigation, navigate]);
-    
-    return null;
-  };
+  // Navigation handler effect
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    if (pendingNavigation) {
+      navigate(pendingNavigation);
+      setPendingNavigation(null);
+    }
+  }, [pendingNavigation, navigate]);
 
   const loadUser = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -468,7 +464,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      <NavigationHandler />
       {!loading && children}
     </AuthContext.Provider>
   );

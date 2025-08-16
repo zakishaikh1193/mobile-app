@@ -41,7 +41,6 @@ const BubblyHeading: React.FC<{ text: string; className?: string; colorConfig: R
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
   const [sunAnimationState, setSunAnimationState] = useState('hidden');
   const [showSpeechBubble, setShowSpeechBubble] = useState(false);
   const [showHeading, setShowHeading] = useState(false);
